@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { calculateNescoBill, NESCO_LTA_SLABS, LIFELINE_RATE } from "@/lib/tariff-constants"
 import { formatBDT, toBanglaNumber } from "@/lib/bangla"
-import { Calculator, Sparkles, CheckCircle2, Flame, Wind, Tv } from "lucide-react"
+import { Calculator, SlidersHorizontal, ArrowDown } from "lucide-react"
+import { ApplianceSimulator } from "@/features/tariffs/appliance-simulator"
 
 export const Route = createFileRoute("/tariffs")({
   component: TariffsPage,
@@ -24,18 +25,33 @@ function TariffsPage() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 max-w-5xl">
-      <div>
-        <div className="flex items-center gap-2">
-          <span className="p-2 rounded-xl bg-primary/10 text-primary">
-            <Calculator className="size-5" />
-          </span>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-            নেসকো প্রিপেইড ট্যারিফ ও বিল ক্যালকুলেটর
-          </h1>
+      <div id="main-calculator-top" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-primary/10 text-primary">
+              <Calculator className="size-5" />
+            </span>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+              নেসকো প্রিপেইড ট্যারিফ ও বিল ক্যালকুলেটর
+            </h1>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            বাংলাদেশ এনার্জি রেগুলেটরি কমিশন (BERC) কর্তৃক নির্ধারিত আবাসিক LT-A ট্যারিফ অনুযায়ী বিল হিসাব
+          </p>
         </div>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          বাংলাদেশ এনার্জি রেগুলেটরি কমিশন (BERC) কর্তৃক নির্ধারিত আবাসিক LT-A ট্যারিফ অনুযায়ী বিল হিসাব
-        </p>
+
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById("appliance-simulator-section")
+            if (el) el.scrollIntoView({ behavior: "smooth" })
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-xs font-semibold text-primary transition-colors cursor-pointer self-start sm:self-auto"
+        >
+          <SlidersHorizontal className="size-3.5" />
+          <span>ঘরের যন্ত্রপাতি দিয়ে ইউনিট মাপুন</span>
+          <ArrowDown className="size-3" />
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -283,66 +299,12 @@ function TariffsPage() {
         </CardContent>
       </Card>
 
-      {/* Home Appliances Power Consumption Guide */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-primary" />
-          <h3 className="text-base font-bold">বাসার প্রধান যন্ত্রপাতির বিদ্যুৎ ব্যয়ের আনুমানিক চিত্র</h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Card className="rounded-2xl p-4 border shadow-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                <Wind className="size-4" />
-              </span>
-              <Badge variant="outline" className="text-[10px]">১.৫ টন এসি</Badge>
-            </div>
-            <h4 className="text-xs font-bold">ইনভার্টার এসি</h4>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              প্রতি রাতে ৮ ঘণ্টা (২৫°C) চালালে মাসে আনুমানিক ১৮০-২২০ ইউনিট খরচ হয় (~৳১,৬০০ - ৳২,০০০)।
-            </p>
-          </Card>
-
-          <Card className="rounded-2xl p-4 border shadow-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Flame className="size-4" />
-              </span>
-              <Badge variant="outline" className="text-[10px]">গিজার / হিটার</Badge>
-            </div>
-            <h4 className="text-xs font-bold">ওয়াটার হিটার</h4>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              প্রতিদিন ১ ঘণ্টা চালালে মাসে প্রায় ৪৫-৬০ ইউনিট খরচ হয় (~৳৩৫০ - ৳৫০০)।
-            </p>
-          </Card>
-
-          <Card className="rounded-2xl p-4 border shadow-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="size-4" />
-              </span>
-              <Badge variant="outline" className="text-[10px]">রেফ্রিজারেটর</Badge>
-            </div>
-            <h4 className="text-xs font-bold">ফ্রিজ (২৫০ লিটার)</h4>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              ২৪ ঘণ্টা সচল থাকলে ইনভার্টার প্রযুক্তিতে মাসে গড়ে ৩৫-৪৫ ইউনিট খরচ হয় (~৳২৮০ - ৳৩৬০)।
-            </p>
-          </Card>
-
-          <Card className="rounded-2xl p-4 border shadow-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                <Tv className="size-4" />
-              </span>
-              <Badge variant="outline" className="text-[10px]">টিভি ও ফ্যান</Badge>
-            </div>
-            <h4 className="text-xs font-bold">৩টি সিলিং ফ্যান ও টিভি</h4>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              সারাদিন ব্যবহারে মাসে গড়ে ৬০-৮০ ইউনিট খরচ হতে পারে (~৳৪৫০ - ৳৬৫০)।
-            </p>
-          </Card>
-        </div>
+      {/* Interactive Room & Appliance Simulator & Comprehensive Appliances Guide */}
+      <div id="appliance-simulator-section">
+        <ApplianceSimulator
+          onApplyUnits={(newUnits) => setUnitsInput(newUnits)}
+          currentUnits={unitsInput}
+        />
       </div>
     </div>
   )

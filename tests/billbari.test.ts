@@ -5,6 +5,7 @@ import { generateAnalytics } from "../src/features/analytics/insights-generator"
 import { getSampleMeterData } from "../src/features/nesco/sample-data"
 import { getDatabase } from "../src/features/db/server-db"
 import { PAYMENT_PLANS } from "../src/features/payments/types"
+import { APPLIANCES, HOUSEHOLD_PRESETS, calculateMonthlyUnits } from "../src/features/tariffs/appliance-data"
 
 describe("Bangla & Currency Formatting Utilities", () => {
   it("converts english numerals to natural Bangla numerals", () => {
@@ -266,5 +267,57 @@ describe("bKash Payment & Subscription Management", () => {
         args: [`pay2_${Date.now()}`, testUserId, testTrxId, new Date().toISOString(), new Date().toISOString()],
       })
     ).rejects.toThrow()
+  })
+})
+
+describe("Appliance Simulator & Real-World Energy Estimation", () => {
+  it("provides comprehensive and diverse list of real-world home appliances", () => {
+    expect(APPLIANCES.length).toBeGreaterThanOrEqual(18)
+    
+    // Check key devices requested by users
+    const ac = APPLIANCES.find((a) => a.id === "ac_inverter")
+    const fridge = APPLIANCES.find((a) => a.id === "refrigerator")
+    const pump = APPLIANCES.find((a) => a.id === "water_pump")
+    const geyser = APPLIANCES.find((a) => a.id === "geyser")
+    const cooker = APPLIANCES.find((a) => a.id === "induction")
+    const fan = APPLIANCES.find((a) => a.id === "ceiling_fan")
+
+    expect(ac).toBeDefined()
+    expect(fridge).toBeDefined()
+    expect(pump).toBeDefined()
+    expect(geyser).toBeDefined()
+    expect(cooker).toBeDefined()
+    expect(fan).toBeDefined()
+
+    expect(ac?.tipBangla).toBeTruthy()
+    expect(fridge?.descriptionBangla).toBeTruthy()
+  })
+
+  it("calculates accurate monthly units for duty-cycled and standard appliances", () => {
+    const fan = APPLIANCES.find((a) => a.id === "ceiling_fan")!
+    // 75W * 14h * 1.0 duty * 30 days = 31.5 kWh
+    const fanUnits = calculateMonthlyUnits(fan, 1)
+    expect(fanUnits).toBeCloseTo(31.5, 0.5)
+
+    // 3 fans = 94.5 kWh
+    const threeFansUnits = calculateMonthlyUnits(fan, 3)
+    expect(threeFansUnits).toBeCloseTo(94.5, 1)
+
+    // Inverter AC: 1100W * 8h * 0.7 duty * 30 days = ~184.8 kWh
+    const ac = APPLIANCES.find((a) => a.id === "ac_inverter")!
+    const acUnits = calculateMonthlyUnits(ac, 1)
+    expect(acUnits).toBeGreaterThan(160)
+    expect(acUnits).toBeLessThan(230)
+  })
+
+  it("provides ready-made household presets for instant calculation", () => {
+    expect(HOUSEHOLD_PRESETS.length).toBeGreaterThanOrEqual(4)
+    const bachelor = HOUSEHOLD_PRESETS.find((p) => p.id === "bachelor")
+    const standard = HOUSEHOLD_PRESETS.find((p) => p.id === "standard_family")
+
+    expect(bachelor).toBeDefined()
+    expect(standard).toBeDefined()
+    expect(Object.keys(bachelor!.counts).length).toBeGreaterThan(0)
+    expect(Object.keys(standard!.counts).length).toBeGreaterThan(0)
   })
 })
