@@ -1,6 +1,7 @@
 import React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface StatCardProps {
@@ -10,12 +11,14 @@ interface StatCardProps {
   icon: React.ReactNode
   trend?: {
     value: string
-    isPositive?: boolean // positive typically good, but for expense might be reverse
+    isPositive?: boolean
     label: string
   }
   isEstimate?: boolean
   highlight?: boolean
   className?: string
+  requiresAuth?: boolean
+  onLoginClick?: () => void
 }
 
 export function StatCard({
@@ -27,6 +30,8 @@ export function StatCard({
   isEstimate = false,
   highlight = false,
   className,
+  requiresAuth = false,
+  onLoginClick,
 }: StatCardProps) {
   return (
     <Card
@@ -36,7 +41,36 @@ export function StatCard({
         className
       )}
     >
-      <CardContent className="p-4 sm:p-5 flex flex-col justify-between h-full">
+      {/* Blurred lock overlay if authentication is required */}
+      {requiresAuth && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-3 bg-background/80 backdrop-blur-xs text-center z-10 border border-primary/20">
+          <div className="p-1.5 rounded-full bg-primary/10 text-primary mb-1">
+            <Lock className="size-3.5" />
+          </div>
+          <span className="text-xs font-bold text-foreground leading-tight">
+            দিনভিত্তিক হিসাব দেখতে
+          </span>
+          <span className="text-[11px] text-muted-foreground mt-0.5">
+            লগইন করা প্রয়োজন
+          </span>
+          {onLoginClick && (
+            <button
+              type="button"
+              onClick={onLoginClick}
+              className="mt-2 px-3 py-1 text-[11px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
+            >
+              লগইন করুন
+            </button>
+          )}
+        </div>
+      )}
+
+      <CardContent
+        className={cn(
+          "p-4 sm:p-5 flex flex-col justify-between h-full",
+          requiresAuth && "filter blur-sm select-none opacity-40 pointer-events-none"
+        )}
+      >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <span
@@ -54,7 +88,7 @@ export function StatCard({
                   variant="outline"
                   className="text-[10px] h-4 px-1.5 font-normal text-muted-foreground border-dashed"
                 >
-                  গণনাকৃত অনুমান
+                  আনুমানিক হিসাব
                 </Badge>
               )}
             </div>

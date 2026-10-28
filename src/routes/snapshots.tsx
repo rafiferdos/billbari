@@ -90,11 +90,11 @@ function SnapshotsPage() {
               <Camera className="size-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              দৈনিক ব্যয় ট্র্যাকিং ও স্ন্যাপশট
+              দৈনিক খরচের হিসাব ও স্ন্যাপশট
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            নিয়মিত ব্যালেন্স রেকর্ড করে বাস্তব খরচের গতিপথ (Daily Burn Trajectory) ট্র্যাক করুন
+            নিয়মিত ব্যালেন্স লিখে রেখে প্রতিদিন কত টাকা খরচ হচ্ছে তা সহজে দেখুন
           </p>
         </div>
 
@@ -149,14 +149,43 @@ function SnapshotsPage() {
           <Loader2 className="size-6 animate-spin text-primary" />
           <span>স্ন্যাপশট ডেটা লোড হচ্ছে...</span>
         </div>
+      ) : !user ? (
+        <div className="relative rounded-2xl overflow-hidden border border-border">
+          {/* Lock Overlay */}
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-background/80 backdrop-blur-xs text-center space-y-3">
+            <div className="p-3 rounded-full bg-primary/10 text-primary">
+              <Camera className="size-6" />
+            </div>
+            <div className="space-y-1 max-w-sm">
+              <h3 className="text-base font-bold text-foreground">
+                দিনভিত্তিক হিসাব ও স্ন্যাপশট দেখতে লগইন করুন
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                আপনার মিটারের প্রতিদিনের ব্যালেন্স, খরচ এবং দিনভিত্তিক খরচের হিসাব দেখতে একটি ফ্রি একাউন্টে লগইন করুন।
+              </p>
+            </div>
+            <Button
+              onClick={() => openAuthModal("login")}
+              className="h-9 px-5 text-xs font-semibold"
+            >
+              লগইন বা নিবন্ধন করুন
+            </Button>
+          </div>
+
+          {/* Blurred Background Table Preview */}
+          <div className="filter blur-md select-none opacity-30 pointer-events-none p-2">
+            <SnapshotHistory
+              snapshots={combinedSnapshots}
+              meterNumber={meterFilter}
+              onTakeSnapshotClick={() => {}}
+            />
+          </div>
+        </div>
       ) : (
         <SnapshotHistory
           snapshots={combinedSnapshots}
           meterNumber={meterFilter}
-          onTakeSnapshotClick={() => {
-            if (!user) openAuthModal("login")
-            else setIsDialogOpen(true)
-          }}
+          onTakeSnapshotClick={() => setIsDialogOpen(true)}
           onSnapshotDeleted={() => loadSnapshots()}
         />
       )}

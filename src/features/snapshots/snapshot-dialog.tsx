@@ -128,7 +128,7 @@ export function SnapshotDialog({
             </Badge>
           </div>
           <DialogDescription className="text-xs text-muted-foreground mt-1">
-            আজকের ব্যালেন্স ও রিডিং রেকর্ড করে সময়ের সাথে সাথে দৈনিক বাস্তব ব্যয়ের গতিপথ ট্র্যাক করুন।
+            আজকের ব্যালেন্স ও রিডিং লিখে রেখে প্রতিদিনের আসল খরচের হিসাব রাখুন।
           </DialogDescription>
         </DialogHeader>
 
@@ -236,7 +236,7 @@ export function SnapshotDialog({
               <span className="font-bold text-foreground">{formatBDT(dailyEstimatedCost)} / দিন</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">আনুমানিক মাসিক প্রজেকশন:</span>
+              <span className="text-muted-foreground">পুরো মাসের সম্ভাব্য খরচ:</span>
               <span className="font-bold text-primary">{formatBDT(monthlyEstimatedCost)}</span>
             </div>
             <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/60">

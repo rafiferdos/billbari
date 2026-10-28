@@ -113,9 +113,9 @@ export function SnapshotHistory({
               </span>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-sm sm:text-base">বাস্তব ব্যয়ের গতিপথ (Actual Burn Trajectory)</h4>
+                  <h4 className="font-bold text-sm sm:text-base">প্রতিদিনের আসল খরচের হিসাব (Daily Burn)</h4>
                   <Badge variant="outline" className="text-[10px] bg-background">
-                    {toBanglaNumber(trajectory.diffDays)} দিনের বিশ্লেষণ
+                    {toBanglaNumber(trajectory.diffDays)} দিনের হিসাব
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
