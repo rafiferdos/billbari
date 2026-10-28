@@ -258,18 +258,24 @@ function HistoryPage() {
                             </TableCell>
                             <TableCell className="max-w-[140px] py-2.5">
                               <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    copyToClipboard(r.token)
-                                  }}
-                                  title="ট্যাপ করে টোকেন কপি করুন"
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/80 hover:bg-primary/10 hover:text-primary transition-all font-mono text-xs font-semibold border border-border/80 hover:border-primary/40 cursor-pointer text-left shadow-2xs"
-                                >
-                                  <span>{compactToken(r.token)}</span>
-                                  <Copy className="size-3 text-muted-foreground group-hover:text-primary shrink-0" />
-                                </button>
+                                {r.token ? (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      copyToClipboard(r.token)
+                                    }}
+                                    title="ট্যাপ করে টোকেন কপি করুন"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/80 hover:bg-primary/10 hover:text-primary transition-all font-mono text-xs font-semibold border border-border/80 hover:border-primary/40 cursor-pointer text-left shadow-2xs"
+                                  >
+                                    <span>{compactToken(r.token)}</span>
+                                    <Copy className="size-3 text-muted-foreground group-hover:text-primary shrink-0" />
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] text-muted-foreground px-2 py-0.5 rounded bg-muted/50">
+                                    সরাসরি সমন্বয়
+                                  </span>
+                                )}
                                 {r.token && r.token.length > 25 && (
                                   <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 font-normal shrink-0">
                                     মাল্টি

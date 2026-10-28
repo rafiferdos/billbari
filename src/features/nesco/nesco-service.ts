@@ -93,25 +93,36 @@ function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
   })
 
   // Safe defaults if headers couldn't be parsed
-  const tokenIdx = colMap.token ?? 2
-  const rentIdx = colMap.rent ?? 3
-  const demandIdx = colMap.demandCharge ?? 4
-  const pfcIdx = colMap.pfcCharge ?? 5
-  const vatIdx = colMap.vat ?? 6
-  const arrearsIdx = colMap.arrears ?? 7
-  const rebateIdx = colMap.rebate ?? 8
-  const netEnergyIdx = colMap.netEnergyBdt ?? 9
-  const grossAmountIdx = colMap.grossAmount ?? 10
-  const powerKwhIdx = colMap.powerKwh ?? 11
-  const viaIdx = colMap.via ?? 12
-  const dateIdx = colMap.date ?? 13
-  const statusIdx = colMap.status ?? 14
+  const tokenIdx = colMap.token ?? 1
+  const rentIdx = colMap.rent ?? 2
+  const demandIdx = colMap.demandCharge ?? 3
+  const pfcIdx = colMap.pfcCharge ?? 4
+  const vatIdx = colMap.vat ?? 5
+  const arrearsIdx = colMap.arrears ?? 6
+  const rebateIdx = colMap.rebate ?? 7
+  const netEnergyIdx = colMap.netEnergyBdt ?? 8
+  const grossAmountIdx = colMap.grossAmount ?? 9
+  const powerKwhIdx = colMap.powerKwh ?? 10
+  const viaIdx = colMap.via ?? 11
+  const dateIdx = colMap.date ?? 12
+  const statusIdx = colMap.status ?? 13
 
   table.find("tbody tr").each((i, row) => {
     const cols = $(row).find("td").map((__, td) => $(td).text().trim()).get()
     if (cols.length >= 7) {
       const id = cols[0] || String(i + 1)
-      const token = cols[tokenIdx] || ""
+      let token = cols[tokenIdx] || ""
+
+      // Failsafe: if token column was empty or didn't contain digits, scan cols for token pattern
+      if (!token || !token.replace(/[^0-9]/g, "").length) {
+        const found = cols.find((c) => {
+          const digits = c.replace(/[^0-9]/g, "")
+          return digits.length >= 16 && (c.includes("-") || digits.length >= 20)
+        })
+        if (found) {
+          token = found
+        }
+      }
 
       // Intelligently parse Gross Recharge (amount paid by customer at bKash/Nagad)
       // vs Net Energy (amount added directly to meter electricity balance after deductions)
@@ -261,12 +272,20 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
   let cachedData: NescoFetchResult | null = null
   try {
     const cachedRes = await db.execute({
-      sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ? OR customer_number = ? LIMIT 1`,
+      sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ? OR customer_number = ? ORDER BY cached_at DESC LIMIT 1`,
       args: [cleanCustNo, cleanCustNo],
     })
     const cachedRow = cachedRes.rows[0] as unknown as { data_json: string; cached_at: string } | undefined
     if (cachedRow?.data_json) {
-      cachedData = JSON.parse(cachedRow.data_json) as NescoFetchResult
+      const parsed = JSON.parse(cachedRow.data_json) as NescoFetchResult
+      // Guard against old corrupted cache where tokens were empty string
+      const isCorrupted =
+        parsed.rechargeHistory?.length > 0 &&
+        parsed.rechargeHistory.some((r) => r.amountBdt > 0 && !r.token?.trim())
+
+      if (!isCorrupted) {
+        cachedData = parsed
+      }
     }
   } catch (cacheErr) {
     console.warn("DB cache lookup error:", cacheErr)
@@ -382,6 +401,11 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
 
     // Cache real data to Database
     try {
+      const primaryMeter = customerInfo.meterNumber || cleanCustNo
+      const primaryCust = customerInfo.customerNumber || cleanCustNo
+      const nowIso = new Date().toISOString()
+      const jsonStr = JSON.stringify(result)
+
       await db.execute({
         sql: `
           INSERT INTO cached_meter_data (meter_number, customer_number, cached_at, data_json)
@@ -391,13 +415,23 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
             cached_at = excluded.cached_at,
             data_json = excluded.data_json
         `,
-        args: [
-          customerInfo.meterNumber || cleanCustNo,
-          customerInfo.customerNumber || cleanCustNo,
-          new Date().toISOString(),
-          JSON.stringify(result)
-        ],
+        args: [primaryMeter, primaryCust, nowIso, jsonStr],
       })
+
+      // If user queried with customer number or alias, ensure that key also exists
+      if (cleanCustNo !== primaryMeter) {
+        await db.execute({
+          sql: `
+            INSERT INTO cached_meter_data (meter_number, customer_number, cached_at, data_json)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(meter_number) DO UPDATE SET
+              customer_number = excluded.customer_number,
+              cached_at = excluded.cached_at,
+              data_json = excluded.data_json
+          `,
+          args: [cleanCustNo, primaryCust, nowIso, jsonStr],
+        })
+      }
     } catch (cacheErr) {
       console.warn("Could not cache NESCO response to Database:", cacheErr)
     }
