@@ -23,6 +23,44 @@ export const Route = createFileRoute("/history")({
   component: HistoryPage,
 })
 
+/**
+ * Compacts a token string for table display (e.g., "0135 •••• 6712")
+ * to prevent long multi-tokens from pushing table columns.
+ */
+function compactToken(token: string | null | undefined): string {
+  if (!token) return "টোকেন অপ্রাপ্য"
+  const clean = token.replace(/[^0-9A-Za-z-]/g, "").trim()
+  if (clean.length <= 14) return clean
+  const first = clean.slice(0, 4)
+  const last = clean.slice(-4)
+  return `${first} •••• ${last}`
+}
+
+/**
+ * Splits multi-token sequences (e.g. key revision tokens + recharge tokens)
+ */
+function extractTokenList(rawToken: string | null | undefined): string[] {
+  if (!rawToken) return []
+  const clean = rawToken.trim()
+  // Check if multiple tokens separated by space, slash, comma, newline
+  const parts = clean.split(/[\s,/;\n]+/).filter(Boolean)
+  if (parts.length > 1) {
+    return parts
+  }
+  // If no delimiter, but length is 40, 60, etc.
+  const onlyDigits = clean.replace(/[^0-9]/g, "")
+  if (onlyDigits.length >= 40 && onlyDigits.length % 20 === 0) {
+    const chunks: string[] = []
+    for (let i = 0; i < onlyDigits.length; i += 20) {
+      const chunk = onlyDigits.slice(i, i + 20)
+      const formatted = chunk.match(/.{1,4}/g)?.join("-") || chunk
+      chunks.push(formatted)
+    }
+    return chunks
+  }
+  return [clean]
+}
+
 function HistoryPage() {
   const [meterInput, setMeterInput] = React.useState("")
   const [data, setData] = React.useState<NescoFetchResult | null>(null)
@@ -182,7 +220,7 @@ function HistoryPage() {
                     <TableHeader>
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
                         <TableHead className="w-12 text-xs font-semibold">ক্রম</TableHead>
-                        <TableHead className="text-xs font-semibold">টোকেন নম্বর</TableHead>
+                        <TableHead className="text-xs font-semibold max-w-[140px]">টোকেন (ট্যাপে কপি)</TableHead>
                         <TableHead className="text-xs font-semibold">বিদ্যুৎ (kWh)</TableHead>
                         <TableHead className="text-xs font-semibold">টাকার পরিমাণ</TableHead>
                         <TableHead className="text-xs font-semibold">মাধ্যম</TableHead>
@@ -199,23 +237,33 @@ function HistoryPage() {
                         </TableRow>
                       ) : (
                         filteredRecharges.map((r, i) => (
-                          <TableRow key={r.id || i} className="hover:bg-muted/30 transition-colors">
+                          <TableRow
+                            key={r.id || i}
+                            onClick={() => setSelectedToken(r)}
+                            className="hover:bg-muted/50 cursor-pointer transition-colors group select-none"
+                            title="বিস্তারিত ভাউচার দেখতে ক্লিক করুন"
+                          >
                             <TableCell className="font-mono text-xs text-muted-foreground">
                               {toBanglaNumber(i + 1)}
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2 font-mono text-xs font-medium tracking-wider">
-                                <span>{r.token || "N/A"}</span>
-                                {r.token && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-6 text-muted-foreground hover:text-foreground"
-                                    onClick={() => copyToClipboard(r.token)}
-                                    title="টোকেন কপি করুন"
-                                  >
-                                    <Copy className="size-3" />
-                                  </Button>
+                            <TableCell className="max-w-[140px] py-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    copyToClipboard(r.token)
+                                  }}
+                                  title="ট্যাপ করে টোকেন কপি করুন"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/80 hover:bg-primary/10 hover:text-primary transition-all font-mono text-xs font-semibold border border-border/80 hover:border-primary/40 cursor-pointer text-left shadow-2xs"
+                                >
+                                  <span>{compactToken(r.token)}</span>
+                                  <Copy className="size-3 text-muted-foreground group-hover:text-primary shrink-0" />
+                                </button>
+                                {r.token && r.token.length > 25 && (
+                                  <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 font-normal shrink-0">
+                                    মাল্টি
+                                  </Badge>
                                 )}
                               </div>
                             </TableCell>
@@ -244,8 +292,11 @@ function HistoryPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-7 text-xs px-2.5"
-                                onClick={() => setSelectedToken(r)}
+                                className="h-7 text-xs px-2.5 group-hover:border-primary/50 group-hover:bg-primary/5"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedToken(r)
+                                }}
                               >
                                 বিস্তারিত
                               </Button>
@@ -331,34 +382,103 @@ function HistoryPage() {
 
           {selectedToken && (
             <div className="space-y-4 pt-2">
-              <div className="p-4 rounded-xl bg-muted/60 border text-center space-y-1">
-                <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
-                  ২০ ডিজিট রিচার্জ টোকেন
-                </span>
-                <p className="font-mono text-lg font-extrabold tracking-widest text-primary py-1 select-all">
-                  {selectedToken.token || "টোকেন কোড অপ্রাপ্য"}
-                </p>
-                {selectedToken.token && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs gap-1.5 mt-1"
-                    onClick={() => copyToClipboard(selectedToken.token)}
+              {/* Token Display with Tap to Copy & Multi-token support */}
+              {(() => {
+                const tokenList = extractTokenList(selectedToken.token)
+                if (tokenList.length > 1) {
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-bold text-foreground">
+                          মোট {toBanglaNumber(tokenList.length)}টি রিচার্জ টোকেন (ক্রম অনুযায়ী মিটারে দিন)
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-primary gap-1"
+                          onClick={() => copyToClipboard(tokenList.join(" "))}
+                        >
+                          <Copy className="size-3" />
+                          <span>সব কপি</span>
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {tokenList.map((tok, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => copyToClipboard(tok)}
+                            className="p-3 rounded-xl bg-muted/60 hover:bg-muted border flex items-center justify-between gap-2 cursor-pointer transition-colors group"
+                            title="কপি করতে ট্যাপ করুন"
+                          >
+                            <div>
+                              <span className="text-[10px] text-muted-foreground font-semibold block">
+                                টোকেন {toBanglaNumber(idx + 1)}
+                              </span>
+                              <span className="font-mono text-sm sm:text-base font-bold text-primary select-all break-all">
+                                {tok}
+                              </span>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                copyToClipboard(tok)
+                              }}
+                            >
+                              <Copy className="size-3" />
+                              <span>কপি</span>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div
+                    onClick={() => selectedToken.token && copyToClipboard(selectedToken.token)}
+                    className="p-4 rounded-2xl bg-muted/60 hover:bg-muted/80 border text-center space-y-1.5 cursor-pointer transition-all active:scale-[0.99] group relative"
+                    title="টোকেন নম্বর কপি করতে ট্যাপ করুন"
                   >
-                    {copiedToken ? (
-                      <>
-                        <Check className="size-3.5 text-emerald-500" />
-                        কপি হয়েছে
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-3.5" />
-                        টোকেন নম্বর কপি করুন
-                      </>
+                    <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
+                      <span>রিচার্জ টোকেন কোড</span>
+                      <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full font-bold">
+                        ট্যাপ করে কপি করুন
+                      </span>
+                    </div>
+                    <p className="font-mono text-lg sm:text-xl font-extrabold tracking-widest text-primary py-1 select-all break-all">
+                      {selectedToken.token || "টোকেন কোড অপ্রাপ্য"}
+                    </p>
+                    {selectedToken.token && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs gap-1.5 mt-1"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          copyToClipboard(selectedToken.token)
+                        }}
+                      >
+                        {copiedToken ? (
+                          <>
+                            <Check className="size-3.5 text-emerald-500" />
+                            কপি হয়েছে
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="size-3.5" />
+                            টোকেন নম্বর কপি করুন
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </Button>
-                )}
-              </div>
+                  </div>
+                )
+              })()}
 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2.5 rounded-lg border bg-card">
