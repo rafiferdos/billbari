@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatCard } from "@/features/analytics/stat-card"
+import { AdvancedStats } from "@/features/analytics/advanced-stats"
 import { ConsumptionChart } from "@/features/analytics/consumption-chart"
 import { RechargeTrendChart } from "@/features/analytics/recharge-trend-chart"
 import { SlabProgressCard } from "@/features/analytics/slab-progress-card"
@@ -446,6 +447,13 @@ function DashboardPage() {
               icon={<Calendar className="size-5" />}
             />
           </div>
+
+          {/* Advanced Real-World Statistics & Behavior Analysis */}
+          <AdvancedStats
+            analytics={analytics}
+            isAuthenticated={!!user}
+            onLoginClick={() => openAuthModal("login")}
+          />
 
           {/* Bangla Insights Section */}
           <div className="space-y-3">

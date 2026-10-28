@@ -136,3 +136,40 @@ export function formatDateBangla(dateStr: string | null | undefined): string {
     return dateStr
   }
 }
+
+export const BANGLA_DAYS = ["রবিবার", "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার"]
+
+/**
+ * Translates payment channels to natural Bangla
+ */
+export function translateViaBangla(via: string | null | undefined): string {
+  if (!via) return "-"
+  const v = via.trim().toLowerCase()
+  if (v.includes("bkash")) return "বিকাশ"
+  if (v.includes("nagad")) return "নগদ"
+  if (v.includes("rocket")) return "রকেট"
+  if (v.includes("upay")) return "উপায়"
+  if (v.includes("pos")) return "পিওএস ভেন্ডিং"
+  if (v.includes("bank")) return "ব্যাংক"
+  if (v.includes("online")) return "অনলাইন"
+  return via
+}
+
+/**
+ * Formats date with day of the week in natural Bangla
+ * e.g., "১৫ নভেম্বর ২০২৬ (রবিবার)"
+ */
+export function formatDateWithDayBangla(dateInput: Date | string | number | null | undefined): string {
+  if (!dateInput) return "-"
+  try {
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput)
+    if (isNaN(date.getTime())) return String(dateInput)
+    const dayName = BANGLA_DAYS[date.getDay()]
+    const day = toBanglaNumber(date.getDate())
+    const month = Object.values(BANGLA_MONTHS)[date.getMonth()]
+    const year = toBanglaNumber(date.getFullYear())
+    return `${day} ${month} ${year} (${dayName})`
+  } catch {
+    return String(dateInput)
+  }
+}

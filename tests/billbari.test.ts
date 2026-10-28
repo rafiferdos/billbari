@@ -82,6 +82,49 @@ describe("Bangla Smart Analytics & Insights", () => {
     const estimateInsight = analytics.insights.find((i) => i.isCalculatedEstimate)
     expect(estimateInsight).toBeDefined()
   })
+
+  it("calculates real-world recharge intelligence and ticket sizes", () => {
+    const sample = getSampleMeterData("12345678")
+    const analytics = generateAnalytics(sample)
+
+    expect(analytics.rechargeStats.totalCount).toBe(sample.rechargeHistory.length)
+    expect(analytics.rechargeStats.totalAmountBdt).toBeGreaterThan(0)
+    expect(analytics.rechargeStats.averageAmountBdt).toBeGreaterThan(0)
+    expect(analytics.rechargeStats.minAmountBdt).toBe(1000)
+    expect(analytics.rechargeStats.maxAmountBdt).toBe(2000)
+    expect(analytics.rechargeStats.favoriteVia).toBe("বিকাশ")
+    expect(analytics.rechargeStats.favoriteViaPct).toBeGreaterThan(0)
+    expect(analytics.rechargeStats.averageDaysBetweenRecharges).toBeGreaterThan(0)
+  })
+
+  it("calculates true cost efficiency, effective rate and 1% government rebate", () => {
+    const sample = getSampleMeterData("12345678")
+    const analytics = generateAnalytics(sample)
+
+    expect(analytics.costEfficiency.effectiveCostPerKwh).toBeGreaterThan(5)
+    expect(analytics.costEfficiency.totalGovernmentRebateBdt).toBeGreaterThan(0)
+    expect(analytics.costEfficiency.estimatedUnitsRemaining).toBeGreaterThan(0)
+    expect(analytics.costEfficiency.fixedOverheadPerMonthBdt).toBe(124) // 40 meter rent + 2 * 42 demand charge
+  })
+
+  it("calculates seasonality peak vs off-peak consumption", () => {
+    const sample = getSampleMeterData("12345678")
+    const analytics = generateAnalytics(sample)
+
+    expect(analytics.seasonality.highestMonth).toBeDefined()
+    expect(analytics.seasonality.highestMonth?.month).toBe("July")
+    expect(analytics.seasonality.lowestMonth?.month).toBe("January")
+    expect(analytics.seasonality.seasonalityGapPct).toBeGreaterThan(50)
+  })
+
+  it("calculates balance runway depletion date and eco carbon footprint", () => {
+    const sample = getSampleMeterData("12345678")
+    const analytics = generateAnalytics(sample)
+
+    expect(analytics.runway.depletionDate).toContain("২০")
+    expect(analytics.eco.carbonKg).toBeGreaterThan(0)
+    expect(analytics.eco.treesNeeded).toBeGreaterThan(0)
+  })
 })
 
 describe("Server-side Database Persistence (Turso / libSQL)", () => {

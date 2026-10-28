@@ -83,7 +83,7 @@ export function AuthDialog() {
               ⚡
             </div>
             <DialogTitle className="text-xl font-bold tracking-tight">
-              BillBari একাউন্ট
+              বিলবাড়ি একাউন্ট
             </DialogTitle>
           </div>
           <DialogDescription className="text-muted-foreground text-sm">

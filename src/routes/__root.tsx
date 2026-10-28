@@ -41,11 +41,11 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "BillBari (বিলবাড়ি) - NESCO Prepaid Electricity Analytics",
+        title: "বিলবাড়ি - নেসকো প্রিপেইড বিদ্যুৎ সহজ হিসাব",
       },
       {
         name: "description",
-        content: "Smart mobile-first Bangladeshi electricity bill & recharge analytics platform for NESCO prepaid meters.",
+        content: "নেসকো প্রিপেইড মিটার গ্রাহকদের জন্য বিদ্যুৎ বিল ও রিচার্জ খরচের সহজ হিসাব প্ল্যাটফর্ম।",
       },
     ],
     links: [
