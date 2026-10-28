@@ -4,6 +4,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { DbProvider } from "@tanstack/react-db"
+import { ThemeProvider } from "next-themes"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { Navbar } from "@/components/navbar"
@@ -68,29 +69,31 @@ function RootComponent() {
   const queryClient = getQueryClient()
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <DbProvider client={dbClient}>
-        <TooltipProvider>
-          <AuthProvider>
-            <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
-              <Navbar />
-              <main className="flex-1">
-                <Outlet />
-              </main>
-              <Footer />
-              <AuthDialog />
-              <Toaster position="top-right" />
-            </div>
-          </AuthProvider>
-        </TooltipProvider>
-      </DbProvider>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <QueryClientProvider client={queryClient}>
+        <DbProvider client={dbClient}>
+          <TooltipProvider>
+            <AuthProvider>
+              <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
+                <Navbar />
+                <main className="flex-1">
+                  <Outlet />
+                </main>
+                <Footer />
+                <AuthDialog />
+                <Toaster position="top-right" />
+              </div>
+            </AuthProvider>
+          </TooltipProvider>
+        </DbProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="bn" className="scroll-smooth">
+    <html lang="bn" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
