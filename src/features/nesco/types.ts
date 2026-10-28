@@ -14,14 +14,17 @@ export interface RechargeRecord {
   id: string
   token: string
   powerKwh: number
-  amountBdt: number
+  amountBdt: number // Gross recharge amount (e.g. 1000 BDT)
+  netEnergyBdt?: number // Net electricity amount credited after deductions (e.g. 748.92 BDT)
   via: string
   date: string
   status: string
   // Extra vending details if present
   rent?: number
   demandCharge?: number
+  pfcCharge?: number
   vat?: number
+  arrears?: number
   subsidy?: number
 }
 
@@ -31,6 +34,12 @@ export interface MonthlyConsumptionRecord {
   rechargeBdt: number
   discountBdt: number
   usageKwh: number
+  energyBdt?: number
+  meterRent?: number
+  demandCharge?: number
+  vat?: number
+  totalBillBdt?: number
+  monthEndBalance?: number
 }
 
 export type DataSource = "nesco_live" | "sample_demo"

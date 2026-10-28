@@ -33,6 +33,7 @@ export interface CalculatedEstimates {
 export interface ExtendedRechargeStats {
   totalCount: number
   totalAmountBdt: number
+  totalNetEnergyBdt: number // কর্তনের পর মিটারে মোট যুক্ত বিদ্যুৎ টাকা
   totalKwh: number
   averageAmountBdt: number // গড় রিচার্জের পরিমাণ (টিকিট সাইজ)
   minAmountBdt: number // সর্বনিম্ন রিচার্জ
@@ -42,6 +43,10 @@ export interface ExtendedRechargeStats {
   favoriteViaPct: number // চ্যানেলের শতকরা হার
   averageDaysBetweenRecharges: number | null // রিচার্জের মধ্যবর্তী গড় ব্যবধান (দিন)
   daysSinceLastRecharge: number | null // সর্বশেষ রিচার্জ কত দিন আগে হয়েছে
+  lastRechargeAmount: number
+  lastRechargeNetEnergyBdt: number
+  lastRechargePowerKwh: number
+  lastRechargeDeductionsBdt: number
 }
 
 export interface ExtendedCostEfficiencyStats {
@@ -98,6 +103,9 @@ export interface EnergyAnalytics {
   actual: {
     currentBalance: number
     lastRechargeAmount: number
+    lastRechargeNetEnergyBdt: number
+    lastRechargePowerKwh: number
+    lastRechargeDeductionsBdt: number
     lastRechargeDate: string
     lastRechargeVia: string
     latestMonthName: string
@@ -202,7 +210,16 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   // ==========================================
   const totalRechargeCount = rechargeHistory.length
   const totalRechargeAmount = rechargeHistory.reduce((acc, r) => acc + (r.amountBdt || 0), 0)
+  const totalNetEnergyBdt = rechargeHistory.reduce((acc, r) => acc + (r.netEnergyBdt || r.amountBdt || 0), 0)
   const totalRechargeKwh = rechargeHistory.reduce((acc, r) => acc + (r.powerKwh || 0), 0)
+
+  const lastRechargeAmount = latestRecharge?.amountBdt || 0
+  const lastRechargeNetEnergyBdt = latestRecharge?.netEnergyBdt || latestRecharge?.amountBdt || 0
+  const lastRechargePowerKwh = latestRecharge?.powerKwh || 0
+  const lastRechargeDeductionsBdt = Math.max(
+    0,
+    Math.round((lastRechargeAmount - lastRechargeNetEnergyBdt) * 100) / 100
+  )
 
   const averageAmountBdt =
     totalRechargeCount > 0 ? Math.round(totalRechargeAmount / totalRechargeCount) : 0
@@ -258,6 +275,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   const rechargeStats: ExtendedRechargeStats = {
     totalCount: totalRechargeCount,
     totalAmountBdt: totalRechargeAmount,
+    totalNetEnergyBdt,
     totalKwh: Math.round(totalRechargeKwh * 100) / 100,
     averageAmountBdt,
     minAmountBdt,
@@ -267,6 +285,10 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     favoriteViaPct,
     averageDaysBetweenRecharges,
     daysSinceLastRecharge,
+    lastRechargeAmount,
+    lastRechargeNetEnergyBdt,
+    lastRechargePowerKwh,
+    lastRechargeDeductionsBdt,
   }
 
   // ==========================================
@@ -536,10 +558,25 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     })
   }
 
+  // 8. Latest Recharge Deductions Breakdown Insight
+  if (latestRecharge && lastRechargeDeductionsBdt > 0) {
+    insights.push({
+      id: "latest-recharge-deductions",
+      title: "সর্বশেষ রিচার্জ ও মিটারে জমা",
+      description: `সর্বশেষ ${formatBDT(lastRechargeAmount)} রিচার্জের বিপরীতে মিটার ভাড়া, ডিমান্ড চার্জ ও ভ্যাট বাবদ মোট ৳${toBanglaNumber(lastRechargeDeductionsBdt)} কর্তন হয়েছে। অবশিষ্ট ${formatBDT(lastRechargeNetEnergyBdt)} সরাসরি মিটারে যোগ হয়ে ${toBanglaNumber(lastRechargePowerKwh)} kWh বিদ্যুৎ প্রাপ্তি হয়েছে।`,
+      type: "info",
+      metric: `${formatBDT(lastRechargeAmount)} ➔ ${formatBDT(lastRechargeNetEnergyBdt)} জমা`,
+      isCalculatedEstimate: false,
+    })
+  }
+
   return {
     actual: {
       currentBalance,
-      lastRechargeAmount: latestRecharge?.amountBdt || 0,
+      lastRechargeAmount,
+      lastRechargeNetEnergyBdt,
+      lastRechargePowerKwh,
+      lastRechargeDeductionsBdt,
       lastRechargeDate: latestRecharge?.date || "-",
       lastRechargeVia: latestRecharge?.via || "-",
       latestMonthName: latestMonth?.month || "-",

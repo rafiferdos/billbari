@@ -68,27 +68,92 @@ function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
   const table = $("table.bfont_post").first()
   if (!table.length) return records
 
-  table.find("tbody tr").each((_, row) => {
+  // 1. Detect column mapping dynamically from table headers
+  const headers: string[] = []
+  table.find("thead tr th, tr").first().find("th, td").each((_, el) => {
+    headers.push($(el).text().trim())
+  })
+
+  const colMap: Record<string, number> = {}
+  headers.forEach((h, idx) => {
+    const text = h.toLowerCase()
+    if (text.includes("টোকেন") || text.includes("token")) colMap.token = idx
+    else if (text.includes("মিটার রেন্ট") || text.includes("meter rent")) colMap.rent = idx
+    else if (text.includes("ডিমান্ড") || text.includes("demand")) colMap.demandCharge = idx
+    else if (text.includes("পিএফসি") || text.includes("pfc")) colMap.pfcCharge = idx
+    else if (text.includes("ভ্যাট") || text.includes("vat")) colMap.vat = idx
+    else if (text.includes("বকেয়া") || text.includes("জরিমানা") || text.includes("arrear")) colMap.arrears = idx
+    else if (text.includes("রেয়াত") || text.includes("rebate") || text.includes("discount")) colMap.rebate = idx
+    else if (text.includes("বিদ্যুৎ (টাকা)") || text.includes("energy")) colMap.netEnergyBdt = idx
+    else if (text.includes("রিচার্জের পরিমাণ") || (text.includes("রিচার্জ") && text.includes("টাকা"))) colMap.grossAmount = idx
+    else if (text.includes("কি.ও.আ") || text.includes("kwh") || text.includes("বিদ্যুৎ এর পরিমাণ")) colMap.powerKwh = idx
+    else if (text.includes("মাধ্যম") || text.includes("via") || text.includes("channel")) colMap.via = idx
+    else if (text.includes("তারিখ") || text.includes("date") || text.includes("time")) colMap.date = idx
+    else if (text.includes("স্ট্যাটাস") || text.includes("status")) colMap.status = idx
+  })
+
+  // Safe defaults if headers couldn't be parsed
+  const tokenIdx = colMap.token ?? 2
+  const rentIdx = colMap.rent ?? 3
+  const demandIdx = colMap.demandCharge ?? 4
+  const pfcIdx = colMap.pfcCharge ?? 5
+  const vatIdx = colMap.vat ?? 6
+  const arrearsIdx = colMap.arrears ?? 7
+  const rebateIdx = colMap.rebate ?? 8
+  const netEnergyIdx = colMap.netEnergyBdt ?? 9
+  const grossAmountIdx = colMap.grossAmount ?? 10
+  const powerKwhIdx = colMap.powerKwh ?? 11
+  const viaIdx = colMap.via ?? 12
+  const dateIdx = colMap.date ?? 13
+  const statusIdx = colMap.status ?? 14
+
+  table.find("tbody tr").each((i, row) => {
     const cols = $(row).find("td").map((__, td) => $(td).text().trim()).get()
     if (cols.length >= 7) {
-      // cols: [id, token, ..., power(8), amount(9), ..., via(11), date(12), status(13)]
-      const id = cols[0] || String(records.length + 1)
-      const token = cols[1] || ""
-      const powerKwh = parseFloat(cols[8] || cols[2] || "0") || 0
-      const amountBdt = parseFloat(cols[9] || cols[3] || "0") || 0
-      const via = cols[11] || cols[4] || "Online"
-      const date = cols[12] || cols[5] || ""
-      const status = cols[13] || cols[6] || "Success"
+      const id = cols[0] || String(i + 1)
+      const token = cols[tokenIdx] || ""
 
-      if (token || amountBdt > 0) {
+      // Intelligently parse Gross Recharge (amount paid by customer at bKash/Nagad)
+      // vs Net Energy (amount added directly to meter electricity balance after deductions)
+      let grossAmount = parseFloat(cols[grossAmountIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const netEnergyBdt = parseFloat(cols[netEnergyIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+
+      // If gross amount wasn't in cols[10] (e.g. older 6-column layout), fallback to net or amount column
+      if (grossAmount === 0 && netEnergyBdt > 0) {
+        grossAmount = netEnergyBdt
+      }
+
+      // Parse power in kWh (must be non-negative)
+      let powerKwh = parseFloat(cols[powerKwhIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      if (powerKwh < 0) powerKwh = 0
+
+      const rent = parseFloat(cols[rentIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const demandCharge = parseFloat(cols[demandIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const pfcCharge = parseFloat(cols[pfcIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const vat = parseFloat(cols[vatIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const arrears = parseFloat(cols[arrearsIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const subsidy = parseFloat(cols[rebateIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+
+      const via = cols[viaIdx] || "Online"
+      const date = cols[dateIdx] || ""
+      const status = cols[statusIdx] || "Success"
+
+      if (token || grossAmount > 0) {
         records.push({
           id,
           token,
           powerKwh,
-          amountBdt,
+          amountBdt: grossAmount,
+          netEnergyBdt: netEnergyBdt > 0 ? netEnergyBdt : grossAmount,
           via,
           date,
           status,
+          rent,
+          demandCharge,
+          pfcCharge,
+          vat,
+          arrears,
+          subsidy,
         })
       }
     }
@@ -102,15 +167,60 @@ function parseConsumptionTable($: cheerio.CheerioAPI): MonthlyConsumptionRecord[
   const table = $("table.bfont_post").first()
   if (!table.length) return records
 
+  // Detect column mapping dynamically from table headers
+  const headers: string[] = []
+  table.find("thead tr th, tr").first().find("th, td").each((_, el) => {
+    headers.push($(el).text().trim())
+  })
+
+  const colMap: Record<string, number> = {}
+  headers.forEach((h, idx) => {
+    const text = h.toLowerCase()
+    if (text.includes("বছর") || text.includes("year")) colMap.year = idx
+    else if (text.includes("মাস") && !text.includes("শেষে")) colMap.month = idx
+    else if (text.includes("সর্বমোট রিচার্জ") || text.includes("recharge")) colMap.rechargeBdt = idx
+    else if (text.includes("রেয়াত") || text.includes("rebate") || text.includes("discount")) colMap.discountBdt = idx
+    else if (text.includes("ব্যবহৃত বিদ্যুৎ (টাকা)") || text.includes("energy charge")) colMap.energyBdt = idx
+    else if (text.includes("মিটার রেন্ট") || text.includes("meter rent")) colMap.meterRent = idx
+    else if (text.includes("ডিমান্ড") || text.includes("demand")) colMap.demandCharge = idx
+    else if (text.includes("ভ্যাট") || text.includes("vat")) colMap.vat = idx
+    else if (text.includes("সর্বমোট ব্যবহার") || text.includes("total deduction")) colMap.totalBillBdt = idx
+    else if (text.includes("মাস শেষে মিটার ব্যালেন্স") || text.includes("month end")) colMap.monthEndBalance = idx
+    else if (text.includes("কি.ও.আ") || text.includes("kwh") || text.includes("ব্যবহৃত বিদ্যুৎ")) colMap.usageKwh = idx
+  })
+
+  const yearIdx = colMap.year ?? 0
+  const monthIdx = colMap.month ?? 1
+  const rechargeIdx = colMap.rechargeBdt ?? 2
+  const discountIdx = colMap.discountBdt ?? 3
+  const energyBdtIdx = colMap.energyBdt ?? 4
+  const rentIdx = colMap.meterRent ?? 5
+  const demandIdx = colMap.demandCharge ?? 6
+  const vatIdx = colMap.vat ?? 9
+  const totalBillIdx = colMap.totalBillBdt ?? 10
+  const balanceIdx = colMap.monthEndBalance ?? 11
+  const usageKwhIdx = colMap.usageKwh ?? 12
+
   table.find("tbody tr").each((_, row) => {
     const cols = $(row).find("td").map((__, td) => $(td).text().trim()).get()
     if (cols.length >= 5) {
-      // [year, month, recharge, discount, usage]
-      const year = cols[0]
-      const month = cols[1]
-      const rechargeBdt = parseFloat(cols[2]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const discountBdt = parseFloat(cols[3]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const usageKwh = parseFloat(cols[4]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const year = cols[yearIdx]
+      const month = cols[monthIdx]
+      const rechargeBdt = parseFloat(cols[rechargeIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const discountBdt = parseFloat(cols[discountIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const energyBdt = parseFloat(cols[energyBdtIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const meterRent = parseFloat(cols[rentIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const demandCharge = parseFloat(cols[demandIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const vat = parseFloat(cols[vatIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const totalBillBdt = parseFloat(cols[totalBillIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const monthEndBalance = parseFloat(cols[balanceIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+
+      // Usage in kWh (make sure we grab kWh, not BDT!)
+      let usageKwh = parseFloat(cols[usageKwhIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      if (usageKwh === 0 && cols.length === 5) {
+        // In legacy 5-column table, index 4 was usage
+        usageKwh = parseFloat(cols[4]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      }
 
       if (year && month) {
         records.push({
@@ -119,6 +229,12 @@ function parseConsumptionTable($: cheerio.CheerioAPI): MonthlyConsumptionRecord[
           rechargeBdt,
           discountBdt,
           usageKwh,
+          energyBdt,
+          meterRent,
+          demandCharge,
+          vat,
+          totalBillBdt,
+          monthEndBalance,
         })
       }
     }

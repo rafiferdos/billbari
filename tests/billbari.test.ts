@@ -83,6 +83,35 @@ describe("Bangla Smart Analytics & Insights", () => {
     expect(estimateInsight).toBeDefined()
   })
 
+  it("intelligently differentiates gross recharge from net electricity amount and deductions", () => {
+    const sample = getSampleMeterData("12345678")
+    // Simulate real NESCO voucher with deductions: 1000 recharge -> 748.92 net energy
+    sample.rechargeHistory[0] = {
+      ...sample.rechargeHistory[0],
+      amountBdt: 1000,
+      netEnergyBdt: 748.92,
+      powerKwh: 120.4,
+      rent: 40,
+      demandCharge: 168,
+      vat: 47.62,
+      subsidy: -4.54,
+    }
+    const analytics = generateAnalytics(sample)
+
+    expect(analytics.actual.lastRechargeAmount).toBe(1000)
+    expect(analytics.actual.lastRechargeNetEnergyBdt).toBe(748.92)
+    expect(analytics.actual.lastRechargeDeductionsBdt).toBe(251.08)
+    expect(analytics.rechargeStats.lastRechargeAmount).toBe(1000)
+    expect(analytics.rechargeStats.lastRechargeNetEnergyBdt).toBe(748.92)
+    expect(analytics.rechargeStats.lastRechargeDeductionsBdt).toBe(251.08)
+
+    // Deduction breakdown insight must be generated
+    const deductionInsight = analytics.insights.find((i) => i.id === "latest-recharge-deductions")
+    expect(deductionInsight).toBeDefined()
+    expect(deductionInsight?.description).toContain("১,০০০")
+    expect(deductionInsight?.description).toContain("৭৪৮.৯২")
+  })
+
   it("calculates real-world recharge intelligence and ticket sizes", () => {
     const sample = getSampleMeterData("12345678")
     const analytics = generateAnalytics(sample)

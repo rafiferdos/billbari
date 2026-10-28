@@ -439,11 +439,15 @@ function DashboardPage() {
               onLoginClick={() => openAuthModal("login")}
             />
 
-            {/* Last Recharge - Always visible */}
+            {/* Last Recharge - Shows Gross Recharge Amount with Net Energy Credited */}
             <StatCard
               title="সর্বশেষ রিচার্জ"
               value={formatBDT(analytics.actual.lastRechargeAmount)}
-              subvalue={`${formatDateBangla(analytics.actual.lastRechargeDate)} (${analytics.actual.lastRechargeVia})`}
+              subvalue={
+                analytics.actual.lastRechargeDeductionsBdt > 0
+                  ? `মিটারে জমা: ${formatBDT(analytics.actual.lastRechargeNetEnergyBdt)} (${toBanglaNumber(analytics.actual.lastRechargePowerKwh)} kWh)`
+                  : `${formatDateBangla(analytics.actual.lastRechargeDate)} (${analytics.actual.lastRechargeVia})`
+              }
               icon={<Calendar className="size-5" />}
             />
           </div>

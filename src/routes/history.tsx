@@ -222,8 +222,15 @@ function HistoryPage() {
                             <TableCell className="text-xs font-medium">
                               {toBanglaNumber(r.powerKwh)} kWh
                             </TableCell>
-                            <TableCell className="text-xs font-bold text-foreground">
-                              {formatBDT(r.amountBdt)}
+                            <TableCell className="text-xs">
+                              <div className="font-bold text-foreground font-mono">
+                                {formatBDT(r.amountBdt)}
+                              </div>
+                              {r.netEnergyBdt && r.netEnergyBdt !== r.amountBdt ? (
+                                <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                  মিটারে: {formatBDT(r.netEnergyBdt)}
+                                </div>
+                              ) : null}
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className="text-[11px] font-normal">
@@ -356,21 +363,57 @@ function HistoryPage() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2.5 rounded-lg border bg-card">
                   <span className="text-muted-foreground block text-[11px]">রিচার্জের পরিমাণ</span>
-                  <span className="font-bold text-foreground text-sm">{formatBDT(selectedToken.amountBdt)}</span>
+                  <span className="font-bold text-foreground text-sm font-mono">{formatBDT(selectedToken.amountBdt)}</span>
                 </div>
                 <div className="p-2.5 rounded-lg border bg-card">
-                  <span className="text-muted-foreground block text-[11px]">মোট বিদ্যুৎ</span>
+                  <span className="text-muted-foreground block text-[11px]">মিটারে যুক্ত বিদ্যুৎ টাকা</span>
+                  <span className="font-bold text-primary text-sm font-mono">
+                    {formatBDT(selectedToken.netEnergyBdt || selectedToken.amountBdt)}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-lg border bg-card">
+                  <span className="text-muted-foreground block text-[11px]">প্রাপ্ত বিদ্যুৎ</span>
                   <span className="font-bold text-foreground text-sm">{toBanglaNumber(selectedToken.powerKwh)} kWh</span>
                 </div>
                 <div className="p-2.5 rounded-lg border bg-card">
                   <span className="text-muted-foreground block text-[11px]">পেমেন্ট মাধ্যম</span>
                   <span className="font-medium text-foreground">{selectedToken.via}</span>
                 </div>
-                <div className="p-2.5 rounded-lg border bg-card">
-                  <span className="text-muted-foreground block text-[11px]">তারিখ ও সময়</span>
-                  <span className="font-medium text-foreground">{formatDateBangla(selectedToken.date)}</span>
-                </div>
               </div>
+
+              {(selectedToken.rent || selectedToken.demandCharge || selectedToken.vat) ? (
+                <div className="p-3 rounded-xl bg-muted/40 border text-xs space-y-1.5">
+                  <span className="text-[11px] font-bold text-muted-foreground block">
+                    সরকারি ও নিয়মিত কর্তন বিবরণী:
+                  </span>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                    {selectedToken.rent ? (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">মিটার রেন্ট:</span>
+                        <span className="font-mono text-foreground">{formatBDT(selectedToken.rent)}</span>
+                      </div>
+                    ) : null}
+                    {selectedToken.demandCharge ? (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">ডিমান্ড চার্জ:</span>
+                        <span className="font-mono text-foreground">{formatBDT(selectedToken.demandCharge)}</span>
+                      </div>
+                    ) : null}
+                    {selectedToken.vat ? (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">ভ্যাট (৫%):</span>
+                        <span className="font-mono text-foreground">{formatBDT(selectedToken.vat)}</span>
+                      </div>
+                    ) : null}
+                    {selectedToken.subsidy ? (
+                      <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                        <span>১% সরকারি রেয়াত:</span>
+                        <span className="font-mono font-bold">+{formatBDT(Math.abs(selectedToken.subsidy))}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                 <ShieldCheck className="size-4 shrink-0" />

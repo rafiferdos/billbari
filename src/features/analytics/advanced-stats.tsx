@@ -104,6 +104,15 @@ export function AdvancedStats({
                 </span>
               </div>
 
+              {rechargeStats.lastRechargeDeductionsBdt > 0 && (
+                <div className="flex items-center justify-between p-2 rounded-xl bg-primary/5 border border-primary/20">
+                  <span className="text-muted-foreground text-[11px]">সর্বশেষ রিচার্জ ও জমা:</span>
+                  <span className="font-semibold text-foreground text-[11px]">
+                    {formatBDT(rechargeStats.lastRechargeAmount)} (মিটারে {formatBDT(rechargeStats.lastRechargeNetEnergyBdt)})
+                  </span>
+                </div>
+              )}
+
               {/* Day-based metric: Interval between recharges */}
               <div className="relative pt-1">
                 {!isAuthenticated && (
