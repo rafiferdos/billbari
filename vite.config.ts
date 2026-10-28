@@ -5,9 +5,23 @@ import { nitro } from "nitro/vite"
 import viteReact from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 
-const config = defineConfig({
-  resolve: { tsconfigPaths: true },
-  plugins: [devtools(), tailwindcss(), tanstackStart(), nitro(), viteReact()],
-})
+export default defineConfig(({ mode }) => {
+  const isProd = mode === "production" || process.env.NODE_ENV === "production"
+  if (isProd) {
+    process.env.NODE_ENV = "production"
+  }
 
-export default config
+  return {
+    resolve: { tsconfigPaths: true },
+    plugins: [
+      ...(isProd ? [] : [devtools()]),
+      tailwindcss(),
+      tanstackStart(),
+      nitro(),
+      viteReact(),
+    ],
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(isProd ? "production" : "development"),
+    },
+  }
+})
