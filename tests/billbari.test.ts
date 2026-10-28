@@ -84,36 +84,49 @@ describe("Bangla Smart Analytics & Insights", () => {
   })
 })
 
-describe("SQLite Server-side Database Persistence", () => {
-  const db = getDatabase()
-
-  it("initializes tables and supports CRUD operations", () => {
+describe("Server-side Database Persistence (Turso / libSQL)", () => {
+  it("initializes tables and supports CRUD operations", async () => {
+    const db = await getDatabase()
     const testId = `user_${Date.now()}`
     const testEmail = `test_${Date.now()}@billbari.com`
 
-    db.prepare(`
-      INSERT INTO users (id, email, name, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(testId, testEmail, "Test User", new Date().toISOString(), new Date().toISOString())
+    await db.execute({
+      sql: `
+        INSERT INTO users (id, email, name, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+      `,
+      args: [testId, testEmail, "Test User", new Date().toISOString(), new Date().toISOString()],
+    })
 
-    const row = db.prepare(`SELECT * FROM users WHERE id = ?`).get(testId) as any
+    const res = await db.execute({
+      sql: `SELECT * FROM users WHERE id = ?`,
+      args: [testId],
+    })
+    const row = res.rows[0] as any
     expect(row).toBeDefined()
     expect(row.email).toBe(testEmail)
     expect(row.name).toBe("Test User")
 
     // Insert snapshot
     const snapId = `snap_${Date.now()}`
-    db.prepare(`
-      INSERT INTO snapshots (
-        id, user_id, meter_number, snapshot_date, balance, reading_kwh,
-        daily_estimated_cost, monthly_estimated_cost, source_type, created_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(snapId, testId, "12345678", "2026-10-29", 987.43, 2450.5, 85.0, 2550.0, "manual_reading", new Date().toISOString())
+    await db.execute({
+      sql: `
+        INSERT INTO snapshots (
+          id, user_id, meter_number, snapshot_date, balance, reading_kwh,
+          daily_estimated_cost, monthly_estimated_cost, source_type, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [snapId, testId, "12345678", "2026-10-29", 987.43, 2450.5, 85.0, 2550.0, "manual_reading", new Date().toISOString()],
+    })
 
-    const snapRow = db.prepare(`SELECT * FROM snapshots WHERE id = ?`).get(snapId) as any
+    const snapRes = await db.execute({
+      sql: `SELECT * FROM snapshots WHERE id = ?`,
+      args: [snapId],
+    })
+    const snapRow = snapRes.rows[0] as any
     expect(snapRow).toBeDefined()
     expect(snapRow.meter_number).toBe("12345678")
-    expect(snapRow.balance).toBe(987.43)
+    expect(Number(snapRow.balance)).toBeCloseTo(987.43)
   })
 })

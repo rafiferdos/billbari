@@ -21,16 +21,19 @@ function verifyPassword(password: string, hash: string): boolean {
   return crypto.timingSafeEqual(derivedKey, keyBuffer)
 }
 
-function createSessionToken(userId: string): string {
-  const db = getDatabase()
+async function createSessionToken(userId: string): Promise<string> {
+  const db = await getDatabase()
   const token = crypto.randomBytes(32).toString("hex")
   const expiresAt = new Date(Date.now() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000).toISOString()
   const createdAt = new Date().toISOString()
 
-  db.prepare(`
-    INSERT INTO sessions (token, user_id, expires_at, created_at)
-    VALUES (?, ?, ?, ?)
-  `).run(token, userId, expiresAt, createdAt)
+  await db.execute({
+    sql: `
+      INSERT INTO sessions (token, user_id, expires_at, created_at)
+      VALUES (?, ?, ?, ?)
+    `,
+    args: [token, userId, expiresAt, createdAt],
+  })
 
   setCookie(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
@@ -46,27 +49,32 @@ export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(async 
   const token = getCookie(SESSION_COOKIE_NAME)
   if (!token) return null
 
-  const db = getDatabase()
+  const db = await getDatabase()
   const now = new Date().toISOString()
 
-  const row = db.prepare(`
-    SELECT u.id, u.email, u.name, u.avatar_url, u.google_id, u.created_at
-    FROM sessions s
-    JOIN users u ON s.user_id = u.id
-    WHERE s.token = ? AND s.expires_at > ?
-  `).get(token, now) as
+  const res = await db.execute({
+    sql: `
+      SELECT u.id, u.email, u.name, u.avatar_url, u.google_id, u.created_at
+      FROM sessions s
+      JOIN users u ON s.user_id = u.id
+      WHERE s.token = ? AND s.expires_at > ?
+    `,
+    args: [token, now],
+  })
+
+  const row = res.rows[0] as unknown as
     | { id: string; email: string; name: string; avatar_url: string | null; google_id: string | null; created_at: string }
     | undefined
 
   if (!row) return null
 
   return {
-    id: row.id,
-    email: row.email,
-    name: row.name,
-    avatarUrl: row.avatar_url,
-    googleId: row.google_id,
-    createdAt: row.created_at,
+    id: String(row.id),
+    email: String(row.email),
+    name: String(row.name),
+    avatarUrl: row.avatar_url ? String(row.avatar_url) : null,
+    googleId: row.google_id ? String(row.google_id) : null,
+    createdAt: String(row.created_at),
   }
 })
 
@@ -79,10 +87,13 @@ export const registerFn = createServerFn({ method: "POST" })
     }
 
     const cleanEmail = email.trim().toLowerCase()
-    const db = getDatabase()
+    const db = await getDatabase()
 
-    const existing = db.prepare(`SELECT id FROM users WHERE email = ?`).get(cleanEmail)
-    if (existing) {
+    const existingRes = await db.execute({
+      sql: `SELECT id FROM users WHERE email = ?`,
+      args: [cleanEmail],
+    })
+    if (existingRes.rows.length > 0) {
       return { success: false, error: "এই ইমেইল দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।" }
     }
 
@@ -91,12 +102,15 @@ export const registerFn = createServerFn({ method: "POST" })
     const now = new Date().toISOString()
 
     try {
-      db.prepare(`
-        INSERT INTO users (id, email, password_hash, name, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(userId, cleanEmail, passwordHash, name.trim(), now, now)
+      await db.execute({
+        sql: `
+          INSERT INTO users (id, email, password_hash, name, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `,
+        args: [userId, cleanEmail, passwordHash, name.trim(), now, now],
+      })
 
-      createSessionToken(userId)
+      await createSessionToken(userId)
 
       const user: User = {
         id: userId,
@@ -108,7 +122,7 @@ export const registerFn = createServerFn({ method: "POST" })
       }
 
       return { success: true, user }
-    } catch (err) {
+    } catch {
       return { success: false, error: "রেজিস্ট্রেশন সম্পন্ন করতে সমস্যা হয়েছে।" }
     }
   })
@@ -122,13 +136,18 @@ export const loginFn = createServerFn({ method: "POST" })
     }
 
     const cleanEmail = email.trim().toLowerCase()
-    const db = getDatabase()
+    const db = await getDatabase()
 
-    const userRow = db.prepare(`
-      SELECT id, email, password_hash, name, avatar_url, google_id, created_at
-      FROM users
-      WHERE email = ?
-    `).get(cleanEmail) as
+    const res = await db.execute({
+      sql: `
+        SELECT id, email, password_hash, name, avatar_url, google_id, created_at
+        FROM users
+        WHERE email = ?
+      `,
+      args: [cleanEmail],
+    })
+
+    const userRow = res.rows[0] as unknown as
       | { id: string; email: string; password_hash: string | null; name: string; avatar_url: string | null; google_id: string | null; created_at: string }
       | undefined
 
@@ -141,15 +160,15 @@ export const loginFn = createServerFn({ method: "POST" })
       return { success: false, error: "ভুল ইমেইল বা পাসওয়ার্ড। পুনরায় চেষ্টা করুন।" }
     }
 
-    createSessionToken(userRow.id)
+    await createSessionToken(String(userRow.id))
 
     const user: User = {
-      id: userRow.id,
-      email: userRow.email,
-      name: userRow.name,
-      avatarUrl: userRow.avatar_url,
-      googleId: userRow.google_id,
-      createdAt: userRow.created_at,
+      id: String(userRow.id),
+      email: String(userRow.email),
+      name: String(userRow.name),
+      avatarUrl: userRow.avatar_url ? String(userRow.avatar_url) : null,
+      googleId: userRow.google_id ? String(userRow.google_id) : null,
+      createdAt: String(userRow.created_at),
     }
 
     return { success: true, user }
@@ -163,19 +182,27 @@ export const googleOAuthMockFn = createServerFn({ method: "POST" })
     const avatarUrl = data.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
     const googleId = `google_${Buffer.from(email).toString("base64").slice(0, 16)}`
 
-    const db = getDatabase()
+    const db = await getDatabase()
     const now = new Date().toISOString()
 
-    let userRow = db.prepare(`SELECT * FROM users WHERE google_id = ? OR email = ?`).get(googleId, email) as
+    const res = await db.execute({
+      sql: `SELECT id, email, name, avatar_url, google_id, created_at FROM users WHERE google_id = ? OR email = ?`,
+      args: [googleId, email],
+    })
+
+    let userRow = res.rows[0] as unknown as
       | { id: string; email: string; name: string; avatar_url: string | null; google_id: string | null; created_at: string }
       | undefined
 
     if (!userRow) {
       const newId = crypto.randomUUID()
-      db.prepare(`
-        INSERT INTO users (id, email, name, google_id, avatar_url, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(newId, email, name, googleId, avatarUrl, now, now)
+      await db.execute({
+        sql: `
+          INSERT INTO users (id, email, name, google_id, avatar_url, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+        args: [newId, email, name, googleId, avatarUrl, now, now],
+      })
 
       userRow = {
         id: newId,
@@ -187,17 +214,17 @@ export const googleOAuthMockFn = createServerFn({ method: "POST" })
       }
     }
 
-    createSessionToken(userRow.id)
+    await createSessionToken(String(userRow.id))
 
     return {
       success: true,
       user: {
-        id: userRow.id,
-        email: userRow.email,
-        name: userRow.name,
-        avatarUrl: userRow.avatar_url,
-        googleId: userRow.google_id,
-        createdAt: userRow.created_at,
+        id: String(userRow.id),
+        email: String(userRow.email),
+        name: String(userRow.name),
+        avatarUrl: userRow.avatar_url ? String(userRow.avatar_url) : null,
+        googleId: userRow.google_id ? String(userRow.google_id) : null,
+        createdAt: String(userRow.created_at),
       },
     }
   })
@@ -205,8 +232,11 @@ export const googleOAuthMockFn = createServerFn({ method: "POST" })
 export const logoutFn = createServerFn({ method: "POST" }).handler(async (): Promise<{ success: boolean }> => {
   const token = getCookie(SESSION_COOKIE_NAME)
   if (token) {
-    const db = getDatabase()
-    db.prepare(`DELETE FROM sessions WHERE token = ?`).run(token)
+    const db = await getDatabase()
+    await db.execute({
+      sql: `DELETE FROM sessions WHERE token = ?`,
+      args: [token],
+    })
   }
 
   deleteCookie(SESSION_COOKIE_NAME, {
@@ -229,23 +259,26 @@ export const saveMeterFn = createServerFn({ method: "POST" })
       return { success: false, error: "মিটার নম্বর অনুপস্থিত।" }
     }
 
-    const db = getDatabase()
+    const db = await getDatabase()
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
 
     try {
-      db.prepare(`
-        INSERT INTO saved_meters (id, user_id, meter_number, customer_number, customer_name, address, tariff, sanctioned_load, alias, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(user_id, meter_number) DO UPDATE SET
-          customer_number = excluded.customer_number,
-          customer_name = excluded.customer_name,
-          address = excluded.address,
-          tariff = excluded.tariff,
-          sanctioned_load = excluded.sanctioned_load,
-          alias = excluded.alias,
-          updated_at = excluded.updated_at
-      `).run(id, user.id, meterNumber.trim(), customerNumber || null, customerName || null, address || null, tariff || null, sanctionedLoad || null, alias || null, now, now)
+      await db.execute({
+        sql: `
+          INSERT INTO saved_meters (id, user_id, meter_number, customer_number, customer_name, address, tariff, sanctioned_load, alias, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(user_id, meter_number) DO UPDATE SET
+            customer_number = excluded.customer_number,
+            customer_name = excluded.customer_name,
+            address = excluded.address,
+            tariff = excluded.tariff,
+            sanctioned_load = excluded.sanctioned_load,
+            alias = excluded.alias,
+            updated_at = excluded.updated_at
+        `,
+        args: [id, user.id, meterNumber.trim(), customerNumber || null, customerName || null, address || null, tariff || null, sanctionedLoad || null, alias || null, now, now],
+      })
 
       return {
         success: true,
@@ -264,7 +297,7 @@ export const saveMeterFn = createServerFn({ method: "POST" })
           updatedAt: now,
         },
       }
-    } catch (err) {
+    } catch {
       return { success: false, error: "মিটার সংরক্ষণ করতে সমস্যা হয়েছে।" }
     }
   })
@@ -273,13 +306,18 @@ export const getSavedMetersFn = createServerFn({ method: "GET" }).handler(async 
   const user = await getCurrentUserFn()
   if (!user) return []
 
-  const db = getDatabase()
-  const rows = db.prepare(`
-    SELECT id, user_id, meter_number, customer_number, customer_name, address, tariff, sanctioned_load, alias, is_favorite, created_at, updated_at
-    FROM saved_meters
-    WHERE user_id = ?
-    ORDER BY updated_at DESC
-  `).all(user.id) as Array<{
+  const db = await getDatabase()
+  const res = await db.execute({
+    sql: `
+      SELECT id, user_id, meter_number, customer_number, customer_name, address, tariff, sanctioned_load, alias, is_favorite, created_at, updated_at
+      FROM saved_meters
+      WHERE user_id = ?
+      ORDER BY updated_at DESC
+    `,
+    args: [user.id],
+  })
+
+  const rows = res.rows as unknown as Array<{
     id: string
     user_id: string
     meter_number: string
@@ -295,18 +333,18 @@ export const getSavedMetersFn = createServerFn({ method: "GET" }).handler(async 
   }>
 
   return rows.map((r) => ({
-    id: r.id,
-    userId: r.user_id,
-    meterNumber: r.meter_number,
-    customerNumber: r.customer_number || undefined,
-    customerName: r.customer_name || undefined,
-    address: r.address || undefined,
-    tariff: r.tariff || undefined,
-    sanctionedLoad: r.sanctioned_load || undefined,
-    alias: r.alias || undefined,
+    id: String(r.id),
+    userId: String(r.user_id),
+    meterNumber: String(r.meter_number),
+    customerNumber: r.customer_number ? String(r.customer_number) : undefined,
+    customerName: r.customer_name ? String(r.customer_name) : undefined,
+    address: r.address ? String(r.address) : undefined,
+    tariff: r.tariff ? String(r.tariff) : undefined,
+    sanctionedLoad: r.sanctioned_load ? String(r.sanctioned_load) : undefined,
+    alias: r.alias ? String(r.alias) : undefined,
     isFavorite: Boolean(r.is_favorite),
-    createdAt: r.created_at,
-    updatedAt: r.updated_at,
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
   }))
 })
 
@@ -316,7 +354,10 @@ export const deleteSavedMeterFn = createServerFn({ method: "POST" })
     const user = await getCurrentUserFn()
     if (!user) return { success: false }
 
-    const db = getDatabase()
-    db.prepare(`DELETE FROM saved_meters WHERE user_id = ? AND meter_number = ?`).run(user.id, data.meterNumber)
+    const db = await getDatabase()
+    await db.execute({
+      sql: `DELETE FROM saved_meters WHERE user_id = ? AND meter_number = ?`,
+      args: [user.id, data.meterNumber],
+    })
     return { success: true }
   })

@@ -49,31 +49,34 @@ export const saveSnapshotFn = createServerFn({ method: "POST" })
       return { success: false, error: "মিটার নম্বর প্রদান আবশ্যক।" }
     }
 
-    const db = getDatabase()
+    const db = await getDatabase()
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
 
     try {
-      db.prepare(`
-        INSERT INTO snapshots (
-          id, user_id, meter_number, snapshot_date, balance, reading_kwh,
-          daily_estimated_cost, monthly_estimated_cost, source_type, notes, raw_data_json, created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        id,
-        user.id,
-        meterNumber,
-        snapshotDate || now,
-        balance || 0,
-        readingKwh || 0,
-        dailyEstimatedCost || 0,
-        monthlyEstimatedCost || 0,
-        sourceType || "manual_reading",
-        notes || null,
-        JSON.stringify(data),
-        now
-      )
+      await db.execute({
+        sql: `
+          INSERT INTO snapshots (
+            id, user_id, meter_number, snapshot_date, balance, reading_kwh,
+            daily_estimated_cost, monthly_estimated_cost, source_type, notes, raw_data_json, created_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        args: [
+          id,
+          user.id,
+          meterNumber,
+          snapshotDate || now,
+          balance || 0,
+          readingKwh || 0,
+          dailyEstimatedCost || 0,
+          monthlyEstimatedCost || 0,
+          sourceType || "manual_reading",
+          notes || null,
+          JSON.stringify(data),
+          now,
+        ],
+      })
 
       const snapshot: SnapshotRecord = {
         id,
@@ -90,7 +93,7 @@ export const saveSnapshotFn = createServerFn({ method: "POST" })
       }
 
       return { success: true, snapshot }
-    } catch (err) {
+    } catch {
       return { success: false, error: "স্ন্যাপশট ডেটাবেজে সংরক্ষণ করা সম্ভব হয়নি।" }
     }
   })
@@ -101,8 +104,30 @@ export const getSnapshotsFn = createServerFn({ method: "GET" })
     const user = await getCurrentUserFn()
     if (!user) return []
 
-    const db = getDatabase()
-    let rows: Array<{
+    const db = await getDatabase()
+    const res = data?.meterNumber
+      ? await db.execute({
+          sql: `
+            SELECT id, user_id, meter_number, snapshot_date, balance, reading_kwh,
+                   daily_estimated_cost, monthly_estimated_cost, source_type, notes, created_at
+            FROM snapshots
+            WHERE user_id = ? AND meter_number = ?
+            ORDER BY snapshot_date DESC
+          `,
+          args: [user.id, data.meterNumber],
+        })
+      : await db.execute({
+          sql: `
+            SELECT id, user_id, meter_number, snapshot_date, balance, reading_kwh,
+                   daily_estimated_cost, monthly_estimated_cost, source_type, notes, created_at
+            FROM snapshots
+            WHERE user_id = ?
+            ORDER BY snapshot_date DESC
+          `,
+          args: [user.id],
+        })
+
+    const rows = res.rows as unknown as Array<{
       id: string
       user_id: string
       meter_number: string
@@ -116,36 +141,18 @@ export const getSnapshotsFn = createServerFn({ method: "GET" })
       created_at: string
     }>
 
-    if (data?.meterNumber) {
-      rows = db.prepare(`
-        SELECT id, user_id, meter_number, snapshot_date, balance, reading_kwh,
-               daily_estimated_cost, monthly_estimated_cost, source_type, notes, created_at
-        FROM snapshots
-        WHERE user_id = ? AND meter_number = ?
-        ORDER BY snapshot_date DESC
-      `).all(user.id, data.meterNumber) as typeof rows
-    } else {
-      rows = db.prepare(`
-        SELECT id, user_id, meter_number, snapshot_date, balance, reading_kwh,
-               daily_estimated_cost, monthly_estimated_cost, source_type, notes, created_at
-        FROM snapshots
-        WHERE user_id = ?
-        ORDER BY snapshot_date DESC
-      `).all(user.id) as typeof rows
-    }
-
     return rows.map((r) => ({
-      id: r.id,
-      userId: r.user_id,
-      meterNumber: r.meter_number,
-      snapshotDate: r.snapshot_date,
-      balance: r.balance,
-      readingKwh: r.reading_kwh,
-      dailyEstimatedCost: r.daily_estimated_cost,
-      monthlyEstimatedCost: r.monthly_estimated_cost,
+      id: String(r.id),
+      userId: String(r.user_id),
+      meterNumber: String(r.meter_number),
+      snapshotDate: String(r.snapshot_date),
+      balance: Number(r.balance),
+      readingKwh: Number(r.reading_kwh),
+      dailyEstimatedCost: Number(r.daily_estimated_cost),
+      monthlyEstimatedCost: Number(r.monthly_estimated_cost),
       sourceType: r.source_type,
-      notes: r.notes || undefined,
-      createdAt: r.created_at,
+      notes: r.notes ? String(r.notes) : undefined,
+      createdAt: String(r.created_at),
     }))
   })
 
@@ -155,7 +162,10 @@ export const deleteSnapshotFn = createServerFn({ method: "POST" })
     const user = await getCurrentUserFn()
     if (!user) return { success: false }
 
-    const db = getDatabase()
-    db.prepare(`DELETE FROM snapshots WHERE id = ? AND user_id = ?`).run(data.id, user.id)
+    const db = await getDatabase()
+    await db.execute({
+      sql: `DELETE FROM snapshots WHERE id = ? AND user_id = ?`,
+      args: [data.id, user.id],
+    })
     return { success: true }
   })

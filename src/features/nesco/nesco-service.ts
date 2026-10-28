@@ -133,7 +133,7 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
     return getSampleMeterData(cleanCustNo)
   }
 
-  const db = getDatabase()
+  const db = await getDatabase()
 
   try {
     // 1. Initial GET to obtain session cookies and CSRF token
@@ -225,27 +225,32 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
         fetchedAt: new Date().toISOString(),
       }
 
-      // Cache to SQLite
+      // Cache to Database
       try {
-        db.prepare(`
-          INSERT INTO cached_meter_data (meter_number, customer_number, cached_at, data_json)
-          VALUES (?, ?, ?, ?)
-          ON CONFLICT(meter_number) DO UPDATE SET
-            cached_at = excluded.cached_at,
-            data_json = excluded.data_json
-        `).run(cleanCustNo, customerInfo.customerNumber, new Date().toISOString(), JSON.stringify(result))
+        await db.execute({
+          sql: `
+            INSERT INTO cached_meter_data (meter_number, customer_number, cached_at, data_json)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(meter_number) DO UPDATE SET
+              cached_at = excluded.cached_at,
+              data_json = excluded.data_json
+          `,
+          args: [cleanCustNo, customerInfo.customerNumber, new Date().toISOString(), JSON.stringify(result)],
+        })
       } catch (cacheErr) {
-        console.warn("Could not cache NESCO response to SQLite:", cacheErr)
+        console.warn("Could not cache NESCO response to Database:", cacheErr)
       }
 
       return result
     }
 
     // If the government portal returned empty or meter not found in active live query:
-    // Check SQLite cache first!
-    const cachedRow = db.prepare(`SELECT * FROM cached_meter_data WHERE meter_number = ?`).get(cleanCustNo) as
-      | { data_json: string; cached_at: string }
-      | undefined
+    // Check Database cache first!
+    const cachedRes = await db.execute({
+      sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ?`,
+      args: [cleanCustNo],
+    })
+    const cachedRow = cachedRes.rows[0] as unknown as { data_json: string; cached_at: string } | undefined
 
     if (cachedRow) {
       const parsed = JSON.parse(cachedRow.data_json) as NescoFetchResult
@@ -261,11 +266,13 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
     const errorMsg = err instanceof Error ? err.message : String(err)
     console.warn(`[NESCO Live Fetch Warning for ${cleanCustNo}]:`, errorMsg)
 
-    // Check if we have cached data in SQLite
+    // Check if we have cached data in DB
     try {
-      const cachedRow = db.prepare(`SELECT * FROM cached_meter_data WHERE meter_number = ?`).get(cleanCustNo) as
-        | { data_json: string; cached_at: string }
-        | undefined
+      const cachedRes = await db.execute({
+        sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ?`,
+        args: [cleanCustNo],
+      })
+      const cachedRow = cachedRes.rows[0] as unknown as { data_json: string; cached_at: string } | undefined
       if (cachedRow) {
         const parsed = JSON.parse(cachedRow.data_json) as NescoFetchResult
         parsed.statusMessage = `নেসকো সার্ভার সংযোগ বিচ্ছিন্ন (${errorMsg})। পূর্ববর্তী সংরক্ষিত ক্যাশ ডেটা দেখানো হচ্ছে।`
