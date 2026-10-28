@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { useAuth } from "@/features/auth/auth-context"
 import { useMeter } from "@/features/meter/meter-context"
 import { toBanglaNumber } from "@/lib/bangla"
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -19,6 +20,7 @@ import { Zap, LogOut, Camera, History, Calculator, LayoutDashboard, ChevronDown,
 export function Navbar() {
   const { user, isPremium, openAuthModal, logout, openPricingModal } = useAuth()
   const { activeMeter } = useMeter()
+  const navigate = useNavigate()
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
@@ -132,30 +134,39 @@ export function Navbar() {
                   <ChevronDown className="size-3 text-muted-foreground mr-1" />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-xs font-bold leading-none">{user.name}</p>
-                    <p className="text-[11px] leading-none text-muted-foreground">{user.email}</p>
-                  </div>
-                </DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-xs font-bold leading-none text-foreground">{user.name}</p>
+                      <p className="text-[11px] leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Link to="/snapshots" className="flex items-center gap-2 w-full">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    onClick={() => navigate({ to: "/snapshots" })}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <Camera className="size-3.5" />
                     <span>সংরক্ষিত দৈনিক হিসাব</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link to="/history" className="flex items-center gap-2 w-full">
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate({ to: "/history" })}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <History className="size-3.5" />
                     <span>রিচার্জ ও টোকেন</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={openPricingModal} className="flex items-center gap-2 cursor-pointer text-amber-600 dark:text-amber-400 font-medium">
-                  <Crown className="size-3.5 fill-amber-500 text-amber-500" />
-                  <span>{isPremium ? "সদস্যপদ স্ট্যাটাস" : "মিটার প্লাস (৳২০)"}</span>
-                </DropdownMenuItem>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={openPricingModal}
+                    className="flex items-center gap-2 cursor-pointer text-amber-600 dark:text-amber-400 font-medium"
+                  >
+                    <Crown className="size-3.5 fill-amber-500 text-amber-500" />
+                    <span>{isPremium ? "সদস্যপদ স্ট্যাটাস" : "মিটার প্লাস (৳২০)"}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => logout()}
