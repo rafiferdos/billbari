@@ -8,44 +8,95 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root"
-import { Route as IndexRouteImport } from "./routes/index"
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as SnapshotsRouteImport } from './routes/snapshots'
+import { Route as TariffsRouteImport } from './routes/tariffs'
 
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SnapshotsRoute = SnapshotsRouteImport.update({
+  id: '/snapshots',
+  path: '/snapshots',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TariffsRoute = TariffsRouteImport.update({
+  id: '/tariffs',
+  path: '/tariffs',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/history': typeof HistoryRoute
+  '/snapshots': typeof SnapshotsRoute
+  '/tariffs': typeof TariffsRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/history': typeof HistoryRoute
+  '/snapshots': typeof SnapshotsRoute
+  '/tariffs': typeof TariffsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/history': typeof HistoryRoute
+  '/snapshots': typeof SnapshotsRoute
+  '/tariffs': typeof TariffsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/"
+  fullPaths: '/' | '/history' | '/snapshots' | '/tariffs'
   fileRoutesByTo: FileRoutesByTo
-  to: "/"
-  id: "__root__" | "/"
+  to: '/' | '/history' | '/snapshots' | '/tariffs'
+  id: '__root__' | '/' | '/history' | '/snapshots' | '/tariffs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HistoryRoute: typeof HistoryRoute
+  SnapshotsRoute: typeof SnapshotsRoute
+  TariffsRoute: typeof TariffsRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/snapshots': {
+      id: '/snapshots'
+      path: '/snapshots'
+      fullPath: '/snapshots'
+      preLoaderRoute: typeof SnapshotsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tariffs': {
+      id: '/tariffs'
+      path: '/tariffs'
+      fullPath: '/tariffs'
+      preLoaderRoute: typeof TariffsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -53,14 +104,17 @@ declare module "@tanstack/react-router" {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HistoryRoute: HistoryRoute,
+  SnapshotsRoute: SnapshotsRoute,
+  TariffsRoute: TariffsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx"
-import type { createStart } from "@tanstack/react-start"
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>

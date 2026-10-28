@@ -1,8 +1,33 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
+import * as React from "react"
+import { HeadContent, Scripts, createRootRoute, Outlet } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { DbProvider } from "@tanstack/react-db"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { Toaster } from "@/components/ui/sonner"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
+import { AuthProvider } from "@/features/auth/auth-context"
+import { AuthDialog } from "@/features/auth/auth-dialog"
+import { dbClient } from "@/features/db/client-db"
 
 import appCss from "../styles.css?url"
+
+let queryClientInstance: QueryClient | null = null
+function getQueryClient() {
+  if (!queryClientInstance) {
+    queryClientInstance = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 1000 * 60 * 5, // 5 minutes
+          retry: 1,
+        },
+      },
+    })
+  }
+  return queryClientInstance
+}
 
 export const Route = createRootRoute({
   head: () => ({
@@ -15,7 +40,11 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "TanStack Start Starter",
+        title: "BillBari (বিলবাড়ি) - NESCO Prepaid Electricity Analytics",
+      },
+      {
+        name: "description",
+        content: "Smart mobile-first Bangladeshi electricity bill & recharge analytics platform for NESCO prepaid meters.",
       },
     ],
     links: [
@@ -26,17 +55,42 @@ export const Route = createRootRoute({
     ],
   }),
   notFoundComponent: () => (
-    <main className="container mx-auto p-4 pt-16">
-      <h1>404</h1>
-      <p>The requested page could not be found.</p>
+    <main className="container mx-auto p-4 pt-16 text-center">
+      <h1 className="text-3xl font-extrabold">৪০৪</h1>
+      <p className="text-muted-foreground mt-2">কাঙ্ক্ষিত পৃষ্ঠাটি পাওয়া যায়নি।</p>
     </main>
   ),
+  component: RootComponent,
   shellComponent: RootDocument,
 })
 
+function RootComponent() {
+  const queryClient = getQueryClient()
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DbProvider client={dbClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
+              <Navbar />
+              <main className="flex-1">
+                <Outlet />
+              </main>
+              <Footer />
+              <AuthDialog />
+              <Toaster position="top-right" />
+            </div>
+          </AuthProvider>
+        </TooltipProvider>
+      </DbProvider>
+    </QueryClientProvider>
+  )
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="bn" className="scroll-smooth">
       <head>
         <HeadContent />
       </head>
