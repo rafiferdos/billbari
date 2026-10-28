@@ -205,17 +205,17 @@ describe("Server-side Database Persistence (Turso / libSQL)", () => {
 })
 
 describe("bKash Payment & Subscription Management", () => {
-  it("provides valid pricing plans for Monthly Detective and Lifetime Guardian", () => {
+  it("provides valid pricing plans for Meter Plus (Monthly) and Premium Unlimited (Lifetime)", () => {
     expect(PAYMENT_PLANS).toHaveLength(2)
 
     const monthly = PAYMENT_PLANS.find((p) => p.id === "detective_monthly")
     expect(monthly).toBeDefined()
-    expect(monthly?.nameBangla).toBe("বিদ্যুৎ গোয়েন্দা")
+    expect(monthly?.nameBangla).toBe("মিটার প্লাস")
     expect(monthly?.priceBdt).toBe(20)
 
     const lifetime = PAYMENT_PLANS.find((p) => p.id === "lifetime")
     expect(lifetime).toBeDefined()
-    expect(lifetime?.nameBangla).toBe("আজীবন বিদ্যুৎ অভিভাবক")
+    expect(lifetime?.nameBangla).toBe("প্রিমিয়াম আনলিমিটেড")
     expect(lifetime?.priceBdt).toBe(100)
   })
 

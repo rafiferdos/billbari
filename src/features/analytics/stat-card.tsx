@@ -58,7 +58,7 @@ export function StatCard({
             )}
           </div>
           <span className="text-xs font-bold text-foreground leading-tight">
-            {requiresPremium && !requiresAuth ? "বিদ্যুৎ গোয়েন্দা ফিচার" : "দিনভিত্তিক হিসাব দেখতে"}
+            {requiresPremium && !requiresAuth ? "মিটার প্লাস ফিচার" : "দিনভিত্তিক হিসাব দেখতে"}
           </span>
           <span className="text-[11px] text-muted-foreground mt-0.5">
             {requiresPremium && !requiresAuth ? "সাবস্ক্রিপশন প্রয়োজন" : "লগইন করা প্রয়োজন"}

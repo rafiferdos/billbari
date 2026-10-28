@@ -84,11 +84,11 @@ export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(async 
 
   if (tier === "lifetime") {
     isPremium = true
-    tierNameBangla = "আজীবন বিদ্যুৎ অভিভাবক"
+    tierNameBangla = "প্রিমিয়াম আনলিমিটেড"
   } else if (tier === "detective_monthly") {
     if (row.subscription_expires_at && new Date(row.subscription_expires_at) > new Date()) {
       isPremium = true
-      tierNameBangla = "বিদ্যুৎ গোয়েন্দা"
+      tierNameBangla = "মিটার প্লাস"
     } else {
       isPremium = false
       tierNameBangla = "ফ্রি গ্রাহক"

@@ -136,7 +136,7 @@ export function AdvancedStats({
                       onClick={isAuthenticated ? onUpgradeClick : onLoginClick}
                       className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
                     >
-                      {isAuthenticated ? "বিদ্যুৎ গোয়েন্দা (৳২০)" : "লগইন করে দেখুন"}
+                      {isAuthenticated ? "মিটার প্লাস (৳২০)" : "লগইন করে দেখুন"}
                     </button>
                   </div>
                 )}
@@ -330,7 +330,7 @@ export function AdvancedStats({
                     onClick={isAuthenticated ? onUpgradeClick : onLoginClick}
                     className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
                   >
-                    {isAuthenticated ? "বিদ্যুৎ গোয়েন্দা (৳২০)" : "লগইন করুন"}
+                    {isAuthenticated ? "মিটার প্লাস (৳২০)" : "লগইন করুন"}
                   </button>
                 </div>
               )}

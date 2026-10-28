@@ -101,7 +101,7 @@ export function PricingDialog() {
             <span>বিলবাড়ি প্রিমিয়াম সদস্যপদ</span>
           </div>
           <DialogTitle className="text-xl sm:text-2xl font-extrabold tracking-tight">
-            বিদ্যুৎ গোয়েন্দা — সহজ ও গভীর হিসাব
+            মিটার প্লাস — সহজ ও গভীর হিসাব
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
             প্রতিদিনের নিখুঁত বিদ্যুৎ খরচের হিসাব, ব্যালেন্স শেষ হওয়ার নির্ভুল ভবিষ্যৎবাণী এবং ক্লাউড মিটার ডাটাবেস সেভ।
@@ -149,7 +149,7 @@ export function PricingDialog() {
                   <Badge variant="secondary" className="text-[10px] font-semibold text-primary mb-1">
                     জনপ্রিয় মাসিক প্ল্যান
                   </Badge>
-                  <h4 className="font-extrabold text-base text-foreground">বিদ্যুৎ গোয়েন্দা</h4>
+                  <h4 className="font-extrabold text-base text-foreground">মিটার প্লাস</h4>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     দৈনন্দিন খরচ ও মিটারের গভীর হিসাব
                   </p>
@@ -175,7 +175,7 @@ export function PricingDialog() {
                   <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold mb-1">
                     সেরা সাশ্রয়ী অফার
                   </Badge>
-                  <h4 className="font-extrabold text-base text-foreground">আজীবন বিদ্যুৎ অভিভাবক</h4>
+                  <h4 className="font-extrabold text-base text-foreground">প্রিমিয়াম আনলিমিটেড</h4>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     এককালীন মেম্বারশিপ, চিরদিনের এক্সেস
                   </p>
@@ -322,7 +322,7 @@ export function PricingDialog() {
                 ) : (
                   <>
                     <ShieldCheck className="size-4" />
-                    <span>যাচাই করুন ও {selectedPlan === "lifetime" ? "আজীবন মেম্বারশিপ" : "বিদ্যুৎ গোয়েন্দা"} চালু করুন</span>
+                    <span>যাচাই করুন ও {selectedPlan === "lifetime" ? "প্রিমিয়াম আনলিমিটেড" : "মিটার প্লাস"} চালু করুন</span>
                   </>
                 )}
               </Button>

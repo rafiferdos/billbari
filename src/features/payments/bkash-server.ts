@@ -132,7 +132,7 @@ export const verifyBkashTrxFn = createServerFn({ method: "POST" })
         args: [planType, newExpiresAt, startedAt, verifiedAt, user.id],
       })
 
-      const planName = planType === "lifetime" ? "আজীবন বিদ্যুৎ অভিভাবক" : "বিদ্যুৎ গোয়েন্দা"
+      const planName = planType === "lifetime" ? "প্রিমিয়াম আনলিমিটেড" : "মিটার প্লাস"
       return {
         success: true,
         planType,
