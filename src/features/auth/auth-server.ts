@@ -54,7 +54,7 @@ export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(async 
 
   const res = await db.execute({
     sql: `
-      SELECT u.id, u.email, u.name, u.avatar_url, u.google_id, u.created_at
+      SELECT u.id, u.email, u.name, u.avatar_url, u.google_id, u.subscription_tier, u.subscription_expires_at, u.subscription_started_at, u.created_at
       FROM sessions s
       JOIN users u ON s.user_id = u.id
       WHERE s.token = ? AND s.expires_at > ?
@@ -63,10 +63,37 @@ export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(async 
   })
 
   const row = res.rows[0] as unknown as
-    | { id: string; email: string; name: string; avatar_url: string | null; google_id: string | null; created_at: string }
+    | {
+        id: string
+        email: string
+        name: string
+        avatar_url: string | null
+        google_id: string | null
+        subscription_tier: string | null
+        subscription_expires_at: string | null
+        subscription_started_at: string | null
+        created_at: string
+      }
     | undefined
 
   if (!row) return null
+
+  const tier = (row.subscription_tier || "free") as "free" | "detective_monthly" | "lifetime"
+  let isPremium = false
+  let tierNameBangla = "ফ্রি গ্রাহক"
+
+  if (tier === "lifetime") {
+    isPremium = true
+    tierNameBangla = "আজীবন বিদ্যুৎ অভিভাবক"
+  } else if (tier === "detective_monthly") {
+    if (row.subscription_expires_at && new Date(row.subscription_expires_at) > new Date()) {
+      isPremium = true
+      tierNameBangla = "বিদ্যুৎ গোয়েন্দা"
+    } else {
+      isPremium = false
+      tierNameBangla = "ফ্রি গ্রাহক"
+    }
+  }
 
   return {
     id: String(row.id),
@@ -74,6 +101,11 @@ export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(async 
     name: String(row.name),
     avatarUrl: row.avatar_url ? String(row.avatar_url) : null,
     googleId: row.google_id ? String(row.google_id) : null,
+    subscriptionTier: tier,
+    subscriptionExpiresAt: row.subscription_expires_at ? String(row.subscription_expires_at) : null,
+    subscriptionStartedAt: row.subscription_started_at ? String(row.subscription_started_at) : null,
+    isPremium,
+    tierNameBangla,
     createdAt: String(row.created_at),
   }
 })

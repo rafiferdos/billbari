@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   google_id TEXT UNIQUE,
   avatar_url TEXT,
+  subscription_tier TEXT DEFAULT 'free',
+  subscription_expires_at TEXT,
+  subscription_started_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -62,10 +65,25 @@ CREATE TABLE IF NOT EXISTS cached_meter_data (
   data_json TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS payments (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL DEFAULT 'bkash',
+  plan_type TEXT NOT NULL,
+  amount_bdt REAL NOT NULL,
+  sender_number TEXT,
+  trx_id TEXT UNIQUE NOT NULL,
+  status TEXT NOT NULL,
+  verified_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_saved_meters_user ON saved_meters(user_id);
 CREATE INDEX IF NOT EXISTS idx_snapshots_user_meter ON snapshots(user_id, meter_number);
 CREATE INDEX IF NOT EXISTS idx_snapshots_date ON snapshots(snapshot_date);
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_trx_id ON payments(trx_id);
 `
 
 export async function getDatabase(): Promise<Client> {
@@ -91,7 +109,24 @@ export async function getDatabase(): Promise<Client> {
   }
 
   if (!initPromise) {
-    initPromise = dbInstance.executeMultiple(SCHEMA_SQL).then(() => {}).catch((err) => {
+    initPromise = (async () => {
+      try {
+        await dbInstance!.executeMultiple(SCHEMA_SQL)
+      } catch (err) {
+        console.warn("Base schema executeMultiple warning:", err)
+      }
+
+      // Safe column migrations for existing databases
+      try {
+        await dbInstance!.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free'")
+      } catch {}
+      try {
+        await dbInstance!.execute("ALTER TABLE users ADD COLUMN subscription_expires_at TEXT")
+      } catch {}
+      try {
+        await dbInstance!.execute("ALTER TABLE users ADD COLUMN subscription_started_at TEXT")
+      } catch {}
+    })().catch((err) => {
       console.error("Database schema initialization error:", err)
       initPromise = null
     })

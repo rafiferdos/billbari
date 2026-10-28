@@ -5,11 +5,15 @@ import { getCurrentUserFn, loginFn, registerFn, logoutFn, getGoogleAuthUrlFn } f
 
 interface AuthContextType {
   user: User | null
+  isPremium: boolean
   isLoading: boolean
   isAuthModalOpen: boolean
   authModalTab: "login" | "register"
   openAuthModal: (tab?: "login" | "register") => void
   closeAuthModal: () => void
+  isPricingModalOpen: boolean
+  openPricingModal: () => void
+  closePricingModal: () => void
   login: (email: string, pass: string) => Promise<boolean>
   register: (name: string, email: string, pass: string) => Promise<boolean>
   loginWithGoogle: () => Promise<boolean>
@@ -24,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [authModalTab, setAuthModalTab] = useState<"login" | "register">("login")
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
 
   const refreshUser = useCallback(async () => {
     try {
@@ -63,6 +68,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const closeAuthModal = () => {
     setIsAuthModalOpen(false)
+  }
+
+  const openPricingModal = () => {
+    setIsPricingModalOpen(true)
+  }
+
+  const closePricingModal = () => {
+    setIsPricingModalOpen(false)
   }
 
   const login = async (email: string, pass: string): Promise<boolean> => {
@@ -131,11 +144,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        isPremium: Boolean(user?.isPremium),
         isLoading,
         isAuthModalOpen,
         authModalTab,
         openAuthModal,
         closeAuthModal,
+        isPricingModalOpen,
+        openPricingModal,
+        closePricingModal,
         login,
         register,
         loginWithGoogle,

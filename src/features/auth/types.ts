@@ -4,6 +4,11 @@ export interface User {
   name: string
   avatarUrl?: string | null
   googleId?: string | null
+  subscriptionTier?: "free" | "detective_monthly" | "lifetime"
+  subscriptionExpiresAt?: string | null
+  subscriptionStartedAt?: string | null
+  isPremium?: boolean
+  tierNameBangla?: string
   createdAt: string
 }
 

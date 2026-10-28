@@ -1,7 +1,7 @@
 import React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Lock } from "lucide-react"
+import { Lock, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface StatCardProps {
@@ -18,7 +18,9 @@ interface StatCardProps {
   highlight?: boolean
   className?: string
   requiresAuth?: boolean
+  requiresPremium?: boolean
   onLoginClick?: () => void
+  onUpgradeClick?: () => void
 }
 
 export function StatCard({
@@ -31,8 +33,12 @@ export function StatCard({
   highlight = false,
   className,
   requiresAuth = false,
+  requiresPremium = false,
   onLoginClick,
+  onUpgradeClick,
 }: StatCardProps) {
+  const isLocked = requiresAuth || requiresPremium
+
   return (
     <Card
       className={cn(
@@ -41,19 +47,32 @@ export function StatCard({
         className
       )}
     >
-      {/* Blurred lock overlay if authentication is required */}
-      {requiresAuth && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-3 bg-background/80 backdrop-blur-xs text-center z-10 border border-primary/20">
-          <div className="p-1.5 rounded-full bg-primary/10 text-primary mb-1">
-            <Lock className="size-3.5" />
+      {/* Blurred lock overlay if authentication or premium is required */}
+      {isLocked && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-3 bg-background/85 backdrop-blur-xs text-center z-10 border border-amber-500/30">
+          <div className="p-1.5 rounded-full bg-amber-500/10 text-amber-500 mb-1">
+            {requiresPremium && !requiresAuth ? (
+              <Crown className="size-3.5 fill-amber-500" />
+            ) : (
+              <Lock className="size-3.5 text-primary" />
+            )}
           </div>
           <span className="text-xs font-bold text-foreground leading-tight">
-            দিনভিত্তিক হিসাব দেখতে
+            {requiresPremium && !requiresAuth ? "বিদ্যুৎ গোয়েন্দা ফিচার" : "দিনভিত্তিক হিসাব দেখতে"}
           </span>
           <span className="text-[11px] text-muted-foreground mt-0.5">
-            লগইন করা প্রয়োজন
+            {requiresPremium && !requiresAuth ? "সাবস্ক্রিপশন প্রয়োজন" : "লগইন করা প্রয়োজন"}
           </span>
-          {onLoginClick && (
+          {requiresPremium && !requiresAuth && onUpgradeClick ? (
+            <button
+              type="button"
+              onClick={onUpgradeClick}
+              className="mt-2 px-3 py-1 text-[11px] font-bold rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+            >
+              <Crown className="size-3 fill-current" />
+              <span>আনলক করুন (৳২০)</span>
+            </button>
+          ) : onLoginClick ? (
             <button
               type="button"
               onClick={onLoginClick}
@@ -61,14 +80,14 @@ export function StatCard({
             >
               লগইন করুন
             </button>
-          )}
+          ) : null}
         </div>
       )}
 
       <CardContent
         className={cn(
           "p-4 sm:p-5 flex flex-col justify-between h-full",
-          requiresAuth && "filter blur-sm select-none opacity-40 pointer-events-none"
+          isLocked && "filter blur-sm select-none opacity-30 pointer-events-none"
         )}
       >
         <div className="flex items-start justify-between gap-2 mb-2">

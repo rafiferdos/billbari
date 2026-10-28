@@ -12,10 +12,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "./theme-toggle"
-import { Zap, LogOut, Camera, History, Calculator, LayoutDashboard, ChevronDown } from "lucide-react"
+import { Zap, LogOut, Camera, History, Calculator, LayoutDashboard, ChevronDown, Crown } from "lucide-react"
 
 export function Navbar() {
-  const { user, openAuthModal, logout } = useAuth()
+  const { user, isPremium, openAuthModal, logout, openPricingModal } = useAuth()
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
@@ -79,12 +79,26 @@ export function Navbar() {
 
         {/* User Account, Theme Toggle & Auth Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          <Badge
-            variant="outline"
-            className="hidden sm:inline-flex text-[11px] font-medium border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 px-2 py-0.5"
-          >
-            নেসকো লাইভ পোর্টাল
-          </Badge>
+          {isPremium ? (
+            <Badge
+              variant="outline"
+              className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1"
+            >
+              <Crown className="size-3 fill-amber-500 text-amber-500" />
+              <span>{user?.subscriptionTier === "lifetime" ? "আজীবন সদস্য" : "বিদ্যুৎ গোয়েন্দা"}</span>
+            </Badge>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openPricingModal}
+              className="h-8 text-xs font-semibold gap-1.5 border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/5 hover:bg-amber-500/10"
+            >
+              <Crown className="size-3.5 fill-amber-500 text-amber-500" />
+              <span className="hidden sm:inline">বিদ্যুৎ গোয়েন্দা (৳২০)</span>
+              <span className="sm:hidden">গোয়েন্দা</span>
+            </Button>
+          )}
 
           {/* Dark / Light Mode Toggle */}
           <ThemeToggle />
@@ -124,6 +138,10 @@ export function Navbar() {
                     <History className="size-3.5" />
                     <span>রিচার্জ ও টোকেন</span>
                   </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={openPricingModal} className="flex items-center gap-2 cursor-pointer text-amber-600 dark:text-amber-400 font-medium">
+                  <Crown className="size-3.5 fill-amber-500 text-amber-500" />
+                  <span>{isPremium ? "সদস্যপদ স্ট্যাটাস" : "বিদ্যুৎ গোয়েন্দা (৳২০)"}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

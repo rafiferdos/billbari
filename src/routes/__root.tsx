@@ -11,6 +11,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { AuthProvider } from "@/features/auth/auth-context"
 import { AuthDialog } from "@/features/auth/auth-dialog"
+import { PricingDialog } from "@/features/payments/pricing-dialog"
 import { dbClient } from "@/features/db/client-db"
 
 import appCss from "../styles.css?url"
@@ -81,6 +82,7 @@ function RootComponent() {
                 </main>
                 <Footer />
                 <AuthDialog />
+                <PricingDialog />
                 <Toaster position="top-right" />
               </div>
             </AuthProvider>

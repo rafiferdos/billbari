@@ -47,7 +47,7 @@ export const Route = createFileRoute("/")({
 })
 
 function DashboardPage() {
-  const { user, openAuthModal } = useAuth()
+  const { user, isPremium, openAuthModal, openPricingModal } = useAuth()
 
   // Start with clean empty state so users paste their own ID
   const [meterInput, setMeterInput] = React.useState("")
@@ -412,7 +412,7 @@ function DashboardPage() {
               highlight
             />
 
-            {/* Estimated Days Remaining - Day-related metric blurred if unauthenticated */}
+            {/* Estimated Days Remaining - Day-related metric unlocked for premium detective members */}
             <StatCard
               title="আনুমানিক বাকি দিন"
               value={`~${toBanglaNumber(analytics.estimates.estimatedDaysRemaining)} দিন`}
@@ -420,7 +420,9 @@ function DashboardPage() {
               icon={<Hourglass className="size-5" />}
               isEstimate
               requiresAuth={!user}
+              requiresPremium={!isPremium}
               onLoginClick={() => openAuthModal("login")}
+              onUpgradeClick={() => openPricingModal()}
               trend={
                 analytics.estimates.estimatedDaysRemaining < 7
                   ? { value: "জরুরি", isPositive: false, label: "রিচার্জ প্রয়োজন" }
@@ -428,7 +430,7 @@ function DashboardPage() {
               }
             />
 
-            {/* Estimated Daily Cost - Day-related metric blurred if unauthenticated */}
+            {/* Estimated Daily Cost - Day-related metric unlocked for premium detective members */}
             <StatCard
               title="প্রতিদিনের গড় খরচ"
               value={`${formatBDT(analytics.estimates.avgDailyCostBdt)}/দিন`}
@@ -436,7 +438,9 @@ function DashboardPage() {
               icon={<Gauge className="size-5" />}
               isEstimate
               requiresAuth={!user}
+              requiresPremium={!isPremium}
               onLoginClick={() => openAuthModal("login")}
+              onUpgradeClick={() => openPricingModal()}
             />
 
             {/* Last Recharge - Shows Gross Recharge Amount with Net Energy Credited */}
@@ -456,7 +460,9 @@ function DashboardPage() {
           <AdvancedStats
             analytics={analytics}
             isAuthenticated={!!user}
+            isPremium={isPremium}
             onLoginClick={() => openAuthModal("login")}
+            onUpgradeClick={() => openPricingModal()}
           />
 
           {/* Bangla Insights Section */}

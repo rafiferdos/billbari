@@ -4,6 +4,7 @@ import { calculateNescoBill, LIFELINE_RATE } from "../src/lib/tariff-constants"
 import { generateAnalytics } from "../src/features/analytics/insights-generator"
 import { getSampleMeterData } from "../src/features/nesco/sample-data"
 import { getDatabase } from "../src/features/db/server-db"
+import { PAYMENT_PLANS } from "../src/features/payments/types"
 
 describe("Bangla & Currency Formatting Utilities", () => {
   it("converts english numerals to natural Bangla numerals", () => {
@@ -200,5 +201,70 @@ describe("Server-side Database Persistence (Turso / libSQL)", () => {
     expect(snapRow).toBeDefined()
     expect(snapRow.meter_number).toBe("12345678")
     expect(Number(snapRow.balance)).toBeCloseTo(987.43)
+  })
+})
+
+describe("bKash Payment & Subscription Management", () => {
+  it("provides valid pricing plans for Monthly Detective and Lifetime Guardian", () => {
+    expect(PAYMENT_PLANS).toHaveLength(2)
+
+    const monthly = PAYMENT_PLANS.find((p) => p.id === "detective_monthly")
+    expect(monthly).toBeDefined()
+    expect(monthly?.nameBangla).toBe("বিদ্যুৎ গোয়েন্দা")
+    expect(monthly?.priceBdt).toBe(20)
+
+    const lifetime = PAYMENT_PLANS.find((p) => p.id === "lifetime")
+    expect(lifetime).toBeDefined()
+    expect(lifetime?.nameBangla).toBe("আজীবন বিদ্যুৎ অভিভাবক")
+    expect(lifetime?.priceBdt).toBe(100)
+  })
+
+  it("records payment and enforces TrxID uniqueness in database", async () => {
+    const db = await getDatabase()
+    const testUserId = `user_pay_${Date.now()}`
+    const testEmail = `user_pay_${Date.now()}@test.com`
+    const testTrxId = `TRX${Date.now().toString().slice(-7)}`
+
+    // Create user
+    await db.execute({
+      sql: `INSERT INTO users (id, email, name, created_at, updated_at) VALUES (?, ?, 'Subscriber', ?, ?)`,
+      args: [testUserId, testEmail, new Date().toISOString(), new Date().toISOString()],
+    })
+
+    // Record initial payment
+    const paymentId = `pay_${Date.now()}`
+    await db.execute({
+      sql: `
+        INSERT INTO payments (id, user_id, provider, plan_type, amount_bdt, sender_number, trx_id, status, verified_at, created_at)
+        VALUES (?, ?, 'bkash', 'detective_monthly', 20, '01700000000', ?, 'completed', ?, ?)
+      `,
+      args: [paymentId, testUserId, testTrxId, new Date().toISOString(), new Date().toISOString()],
+    })
+
+    // Updating user subscription tier
+    const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    await db.execute({
+      sql: `UPDATE users SET subscription_tier = 'detective_monthly', subscription_expires_at = ? WHERE id = ?`,
+      args: [expiry, testUserId],
+    })
+
+    const userRes = await db.execute({
+      sql: `SELECT subscription_tier, subscription_expires_at FROM users WHERE id = ?`,
+      args: [testUserId],
+    })
+    const userRow = userRes.rows[0] as any
+    expect(userRow.subscription_tier).toBe("detective_monthly")
+    expect(new Date(userRow.subscription_expires_at).getTime()).toBeGreaterThan(Date.now())
+
+    // Attempting duplicate TrxID insert must fail
+    await expect(
+      db.execute({
+        sql: `
+          INSERT INTO payments (id, user_id, provider, plan_type, amount_bdt, sender_number, trx_id, status, verified_at, created_at)
+          VALUES (?, ?, 'bkash', 'detective_monthly', 20, '01700000000', ?, 'completed', ?, ?)
+        `,
+        args: [`pay2_${Date.now()}`, testUserId, testTrxId, new Date().toISOString(), new Date().toISOString()],
+      })
+    ).rejects.toThrow()
   })
 })

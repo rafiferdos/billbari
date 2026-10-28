@@ -13,21 +13,27 @@ import {
   Flame,
   Snowflake,
   Layers,
+  Crown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface AdvancedStatsProps {
   analytics: EnergyAnalytics
   isAuthenticated: boolean
+  isPremium?: boolean
   onLoginClick?: () => void
+  onUpgradeClick?: () => void
 }
 
 export function AdvancedStats({
   analytics,
   isAuthenticated,
+  isPremium = false,
   onLoginClick,
+  onUpgradeClick,
 }: AdvancedStatsProps) {
   const { rechargeStats, costEfficiency, seasonality, runway, eco, slabStats } = analytics
+  const isUnlocked = isAuthenticated && isPremium
 
   return (
     <div className="space-y-4">
@@ -115,25 +121,29 @@ export function AdvancedStats({
 
               {/* Day-based metric: Interval between recharges */}
               <div className="relative pt-1">
-                {!isAuthenticated && (
-                  <div className="absolute inset-0 bg-background/80 backdrop-blur-xs rounded-lg flex items-center justify-between px-3 z-10 border border-primary/20">
+                {!isUnlocked && (
+                  <div className="absolute inset-0 bg-background/85 backdrop-blur-xs rounded-lg flex items-center justify-between px-3 z-10 border border-amber-500/30">
                     <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                      <Lock className="size-3 text-primary" />
+                      {isAuthenticated ? (
+                        <Crown className="size-3 text-amber-500 fill-amber-500" />
+                      ) : (
+                        <Lock className="size-3 text-primary" />
+                      )}
                       দিনভিত্তিক রিচার্জ ব্যবধান
                     </span>
                     <button
                       type="button"
-                      onClick={onLoginClick}
-                      className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                      onClick={isAuthenticated ? onUpgradeClick : onLoginClick}
+                      className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
                     >
-                      লগইন করে দেখুন
+                      {isAuthenticated ? "বিদ্যুৎ গোয়েন্দা (৳২০)" : "লগইন করে দেখুন"}
                     </button>
                   </div>
                 )}
                 <div
                   className={cn(
                     "flex items-center justify-between",
-                    !isAuthenticated && "filter blur-xs opacity-40 select-none"
+                    !isUnlocked && "filter blur-xs opacity-40 select-none"
                   )}
                 >
                   <span className="text-muted-foreground">রিচার্জের গড় ব্যবধান:</span>
@@ -305,25 +315,29 @@ export function AdvancedStats({
           <CardContent className="p-5 space-y-3.5 text-xs">
             {/* Day-based metric: Depletion date */}
             <div className="relative pb-3 border-b border-border/60">
-              {!isAuthenticated && (
-                <div className="absolute inset-0 bg-background/80 backdrop-blur-xs rounded-xl flex items-center justify-between px-3 z-10 border border-primary/20">
+              {!isUnlocked && (
+                <div className="absolute inset-0 bg-background/85 backdrop-blur-xs rounded-xl flex items-center justify-between px-3 z-10 border border-amber-500/30">
                   <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                    <Lock className="size-3 text-primary" />
+                    {isAuthenticated ? (
+                      <Crown className="size-3 text-amber-500 fill-amber-500" />
+                    ) : (
+                      <Lock className="size-3 text-primary" />
+                    )}
                     ব্যালেন্স শেষ হওয়ার সুনির্দিষ্ট দিন দেখতে
                   </span>
                   <button
                     type="button"
-                    onClick={onLoginClick}
-                    className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                    onClick={isAuthenticated ? onUpgradeClick : onLoginClick}
+                    className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
                   >
-                    লগইন করুন
+                    {isAuthenticated ? "বিদ্যুৎ গোয়েন্দা (৳২০)" : "লগইন করুন"}
                   </button>
                 </div>
               )}
               <div
                 className={cn(
                   "space-y-1",
-                  !isAuthenticated && "filter blur-xs opacity-40 select-none"
+                  !isUnlocked && "filter blur-xs opacity-40 select-none"
                 )}
               >
                 <span className="text-[11px] text-muted-foreground block">
