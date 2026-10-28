@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as SnapshotsRouteImport } from './routes/snapshots'
 import { Route as TariffsRouteImport } from './routes/tariffs'
+import { Route as ApiAuthGoogleRouteImport } from './routes/api/auth/google'
+import { Route as ApiAuthCallbackGoogleRouteImport } from './routes/api/auth/callback/google'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +36,32 @@ const TariffsRoute = TariffsRouteImport.update({
   path: '/tariffs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthGoogleRoute = ApiAuthGoogleRouteImport.update({
+  id: '/api/auth/google',
+  path: '/api/auth/google',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthCallbackGoogleRoute = ApiAuthCallbackGoogleRouteImport.update({
+  id: '/api/auth/callback/google',
+  path: '/api/auth/callback/google',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/snapshots': typeof SnapshotsRoute
   '/tariffs': typeof TariffsRoute
+  '/api/auth/google': typeof ApiAuthGoogleRoute
+  '/api/auth/callback/google': typeof ApiAuthCallbackGoogleRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/history': typeof HistoryRoute
   '/snapshots': typeof SnapshotsRoute
   '/tariffs': typeof TariffsRoute
+  '/api/auth/google': typeof ApiAuthGoogleRoute
+  '/api/auth/callback/google': typeof ApiAuthCallbackGoogleRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +69,34 @@ export interface FileRoutesById {
   '/history': typeof HistoryRoute
   '/snapshots': typeof SnapshotsRoute
   '/tariffs': typeof TariffsRoute
+  '/api/auth/google': typeof ApiAuthGoogleRoute
+  '/api/auth/callback/google': typeof ApiAuthCallbackGoogleRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/history' | '/snapshots' | '/tariffs'
+  fullPaths:
+    | '/'
+    | '/history'
+    | '/snapshots'
+    | '/tariffs'
+    | '/api/auth/google'
+    | '/api/auth/callback/google'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/history' | '/snapshots' | '/tariffs'
-  id: '__root__' | '/' | '/history' | '/snapshots' | '/tariffs'
+  to:
+    | '/'
+    | '/history'
+    | '/snapshots'
+    | '/tariffs'
+    | '/api/auth/google'
+    | '/api/auth/callback/google'
+  id:
+    | '__root__'
+    | '/'
+    | '/history'
+    | '/snapshots'
+    | '/tariffs'
+    | '/api/auth/google'
+    | '/api/auth/callback/google'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +104,8 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   SnapshotsRoute: typeof SnapshotsRoute
   TariffsRoute: typeof TariffsRoute
+  ApiAuthGoogleRoute: typeof ApiAuthGoogleRoute
+  ApiAuthCallbackGoogleRoute: typeof ApiAuthCallbackGoogleRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +138,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TariffsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/google': {
+      id: '/api/auth/google'
+      path: '/api/auth/google'
+      fullPath: '/api/auth/google'
+      preLoaderRoute: typeof ApiAuthGoogleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/callback/google': {
+      id: '/api/auth/callback/google'
+      path: '/api/auth/callback/google'
+      fullPath: '/api/auth/callback/google'
+      preLoaderRoute: typeof ApiAuthCallbackGoogleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +160,8 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   SnapshotsRoute: SnapshotsRoute,
   TariffsRoute: TariffsRoute,
+  ApiAuthGoogleRoute: ApiAuthGoogleRoute,
+  ApiAuthCallbackGoogleRoute: ApiAuthCallbackGoogleRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

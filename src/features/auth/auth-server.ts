@@ -174,58 +174,29 @@ export const loginFn = createServerFn({ method: "POST" })
     return { success: true, user }
   })
 
-export const googleOAuthMockFn = createServerFn({ method: "POST" })
-  .validator((d: { email?: string; name?: string; avatarUrl?: string }) => d)
-  .handler(async ({ data }): Promise<{ success: boolean; user?: User; error?: string }> => {
-    const email = data.email?.trim().toLowerCase() || "demo.nesco.user@gmail.com"
-    const name = data.name?.trim() || "Google Verified User"
-    const avatarUrl = data.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-    const googleId = `google_${Buffer.from(email).toString("base64").slice(0, 16)}`
-
-    const db = await getDatabase()
-    const now = new Date().toISOString()
-
-    const res = await db.execute({
-      sql: `SELECT id, email, name, avatar_url, google_id, created_at FROM users WHERE google_id = ? OR email = ?`,
-      args: [googleId, email],
-    })
-
-    let userRow = res.rows[0] as unknown as
-      | { id: string; email: string; name: string; avatar_url: string | null; google_id: string | null; created_at: string }
-      | undefined
-
-    if (!userRow) {
-      const newId = crypto.randomUUID()
-      await db.execute({
-        sql: `
-          INSERT INTO users (id, email, name, google_id, avatar_url, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `,
-        args: [newId, email, name, googleId, avatarUrl, now, now],
-      })
-
-      userRow = {
-        id: newId,
-        email,
-        name,
-        google_id: googleId,
-        avatar_url: avatarUrl,
-        created_at: now,
-      }
+export const getGoogleAuthUrlFn = createServerFn({ method: "POST" })
+  .validator((d?: { origin?: string }) => d)
+  .handler(async ({ data }): Promise<{ url: string }> => {
+    const clientId = process.env.GOOGLE_CLIENT_ID
+    if (!clientId) {
+      throw new Error("GOOGLE_CLIENT_ID কনফিগার করা নেই। অনুগ্রহ করে Vercel বা .env-এ গুগল ক্লায়েন্ট আইডি দিন।")
     }
 
-    await createSessionToken(String(userRow.id))
+    const redirectUri =
+      process.env.GOOGLE_REDIRECT_URI ||
+      (data?.origin ? `${data.origin}/api/auth/callback/google` : "http://localhost:3000/api/auth/callback/google")
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      access_type: "online",
+      prompt: "select_account",
+    })
 
     return {
-      success: true,
-      user: {
-        id: String(userRow.id),
-        email: String(userRow.email),
-        name: String(userRow.name),
-        avatarUrl: userRow.avatar_url ? String(userRow.avatar_url) : null,
-        googleId: userRow.google_id ? String(userRow.google_id) : null,
-        createdAt: String(userRow.created_at),
-      },
+      url: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`,
     }
   })
 

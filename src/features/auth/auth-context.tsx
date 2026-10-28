@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import type { User } from "./types"
-import { getCurrentUserFn, loginFn, registerFn, logoutFn, googleOAuthMockFn } from "./auth-server"
+import { getCurrentUserFn, loginFn, registerFn, logoutFn, getGoogleAuthUrlFn } from "./auth-server"
 
 interface AuthContextType {
   user: User | null
@@ -38,6 +38,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshUser()
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get("auth_success") === "google") {
+        toast.success("Google দিয়ে সফলভাবে লগইন সম্পন্ন হয়েছে!")
+        params.delete("auth_success")
+        const newSearch = params.toString() ? `?${params.toString()}` : ""
+        window.history.replaceState({}, "", `${window.location.pathname}${newSearch}`)
+        refreshUser()
+      } else if (params.get("auth_error")) {
+        toast.error("Google দিয়ে লগইন ব্যর্থ হয়েছে। পুনরায় চেষ্টা করুন।")
+        params.delete("auth_error")
+        const newSearch = params.toString() ? `?${params.toString()}` : ""
+        window.history.replaceState({}, "", `${window.location.pathname}${newSearch}`)
+      }
+    }
   }, [refreshUser])
 
   const openAuthModal = (tab: "login" | "register" = "login") => {
@@ -55,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.success && res.user) {
         setUser(res.user)
         setIsAuthModalOpen(false)
-        toast.success(`স্বাগতম, ${res.user.name}! লগইন সফল হয়েছে।`)
+        toast.success(`স্বাগতম, ${res.user.name}!`)
         return true
       }
       toast.error(res.error || "লগইন ব্যর্থ হয়েছে।")
@@ -85,23 +101,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGoogle = async (): Promise<boolean> => {
     try {
-      const res = await googleOAuthMockFn({
-        data: {
-          email: "nesco.consumer@gmail.com",
-          name: "মো: রফিকুল ইসলাম",
-          avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80",
-        },
-      })
-      if (res.success && res.user) {
-        setUser(res.user)
+      const origin = typeof window !== "undefined" ? window.location.origin : undefined
+      const res = await getGoogleAuthUrlFn({ data: { origin } })
+      if (res?.url) {
         setIsAuthModalOpen(false)
-        toast.success(`Google দিয়ে লগইন সফল হয়েছে: ${res.user.name}`)
+        toast.info("Google সাইন-ইন পেজে নিয়ে যাওয়া হচ্ছে...")
+        window.location.href = res.url
         return true
       }
-      toast.error(res.error || "Google লগইন ব্যর্থ হয়েছে।")
+      toast.error("Google লগইন লিংক তৈরি করা সম্ভব হয়নি।")
       return false
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Google লগইনে ত্রুটি।")
+      toast.error(err instanceof Error ? err.message : "Google লগইনে সমস্যা হয়েছে।")
       return false
     }
   }
