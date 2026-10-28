@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio"
 import type { MonthlyConsumptionRecord, RechargeRecord, NescoFetchResult } from "./types"
-import { getSampleMeterData, SAMPLE_METERS } from "./sample-data"
+import { getSampleMeterData } from "./sample-data"
 import { getDatabase } from "../db/server-db"
 
 const PORTAL_URL = "https://customer.nesco.gov.bd/pre/panel"
@@ -124,16 +124,31 @@ function parseConsumptionTable($: cheerio.CheerioAPI): MonthlyConsumptionRecord[
 
 export async function fetchNescoData(custNo: string, forceSample = false): Promise<NescoFetchResult> {
   const cleanCustNo = custNo.replace(/[^0-9]/g, "").trim()
-  if (!cleanCustNo) {
-    throw new Error("সঠিক মিটার বা গ্রাহক নম্বর প্রবেশ করান।")
+  if (!cleanCustNo || cleanCustNo.length < 8) {
+    throw new Error("অনুগ্রহ করে ৮ থেকে ১১ ডিজিটের সঠিক মিটার বা গ্রাহক নম্বর দিন।")
   }
 
-  // If user explicitly asks for sample or demo meter is requested directly
-  if (forceSample || SAMPLE_METERS[cleanCustNo]) {
+  // Only return sample data if explicitly requested in unit tests / explicit demo mode
+  if (forceSample) {
     return getSampleMeterData(cleanCustNo)
   }
 
   const db = await getDatabase()
+
+  // First check if this meter was previously successfully fetched and cached in the database
+  let cachedData: NescoFetchResult | null = null
+  try {
+    const cachedRes = await db.execute({
+      sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ?`,
+      args: [cleanCustNo],
+    })
+    const cachedRow = cachedRes.rows[0] as unknown as { data_json: string; cached_at: string } | undefined
+    if (cachedRow?.data_json) {
+      cachedData = JSON.parse(cachedRow.data_json) as NescoFetchResult
+    }
+  } catch (cacheErr) {
+    console.warn("DB cache lookup error:", cacheErr)
+  }
 
   try {
     // 1. Initial GET to obtain session cookies and CSRF token
@@ -146,7 +161,12 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
     })
 
     if (!getRes.ok) {
-      throw new Error(`NESCO পোর্টাল স্ট্যাটাস কোড: ${getRes.status}`)
+      if (getRes.status === 403) {
+        throw new Error(
+          "নেসকো পোর্টাল এক্সেস আটকে দিয়েছে (HTTP 403 Forbidden)। নেসকো সরকারি পোর্টাল শুধুমাত্র বাংলাদেশ থেকে সরাসরি এক্সেসযোগ্য। বিদেশি ক্লাউড সার্ভার (যেমন Vercel) থেকে জিও-ব্লকিং (Geo-blocking) থাকায় সরাসরি সংযোগ ব্লক হচ্ছে।"
+        )
+      }
+      throw new Error(`নেসকো সরকারি পোর্টাল স্ট্যাটাস কোড: ${getRes.status}`)
     }
 
     const getHtml = await getRes.text()
@@ -159,7 +179,7 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
 
     const csrfToken = tokenMatch ? tokenMatch[1] : ""
     if (!csrfToken) {
-      throw new Error("NESCO পোর্টাল থেকে CSRF টোকেন পাওয়া যায়নি।")
+      throw new Error("নেসকো পোর্টাল থেকে CSRF টোকেন পাওয়া যায়নি।")
     }
 
     // 2. POST for Recharge History & Customer Info
@@ -182,9 +202,24 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
 
+    if (!rechargeRes.ok) {
+      if (rechargeRes.status === 403) {
+        throw new Error("নেসকো পোর্টাল এক্সেস আটকে দিয়েছে (HTTP 403 Forbidden)।")
+      }
+      throw new Error(`নেসকো রিচার্জ রিকোয়েস্ট ব্যর্থ (স্ট্যাটাস ${rechargeRes.status})`)
+    }
+
     const rechargeHtml = await rechargeRes.text()
     const $recharge = cheerio.load(rechargeHtml)
     const hasRechargeTable = rechargeHtml.includes("bfont_post")
+
+    if (!hasRechargeTable) {
+      if (cachedData) {
+        cachedData.statusMessage = "নেসকো সার্ভারে বর্তমানে লাইভ তথ্য পাওয়া যায়নি। পূর্বে সংরক্ষিত আসল ডেটা দেখানো হচ্ছে।"
+        return cachedData
+      }
+      throw new Error("নেসকো সার্ভারে এই মিটার বা গ্রাহক নম্বরের কোনো রেকর্ড পাওয়া যায়নি। অনুগ্রহ করে সঠিক নম্বর দিন।")
+    }
 
     // 3. POST for Monthly Usage
     const usageBody = new URLSearchParams({
@@ -209,82 +244,49 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
     const usageHtml = await usageRes.text()
     const $usage = cheerio.load(usageHtml)
 
-    // Check if real data was parsed
-    if (hasRechargeTable) {
-      const customerInfo = parseCustomerInfo($recharge, cleanCustNo)
-      const rechargeHistory = parseRechargeTable($recharge)
-      const monthlyUsage = parseConsumptionTable($usage)
+    const customerInfo = parseCustomerInfo($recharge, cleanCustNo)
+    const rechargeHistory = parseRechargeTable($recharge)
+    const monthlyUsage = parseConsumptionTable($usage)
 
-      const result: NescoFetchResult = {
-        success: true,
-        dataSource: "nesco_live",
-        customerInfo,
-        rechargeHistory,
-        monthlyUsage,
-        statusMessage: "সরকারি নেসকো লাইভ পোর্টাল থেকে সংগৃহীত।",
-        fetchedAt: new Date().toISOString(),
-      }
-
-      // Cache to Database
-      try {
-        await db.execute({
-          sql: `
-            INSERT INTO cached_meter_data (meter_number, customer_number, cached_at, data_json)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(meter_number) DO UPDATE SET
-              cached_at = excluded.cached_at,
-              data_json = excluded.data_json
-          `,
-          args: [cleanCustNo, customerInfo.customerNumber, new Date().toISOString(), JSON.stringify(result)],
-        })
-      } catch (cacheErr) {
-        console.warn("Could not cache NESCO response to Database:", cacheErr)
-      }
-
-      return result
+    const result: NescoFetchResult = {
+      success: true,
+      dataSource: "nesco_live",
+      customerInfo,
+      rechargeHistory,
+      monthlyUsage,
+      statusMessage: "সরকারি নেসকো লাইভ পোর্টাল থেকে সংগৃহীত।",
+      fetchedAt: new Date().toISOString(),
     }
 
-    // If the government portal returned empty or meter not found in active live query:
-    // Check Database cache first!
-    const cachedRes = await db.execute({
-      sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ?`,
-      args: [cleanCustNo],
-    })
-    const cachedRow = cachedRes.rows[0] as unknown as { data_json: string; cached_at: string } | undefined
-
-    if (cachedRow) {
-      const parsed = JSON.parse(cachedRow.data_json) as NescoFetchResult
-      parsed.statusMessage = "নেসকো সার্ভারে বিলম্বে পূর্ববর্তী ক্যাশ ডেটা প্রদর্শিত হচ্ছে।"
-      return parsed
+    // Cache real data to Database
+    try {
+      await db.execute({
+        sql: `
+          INSERT INTO cached_meter_data (meter_number, customer_number, cached_at, data_json)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(meter_number) DO UPDATE SET
+            customer_number = excluded.customer_number,
+            cached_at = excluded.cached_at,
+            data_json = excluded.data_json
+        `,
+        args: [cleanCustNo, customerInfo.customerNumber, new Date().toISOString(), JSON.stringify(result)],
+      })
+    } catch (cacheErr) {
+      console.warn("Could not cache NESCO response to Database:", cacheErr)
     }
 
-    // If meter has no live records on NESCO portal, gracefully fall back to verified reference data
-    const sample = getSampleMeterData(cleanCustNo)
-    sample.statusMessage = "নেসকো সার্ভার এই নম্বরের সরাসরি লাইভ রেকর্ড খুঁজে পায়নি। পরীক্ষামূলক রেফারেন্স ডেটা প্রদর্শিত হচ্ছে।"
-    return sample
+    return result
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err)
     console.warn(`[NESCO Live Fetch Warning for ${cleanCustNo}]:`, errorMsg)
 
-    // Check if we have cached data in DB
-    try {
-      const cachedRes = await db.execute({
-        sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ?`,
-        args: [cleanCustNo],
-      })
-      const cachedRow = cachedRes.rows[0] as unknown as { data_json: string; cached_at: string } | undefined
-      if (cachedRow) {
-        const parsed = JSON.parse(cachedRow.data_json) as NescoFetchResult
-        parsed.statusMessage = `নেসকো সার্ভার সংযোগ বিচ্ছিন্ন (${errorMsg})। পূর্ববর্তী সংরক্ষিত ক্যাশ ডেটা দেখানো হচ্ছে।`
-        return parsed
-      }
-    } catch {
-      // ignore
+    // If we have previously cached real data in DB, return that real data
+    if (cachedData) {
+      cachedData.statusMessage = `নেসকো লাইভ সংযোগ ব্যর্থ (${errorMsg})। পূর্বে সংরক্ষিত আসল ডেটা দেখানো হচ্ছে।`
+      return cachedData
     }
 
-    // Fall back gracefully with clear disclosure
-    const sample = getSampleMeterData(cleanCustNo)
-    sample.statusMessage = `নেসকো সরকারি পোর্টাল সংযোগ সাময়িক বিলম্বিত (${errorMsg})। হিসাবের সুবিধার্থে রেফারেন্স ডেটা দেখানো হচ্ছে।`
-    return sample
+    // Never return fake dummy data! Throw the real honest error!
+    throw new Error(errorMsg)
   }
 }
