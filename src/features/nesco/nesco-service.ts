@@ -3,8 +3,13 @@ import type { MonthlyConsumptionRecord, RechargeRecord, NescoFetchResult } from 
 import { getSampleMeterData } from "./sample-data"
 import { getDatabase } from "../db/server-db"
 
-const PORTAL_URL = "https://customer.nesco.gov.bd/pre/panel"
+const DEFAULT_PORTAL_URL = "https://customer.nesco.gov.bd/pre/panel"
 const TIMEOUT_MS = 14000 // 14 seconds max for NESCO server response
+
+function getPortalUrl(): string {
+  const custom = process.env.NESCO_PROXY_URL || process.env.NESCO_PORTAL_URL
+  return custom?.trim() || DEFAULT_PORTAL_URL
+}
 
 interface NescoScrapedCustomerInfo {
   name: string
@@ -134,13 +139,14 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
   }
 
   const db = await getDatabase()
+  const portalUrl = getPortalUrl()
 
   // First check if this meter was previously successfully fetched and cached in the database
   let cachedData: NescoFetchResult | null = null
   try {
     const cachedRes = await db.execute({
-      sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ?`,
-      args: [cleanCustNo],
+      sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ? OR customer_number = ? LIMIT 1`,
+      args: [cleanCustNo, cleanCustNo],
     })
     const cachedRow = cachedRes.rows[0] as unknown as { data_json: string; cached_at: string } | undefined
     if (cachedRow?.data_json) {
@@ -152,7 +158,7 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
 
   try {
     // 1. Initial GET to obtain session cookies and CSRF token
-    const getRes = await fetch(PORTAL_URL, {
+    const getRes = await fetch(portalUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -189,12 +195,12 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
       submit: "রিচার্জ হিস্ট্রি",
     })
 
-    const rechargeRes = await fetch(PORTAL_URL, {
+    const rechargeRes = await fetch(portalUrl, {
       method: "POST",
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         "Cookie": cookieHeader,
-        "Referer": PORTAL_URL,
+        "Referer": portalUrl,
         "Content-Type": "application/x-www-form-urlencoded",
         "Origin": "https://customer.nesco.gov.bd",
       },
@@ -228,12 +234,12 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
       submit: "মাসিক ব্যবহার",
     })
 
-    const usageRes = await fetch(PORTAL_URL, {
+    const usageRes = await fetch(portalUrl, {
       method: "POST",
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         "Cookie": cookieHeader,
-        "Referer": PORTAL_URL,
+        "Referer": portalUrl,
         "Content-Type": "application/x-www-form-urlencoded",
         "Origin": "https://customer.nesco.gov.bd",
       },
@@ -269,7 +275,12 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
             cached_at = excluded.cached_at,
             data_json = excluded.data_json
         `,
-        args: [cleanCustNo, customerInfo.customerNumber, new Date().toISOString(), JSON.stringify(result)],
+        args: [
+          customerInfo.meterNumber || cleanCustNo,
+          customerInfo.customerNumber || cleanCustNo,
+          new Date().toISOString(),
+          JSON.stringify(result)
+        ],
       })
     } catch (cacheErr) {
       console.warn("Could not cache NESCO response to Database:", cacheErr)

@@ -52,6 +52,7 @@ function DashboardPage() {
   const [meterInput, setMeterInput] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
   const [nescoData, setNescoData] = React.useState<NescoFetchResult | null>(null)
+  const [searchError, setSearchError] = React.useState<string | null>(null)
   const [isSnapshotDialogOpen, setIsSnapshotDialogOpen] = React.useState(false)
   const [isSavingMeter, setIsSavingMeter] = React.useState(false)
 
@@ -69,6 +70,7 @@ function DashboardPage() {
     }
 
     setIsLoading(true)
+    setSearchError(null)
     try {
       const result = await getMeterDataFn({
         data: { meterNumber: target },
@@ -76,6 +78,7 @@ function DashboardPage() {
 
       setNescoData(result)
       setMeterInput(target)
+      setSearchError(null)
 
       // Save to client TanStack DB recent searches
       recordRecentSearch({
@@ -91,7 +94,9 @@ function DashboardPage() {
         toast.info(result.statusMessage || "মিটার তথ্য লোড হয়েছে।")
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "মিটার তথ্য লোড করা সম্ভব হয়নি।")
+      const msg = err instanceof Error ? err.message : "মিটার তথ্য লোড করা সম্ভব হয়নি।"
+      setSearchError(msg)
+      toast.error(msg)
     } finally {
       setIsLoading(false)
     }
@@ -210,6 +215,33 @@ function DashboardPage() {
               )}
             </Button>
           </form>
+
+          {searchError && (
+            <div className="mt-3 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-foreground space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                <AlertTriangle className="size-4 shrink-0" />
+                <span>নেসকো সার্ভার সংযোগ বার্তা</span>
+              </div>
+              <p className="text-muted-foreground leading-relaxed">
+                {searchError}
+              </p>
+              {searchError.includes("403") && (
+                <div className="pt-2 border-t border-destructive/20 text-[11px] text-muted-foreground space-y-1.5">
+                  <p className="font-semibold text-foreground">💡 রিয়েল ডেটা দেখার সহজ উপায়:</p>
+                  <p>
+                    • <strong>লোকালহোস্টে:</strong> আপনার টার্মিনালে{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-primary font-bold">pnpm dev</code>{" "}
+                    চালিয়ে সার্চ করুন। আপনার লোকাল আইএসপি বাংলাদেশি হওয়ায় লাইভ ডেটা সরাসরি আসবে এবং তা ক্লাউড Turso ডাটাবেসে সেভ হয়ে যাবে।
+                  </p>
+                  <p>
+                    • <strong>বাংলাদেশ ব্রিজ:</strong> অথবা টার্মিনালে{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-primary font-bold">pnpm bridge</code>{" "}
+                    চালিয়ে Vercel-এর সাথে লিংক করতে পারেন।
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
