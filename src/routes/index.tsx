@@ -13,12 +13,10 @@ import { ConsumptionChart } from "@/features/analytics/consumption-chart"
 import { RechargeTrendChart } from "@/features/analytics/recharge-trend-chart"
 import { SlabProgressCard } from "@/features/analytics/slab-progress-card"
 import { SnapshotDialog } from "@/features/snapshots/snapshot-dialog"
-import { getMeterDataFn } from "@/features/nesco/nesco-server"
 import { saveMeterFn } from "@/features/auth/auth-server"
 import { generateAnalytics } from "@/features/analytics/insights-generator"
 import { useAuth } from "@/features/auth/auth-context"
-import { recordRecentSearch } from "@/features/db/client-db"
-import type { NescoFetchResult } from "@/features/nesco/types"
+import { useMeter } from "@/features/meter/meter-context"
 import { formatBDT, toBanglaNumber, formatDateBangla } from "@/lib/bangla"
 import {
   Search,
@@ -40,6 +38,7 @@ import {
   ClipboardPaste,
   CreditCard,
   BarChart3,
+  X,
 } from "lucide-react"
 
 export const Route = createFileRoute("/")({
@@ -48,14 +47,25 @@ export const Route = createFileRoute("/")({
 
 function DashboardPage() {
   const { user, isPremium, openAuthModal, openPricingModal } = useAuth()
+  const {
+    activeMeter,
+    activeMeterData: nescoData,
+    isLoading,
+    error: searchError,
+    fetchMeter,
+    clearActiveMeter,
+  } = useMeter()
 
-  // Start with clean empty state so users paste their own ID
-  const [meterInput, setMeterInput] = React.useState("")
-  const [isLoading, setIsLoading] = React.useState(false)
-  const [nescoData, setNescoData] = React.useState<NescoFetchResult | null>(null)
-  const [searchError, setSearchError] = React.useState<string | null>(null)
+  const [meterInput, setMeterInput] = React.useState(activeMeter)
   const [isSnapshotDialogOpen, setIsSnapshotDialogOpen] = React.useState(false)
   const [isSavingMeter, setIsSavingMeter] = React.useState(false)
+
+  // Sync meterInput with activeMeter
+  React.useEffect(() => {
+    if (activeMeter) {
+      setMeterInput(activeMeter)
+    }
+  }, [activeMeter])
 
   // Analytics derived from active NescoData
   const analytics = React.useMemo(() => {
@@ -70,37 +80,8 @@ function DashboardPage() {
       return
     }
 
-    setIsLoading(true)
-    setSearchError(null)
-    try {
-      const result = await getMeterDataFn({
-        data: { meterNumber: target },
-      })
-
-      setNescoData(result)
-      setMeterInput(target)
-      setSearchError(null)
-
-      // Save to client TanStack DB recent searches
-      recordRecentSearch({
-        meterNumber: target,
-        customerNumber: result.customerInfo.customerNumber,
-        searchedAt: new Date().toISOString(),
-        label: result.customerInfo.name,
-      })
-
-      if (result.dataSource === "nesco_live") {
-        toast.success("সরকারি নেসকো লাইভ পোর্টাল থেকে ডেটা পাওয়া গেছে!")
-      } else {
-        toast.info(result.statusMessage || "মিটার তথ্য লোড হয়েছে।")
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "মিটার তথ্য লোড করা সম্ভব হয়নি।"
-      setSearchError(msg)
-      toast.error(msg)
-    } finally {
-      setIsLoading(false)
-    }
+    setMeterInput(target)
+    await fetchMeter(target, { force: true })
   }
 
   const handlePaste = async () => {
@@ -188,15 +169,30 @@ function DashboardPage() {
                 className="pl-10 pr-24 h-11 bg-background text-sm rounded-xl font-medium"
                 maxLength={11}
               />
-              <button
-                type="button"
-                onClick={handlePaste}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 text-xs font-semibold rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors flex items-center gap-1 cursor-pointer"
-                title="ক্লিপবোর্ড থেকে পেস্ট করুন"
-              >
-                <ClipboardPaste className="size-3" />
-                <span>পেস্ট</span>
-              </button>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {meterInput && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMeterInput("")
+                      clearActiveMeter()
+                    }}
+                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                    title="মুছে ফেলুন"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handlePaste}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors flex items-center gap-1 cursor-pointer"
+                  title="ক্লিপবোর্ড থেকে পেস্ট করুন"
+                >
+                  <ClipboardPaste className="size-3" />
+                  <span>পেস্ট</span>
+                </button>
+              </div>
             </div>
             <Button
               type="submit"

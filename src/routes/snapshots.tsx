@@ -8,6 +8,7 @@ import { SnapshotDialog } from "@/features/snapshots/snapshot-dialog"
 import { getSnapshotsFn, type SnapshotRecord } from "@/features/snapshots/snapshot-server"
 import { snapshotsCollection, syncSnapshotsToClient } from "@/features/db/client-db"
 import { useAuth } from "@/features/auth/auth-context"
+import { useMeter } from "@/features/meter/meter-context"
 import { Camera, ShieldCheck, Sparkles, Loader2 } from "lucide-react"
 
 export const Route = createFileRoute("/snapshots")({
@@ -16,10 +17,17 @@ export const Route = createFileRoute("/snapshots")({
 
 function SnapshotsPage() {
   const { user, openAuthModal } = useAuth()
-  const [meterFilter] = React.useState("12345678")
+  const { activeMeter, activeMeterData } = useMeter()
+  const [meterFilter, setMeterFilter] = React.useState<string>(activeMeter || "")
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [serverSnapshots, setServerSnapshots] = React.useState<SnapshotRecord[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    if (activeMeter) {
+      setMeterFilter(activeMeter)
+    }
+  }, [activeMeter])
 
   // Reactive subscription from client TanStack DB
   const liveQueryResult = useLiveQuery(snapshotsCollection)
@@ -194,8 +202,8 @@ function SnapshotsPage() {
       <SnapshotDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        meterNumber={meterFilter}
-        currentBalance={combinedSnapshots[0]?.balance || 987.43}
+        meterNumber={meterFilter || activeMeter || ""}
+        currentBalance={activeMeterData?.customerInfo?.balance ?? combinedSnapshots[0]?.balance ?? 0}
         dailyEstimatedCost={combinedSnapshots[0]?.dailyEstimatedCost || 85.0}
         monthlyEstimatedCost={combinedSnapshots[0]?.monthlyEstimatedCost || 2550.0}
         sourceType="manual_reading"

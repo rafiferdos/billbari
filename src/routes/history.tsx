@@ -14,8 +14,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { getMeterDataFn } from "@/features/nesco/nesco-server"
-import type { NescoFetchResult, RechargeRecord } from "@/features/nesco/types"
+import { useMeter } from "@/features/meter/meter-context"
+import type { RechargeRecord } from "@/features/nesco/types"
 import { formatBDT, toBanglaNumber, formatDateBangla, formatMonthBangla } from "@/lib/bangla"
 import { History, Copy, Search, Check, Receipt, ShieldCheck } from "lucide-react"
 
@@ -62,12 +62,31 @@ function extractTokenList(rawToken: string | null | undefined): string[] {
 }
 
 function HistoryPage() {
-  const [meterInput, setMeterInput] = React.useState("")
-  const [data, setData] = React.useState<NescoFetchResult | null>(null)
+  const {
+    activeMeter,
+    activeMeterData: data,
+    isLoading,
+    fetchMeter,
+  } = useMeter()
+
+  const [meterInput, setMeterInput] = React.useState(activeMeter)
   const [searchFilter, setSearchFilter] = React.useState("")
   const [selectedToken, setSelectedToken] = React.useState<RechargeRecord | null>(null)
   const [copiedToken, setCopiedToken] = React.useState(false)
-  const [isLoading, setIsLoading] = React.useState(false)
+
+  // Keep meterInput synchronized with activeMeter
+  React.useEffect(() => {
+    if (activeMeter) {
+      setMeterInput(activeMeter)
+    }
+  }, [activeMeter])
+
+  // Automatically fetch if activeMeter is set but data not yet loaded
+  React.useEffect(() => {
+    if (activeMeter && !data && !isLoading) {
+      fetchMeter(activeMeter, { silent: true })
+    }
+  }, [activeMeter, data, isLoading, fetchMeter])
 
   const handleFetch = async (targetMeter?: string) => {
     const num = (targetMeter || meterInput).replace(/[^0-9]/g, "").trim()
@@ -75,17 +94,8 @@ function HistoryPage() {
       toast.error("অনুগ্রহ করে ৮ থেকে ১১ ডিজিটের সঠিক মিটার বা গ্রাহক নম্বর দিন।")
       return
     }
-    setIsLoading(true)
-    try {
-      const res = await getMeterDataFn({ data: { meterNumber: num } })
-      setData(res)
-      setMeterInput(num)
-      toast.success("রিচার্জ ও ব্যবহারের তথ্য পাওয়া গেছে।")
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "তথ্য লোড করতে ব্যর্থ হয়েছে।")
-    } finally {
-      setIsLoading(false)
-    }
+    setMeterInput(num)
+    await fetchMeter(num, { force: true })
   }
 
   const copyToClipboard = (token: string) => {

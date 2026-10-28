@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { useAuth } from "@/features/auth/auth-context"
+import { useMeter } from "@/features/meter/meter-context"
+import { toBanglaNumber } from "@/lib/bangla"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -16,6 +18,7 @@ import { Zap, LogOut, Camera, History, Calculator, LayoutDashboard, ChevronDown,
 
 export function Navbar() {
   const { user, isPremium, openAuthModal, logout, openPricingModal } = useAuth()
+  const { activeMeter } = useMeter()
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
@@ -79,6 +82,16 @@ export function Navbar() {
 
         {/* User Account, Theme Toggle & Auth Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5">
+          {activeMeter && (
+            <Link
+              to="/"
+              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 hover:bg-primary/15 border border-primary/20 text-xs text-primary font-mono font-medium transition-colors"
+              title="সক্রিয় মিটার: ড্যাশবোর্ডে যান"
+            >
+              <Zap className="size-3 text-primary shrink-0" />
+              <span>মিটার: {toBanglaNumber(activeMeter)}</span>
+            </Link>
+          )}
           {isPremium ? (
             <Badge
               variant="outline"
