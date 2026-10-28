@@ -101,8 +101,8 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   if (currentBalance < 300) {
     insights.push({
       id: "balance-low",
-      title: "ব্যালেন্স সতর্কবার্তা",
-      description: `আপনার মিটারের ব্যালেন্স বর্তমানে ${formatBDT(currentBalance)}। বর্তমান গড় খরচে আনুমানিক আর ${toBanglaNumber(estimatedDaysRemaining)} দিন চলবে। এখনই রিচার্জ করার পরামর্শ দেওয়া হচ্ছে।`,
+      title: "ব্যালেন্স কম আছে",
+      description: `আপনার মিটারের ব্যালেন্স বর্তমানে ${formatBDT(currentBalance)}। বর্তমান খরচে আর প্রায় ${toBanglaNumber(estimatedDaysRemaining)} দিন চলতে পারে। সময়মতো রিচার্জ করে নিন।`,
       type: "warning",
       metric: `${toBanglaNumber(estimatedDaysRemaining)} দিন বাকি`,
       isCalculatedEstimate: true,
@@ -110,8 +110,8 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   } else {
     insights.push({
       id: "balance-healthy",
-      title: "ব্যালেন্স স্থিতি সন্তোষজনক",
-      description: `বর্তমান অবশিষ্ট ব্যালেন্স ${formatBDT(currentBalance)} দিয়ে আপনার আনুমানিক ${toBanglaNumber(estimatedDaysRemaining)} দিন স্বাচ্ছন্দ্যে চলবে।`,
+      title: "ব্যালেন্স ভালো অবস্থায় আছে",
+      description: `বর্তমান অবশিষ্ট ব্যালেন্স ${formatBDT(currentBalance)} দিয়ে আপনার আরও প্রায় ${toBanglaNumber(estimatedDaysRemaining)} দিন অনায়াসে চলবে।`,
       type: "success",
       metric: `~${toBanglaNumber(estimatedDaysRemaining)} দিন চলবে`,
       isCalculatedEstimate: true,
@@ -123,18 +123,18 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     insights.push({
       id: "usage-reduced",
       title: "বিদ্যুৎ ব্যবহারে সাশ্রয় হয়েছে!",
-      description: `গত ${formatMonthBangla(latestMonth?.month || "")} মাসে আপনার বিদ্যুৎ ব্যবহার পূর্ববর্তী মাসের তুলনায় ${toBanglaNumber(Math.abs(monthOverMonthUnitsPct))}% হ্রাস পেয়েছে। চমৎকার সাশ্রয়ী প্রচেষ্টা!`,
+      description: `গত ${formatMonthBangla(latestMonth?.month || "")} মাসে আপনার বিদ্যুৎ খরচ আগের মাসের চেয়ে ${toBanglaNumber(Math.abs(monthOverMonthUnitsPct))}% কমেছে। খুব ভালো সাশ্রয়ী উদ্যোগ!`,
       type: "success",
-      metric: `-${toBanglaNumber(Math.abs(monthOverMonthUnitsPct))}% ব্যবহার`,
+      metric: `-${toBanglaNumber(Math.abs(monthOverMonthUnitsPct))}% কম খরচ`,
       isCalculatedEstimate: false,
     })
   } else if (monthOverMonthUnitsPct > 10) {
     insights.push({
       id: "usage-increased",
-      title: "বিদ্যুৎ ব্যবহার বৃদ্ধি পেয়েছে",
-      description: `পূর্ববর্তী মাসের চেয়ে গত মাসে বিদ্যুৎ ব্যবহার প্রায় ${toBanglaNumber(monthOverMonthUnitsPct)}% বেশি হয়েছে। পিক-আওয়ারে ভারি যন্ত্রপাতি ব্যবহারে সচেতন হোন।`,
+      title: "বিদ্যুৎ খরচ কিছুটা বেড়েছে",
+      description: `আগের মাসের চেয়ে গত মাসে বিদ্যুৎ ব্যবহার প্রায় ${toBanglaNumber(monthOverMonthUnitsPct)}% বেশি হয়েছে। প্রয়োজন ছাড়া ভারি যন্ত্রপাতি বন্ধ রাখুন।`,
       type: "warning",
-      metric: `+${toBanglaNumber(monthOverMonthUnitsPct)}% বৃদ্ধি`,
+      metric: `+${toBanglaNumber(monthOverMonthUnitsPct)}% বেশি`,
       isCalculatedEstimate: false,
     })
   }
@@ -143,8 +143,8 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   if (baseMonthlyUnits > 200 && baseMonthlyUnits <= 300) {
     insights.push({
       id: "slab-alert-300",
-      title: "ট্যারিফ ধাপ ৩-এ অবস্থান",
-      description: `আপনার ব্যবহার বর্তমানে ২০১-৩০০ ইউনিট ধাপে (প্রতি ইউনিট ৳৭.৫৯)। ব্যবহার ৩০০ ইউনিট অতিক্রম করলে পরবর্তী ধাপে খরচ বেড়ে প্রতি ইউনিট ৳৮.০২ হবে।`,
+      title: "ট্যারিফ ধাপ ৩-এ আছেন",
+      description: `আপনার ব্যবহার বর্তমানে ২০১-৩০০ ইউনিট ধাপে (প্রতি ইউনিট ৳৭.৫৯)। ব্যবহার ৩০০ ইউনিটের বেশি হলে পরের ধাপে ইউনিট প্রতি খরচ ৳৮.০২ হবে।`,
       type: "info",
       metric: `ধাপ ৩ (৳৭.৫৯/ইউনিট)`,
       isCalculatedEstimate: true,
@@ -152,8 +152,8 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   } else if (baseMonthlyUnits > 300 && baseMonthlyUnits <= 400) {
     insights.push({
       id: "slab-alert-400",
-      title: "উচ্চতর ট্যারিফ ধাপ ৪-এ অবস্থান",
-      description: `আপনার মাসিক ব্যবহার ৩০১-৪০০ ইউনিটের ধাপে রয়েছে। ৪০০ ইউনিটের বেশি গেলে ট্যারিফ একলাফে প্রতি ইউনিট ৳১২.৬৭ হবে! ব্যবহার ৪০০ ইউনিটের নিচে রাখার চেষ্টা করুন।`,
+      title: "ট্যারিফ ধাপ ৪-এ আছেন",
+      description: `আপনার মাসিক ব্যবহার ৩০১-৪০০ ইউনিটের ধাপে রয়েছে। ৪০০ ইউনিটের বেশি পার হলে রেট বেড়ে একলাফে প্রতি ইউনিট ৳১২.৬৭ হয়ে যাবে। তাই একটু হিসেব করে ব্যবহার করুন।`,
       type: "warning",
       metric: `ধাপ ৪ (৳৮.০২/ইউনিট)`,
       isCalculatedEstimate: true,
@@ -163,8 +163,8 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   // 4. Energy Efficiency Tip
   insights.push({
     id: "tip-efficiency",
-    title: "বিল কমানোর টিপস",
-    description: `ইনভার্টার এসি ২৫-২৬° সেলসিয়াসে চালানো এবং প্রি-পেইড ডিজিটাল রিচার্জে ১% সরকারি রিবেট পাওয়ার সুবিধা নিয়ে বছরে শত শত টাকা সাশ্রয় সম্ভব।`,
+    title: "বিল কমানোর সহজ উপায়",
+    description: `ইনভার্টার এসি ২৫-২৬ ডিগ্রিতে চালালে এবং অনলাইন রিচার্জে ১% সরকারি ছাড় নিলে প্রতি মাসে ভালো টাকা বাঁচে।`,
     type: "tip",
     isCalculatedEstimate: false,
   })

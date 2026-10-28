@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "./theme-toggle"
 import { Zap, LogOut, Camera, History, Calculator, LayoutDashboard, ChevronDown } from "lucide-react"
 
 export function Navbar() {
@@ -19,20 +20,19 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        {/* Brand */}
+        {/* Brand - Strictly Bengali */}
         <Link to="/" className="flex items-center gap-2.5 group">
           <div className="size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">
             <Zap className="size-5 fill-current" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-lg sm:text-xl tracking-tight text-foreground">
-                BillBari
+              <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-foreground">
+                বিলবাড়ি
               </span>
-              <span className="text-xs font-semibold text-primary">বিলবাড়ি</span>
             </div>
             <span className="text-[10px] text-muted-foreground block -mt-1 font-medium">
-              নেসকো প্রিপেইড অ্যানালিটিক্স
+              নেসকো প্রিপেইড মিটারের হিসাব
             </span>
           </div>
         </Link>
@@ -63,7 +63,7 @@ export function Navbar() {
           >
             <span className="flex items-center gap-1.5">
               <Camera className="size-4" />
-              <span>দৈনিক ট্র্যাকিং</span>
+              <span>দৈনিক খরচ</span>
             </span>
           </Link>
           <Link
@@ -72,19 +72,22 @@ export function Navbar() {
           >
             <span className="flex items-center gap-1.5">
               <Calculator className="size-4" />
-              <span>ট্যারিফ ক্যালকুলেটর</span>
+              <span>ট্যারিফ ও বিল হিসাব</span>
             </span>
           </Link>
         </nav>
 
-        {/* User Account / Auth Actions */}
-        <div className="flex items-center gap-2.5">
+        {/* User Account, Theme Toggle & Auth Actions */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
           <Badge
             variant="outline"
             className="hidden sm:inline-flex text-[11px] font-medium border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 px-2 py-0.5"
           >
-            নেসকো লাইভ পোর্টাল যুক্ত
+            নেসকো লাইভ পোর্টাল
           </Badge>
+
+          {/* Dark / Light Mode Toggle */}
+          <ThemeToggle />
 
           {user ? (
             <DropdownMenu>
@@ -113,7 +116,7 @@ export function Navbar() {
                 <DropdownMenuItem>
                   <Link to="/snapshots" className="flex items-center gap-2 w-full">
                     <Camera className="size-3.5" />
-                    <span>সংরক্ষিত স্ন্যাপশট</span>
+                    <span>সংরক্ষিত দৈনিক হিসাব</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
@@ -175,14 +178,14 @@ export function Navbar() {
           className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <Camera className="size-4" />
-          <span>স্ন্যাপশট</span>
+          <span>দৈনিক খরচ</span>
         </Link>
         <Link
           to="/tariffs"
           className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <Calculator className="size-4" />
-          <span>ট্যারিফ</span>
+          <span>ট্যারিফ হিসাব</span>
         </Link>
       </div>
     </header>

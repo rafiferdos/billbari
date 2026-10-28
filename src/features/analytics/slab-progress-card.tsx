@@ -25,14 +25,14 @@ export function SlabProgressCard({ billBreakdown, monthlyUnits }: SlabProgressCa
             <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
               <Zap className="size-4" />
             </span>
-            <CardTitle className="text-base font-bold">ট্যারিফ স্ল্যাব ট্র্যাকার</CardTitle>
+            <CardTitle className="text-base font-bold">ট্যারিফ ধাপের হিসাব</CardTitle>
           </div>
           <Badge variant="outline" className="text-xs bg-muted/50 border-primary/20 text-primary font-medium">
-            গণনাকৃত বিশ্লেষণ (Estimate)
+            আনুমানিক হিসাব
           </Badge>
         </div>
         <CardDescription className="text-xs text-muted-foreground">
-          নেসকো আবাসিক (LT-A) ট্যারিফ ধাপ অনুযায়ী বর্তমান অবস্থান
+          নেসকো আবাসিক (LT-A) ট্যারিফ ধাপ অনুযায়ী বর্তমান অবস্থা
         </CardDescription>
       </CardHeader>
 
@@ -64,7 +64,7 @@ export function SlabProgressCard({ billBreakdown, monthlyUnits }: SlabProgressCa
           <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5 flex items-start gap-2 text-xs">
             <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div className="text-amber-900 dark:text-amber-200 leading-relaxed">
-              আর মাত্র <strong>{toBanglaNumber(Math.max(0, (currentSlab.maxUnits || 0) - monthlyUnits))} kWh</strong> ব্যবহার করলে আপনার ট্যারিফ <strong>{nextSlab.nameBangla}</strong>-এ উন্নীত হবে এবং প্রতি ইউনিটের রেট <strong>{formatBDT(nextSlab.ratePerUnit)}</strong> হবে।
+              আর মাত্র <strong>{toBanglaNumber(Math.max(0, (currentSlab.maxUnits || 0) - monthlyUnits))} kWh</strong> ব্যবহার করলেই আপনার ট্যারিফ <strong>{nextSlab.nameBangla}</strong>-এ চলে যাবে এবং প্রতি ইউনিটের রেট <strong>{formatBDT(nextSlab.ratePerUnit)}</strong> হবে।
             </div>
           </div>
         ) : (

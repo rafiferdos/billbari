@@ -201,9 +201,9 @@ function HistoryPage() {
         <TabsContent value="consumption" className="space-y-4">
           <Card className="rounded-2xl border shadow-xs overflow-hidden">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold">মাসিক বিদ্যুৎ ব্যবহারের খতিয়ান</CardTitle>
+              <CardTitle className="text-base font-bold">প্রতি মাসের বিদ্যুৎ ব্যবহারের হিসাব ও তালিকা</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                নেসকো সেন্ট্রাল ডাটাবেজে লিপিবদ্ধ প্রতি মাসের প্রকৃত রিচার্জ ও বিদ্যুতের মোট কিলোওয়াট-আওয়ার (kWh)
+                নেসকো সেন্ট্রাল ডাটাবেজে থাকা প্রতি মাসের রিচার্জ ও মোট বিদ্যুৎ ইউনিটের (kWh) হিসাব
               </CardDescription>
             </CardHeader>
 

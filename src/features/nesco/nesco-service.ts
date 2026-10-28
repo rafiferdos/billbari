@@ -277,7 +277,7 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
 
     // Fall back gracefully with clear disclosure
     const sample = getSampleMeterData(cleanCustNo)
-    sample.statusMessage = `নেসকো সরকারি পোর্টাল সংযোগ সাময়িক বিলম্বিত (${errorMsg})। বিশ্লেষণের সুবিধার্থে রেফারেন্স ডেটা সক্রিয় করা হয়েছে।`
+    sample.statusMessage = `নেসকো সরকারি পোর্টাল সংযোগ সাময়িক বিলম্বিত (${errorMsg})। হিসাবের সুবিধার্থে রেফারেন্স ডেটা দেখানো হচ্ছে।`
     return sample
   }
 }

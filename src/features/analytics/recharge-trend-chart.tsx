@@ -55,7 +55,7 @@ export function RechargeTrendChart({ records }: RechargeTrendChartProps) {
       <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <CardTitle className="text-base sm:text-lg font-bold">রিচার্জের গতিপথ</CardTitle>
+            <CardTitle className="text-base sm:text-lg font-bold">রিচার্জের ট্রেন্ড ও হিসাব</CardTitle>
             <Badge variant="outline" className="text-[11px] font-normal">
               সর্বশেষ {toBanglaNumber(records.length)}টি লেনদেন
             </Badge>

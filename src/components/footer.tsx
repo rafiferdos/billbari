@@ -8,10 +8,10 @@ export function Footer() {
           <div className="space-y-1.5 max-w-md">
             <div className="flex items-center gap-2 text-foreground font-bold">
               <Zap className="size-4 text-primary fill-current" />
-              <span>BillBari (বিলবাড়ি)</span>
+              <span className="text-base font-extrabold">বিলবাড়ি</span>
             </div>
             <p className="text-[11px] leading-relaxed">
-              নেসকো প্রিপেইড গ্রাহকদের জন্য আধুনিক বিদ্যুৎ ব্যয় ট্র্যাকিং, স্ল্যাব বিশ্লেষণ এবং দৈনিক খরচের স্মার্ট প্ল্যাটফর্ম।
+              নেসকো প্রিপেইড গ্রাহকদের জন্য বিদ্যুৎ খরচ, রিচার্জ ও প্রতিদিনের ব্যয়ের সহজ হিসাব রাখার পোর্টাল।
             </p>
           </div>
 
@@ -19,7 +19,7 @@ export function Footer() {
             <div className="flex items-center gap-2 p-2.5 rounded-xl bg-background border border-border">
               <PhoneCall className="size-4 text-primary shrink-0" />
               <div>
-                <span className="text-[10px] text-muted-foreground block">নেসকো জাতীয় হটলাইন</span>
+                <span className="text-[10px] text-muted-foreground block">নেসকো হেল্পলাইন</span>
                 <span className="font-bold text-foreground">১৬৬০৩ (16603)</span>
               </div>
             </div>
@@ -30,7 +30,7 @@ export function Footer() {
               rel="noreferrer"
               className="flex items-center gap-1.5 p-2.5 rounded-xl bg-background border border-border hover:border-primary/40 transition-colors text-foreground font-medium"
             >
-              <span>অফিশিয়াল পোর্টাল</span>
+              <span>সরকারি ওয়েবসাইট</span>
               <ExternalLink className="size-3 text-muted-foreground" />
             </a>
           </div>
@@ -39,10 +39,10 @@ export function Footer() {
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>কোনো মিটার পাসওয়ার্ড সংরক্ষণ করা হয় না। সকল হিসাব স্থানীয়ভাবে সুরক্ষিত।</span>
+            <span>আপনার তথ্যের শতভাগ নিরাপত্তা নিশ্চিত করা হয়।</span>
           </div>
           <div>
-            © 2026 BillBari Platform. All calculations based on BERC NESCO LT-A Tariffs.
+            © 2026 বিলবাড়ি। বাংলাদেশ এনার্জি রেগুলেটরি কমিশনের রেট অনুযায়ী প্রস্তুতকৃত।
           </div>
         </div>
       </div>
