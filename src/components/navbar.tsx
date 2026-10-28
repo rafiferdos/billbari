@@ -1,0 +1,190 @@
+import { Link } from "@tanstack/react-router"
+import { useAuth } from "@/features/auth/auth-context"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Zap, LogOut, Camera, History, Calculator, LayoutDashboard, ChevronDown } from "lucide-react"
+
+export function Navbar() {
+  const { user, openAuthModal, logout } = useAuth()
+
+  return (
+    <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
+      <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        {/* Brand */}
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <div className="size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">
+            <Zap className="size-5 fill-current" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-lg sm:text-xl tracking-tight text-foreground">
+                BillBari
+              </span>
+              <span className="text-xs font-semibold text-primary">বিলবাড়ি</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground block -mt-1 font-medium">
+              নেসকো প্রিপেইড অ্যানালিটিক্স
+            </span>
+          </div>
+        </Link>
+
+        {/* Desktop Navigation Links */}
+        <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+          <Link
+            to="/"
+            className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors [&.active]:text-foreground [&.active]:bg-muted [&.active]:font-semibold"
+          >
+            <span className="flex items-center gap-1.5">
+              <LayoutDashboard className="size-4" />
+              <span>ড্যাশবোর্ড</span>
+            </span>
+          </Link>
+          <Link
+            to="/history"
+            className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors [&.active]:text-foreground [&.active]:bg-muted [&.active]:font-semibold"
+          >
+            <span className="flex items-center gap-1.5">
+              <History className="size-4" />
+              <span>রিচার্জ হিস্ট্রি</span>
+            </span>
+          </Link>
+          <Link
+            to="/snapshots"
+            className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors [&.active]:text-foreground [&.active]:bg-muted [&.active]:font-semibold"
+          >
+            <span className="flex items-center gap-1.5">
+              <Camera className="size-4" />
+              <span>দৈনিক ট্র্যাকিং</span>
+            </span>
+          </Link>
+          <Link
+            to="/tariffs"
+            className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors [&.active]:text-foreground [&.active]:bg-muted [&.active]:font-semibold"
+          >
+            <span className="flex items-center gap-1.5">
+              <Calculator className="size-4" />
+              <span>ট্যারিফ ক্যালকুলেটর</span>
+            </span>
+          </Link>
+        </nav>
+
+        {/* User Account / Auth Actions */}
+        <div className="flex items-center gap-2.5">
+          <Badge
+            variant="outline"
+            className="hidden sm:inline-flex text-[11px] font-medium border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 px-2 py-0.5"
+          >
+            নেসকো লাইভ পোর্টাল যুক্ত
+          </Badge>
+
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="focus:outline-none">
+                <div className="flex items-center gap-2 p-1 pl-2 rounded-full border border-border hover:bg-muted/60 transition-colors">
+                  <span className="text-xs font-semibold max-w-[100px] truncate hidden sm:inline-block">
+                    {user.name.split(" ")[0]}
+                  </span>
+                  <Avatar className="size-7">
+                    <AvatarImage src={user.avatarUrl || ""} alt={user.name} />
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+                      {user.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <ChevronDown className="size-3 text-muted-foreground mr-1" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-xs font-bold leading-none">{user.name}</p>
+                    <p className="text-[11px] leading-none text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Link to="/snapshots" className="flex items-center gap-2 w-full">
+                    <Camera className="size-3.5" />
+                    <span>সংরক্ষিত স্ন্যাপশট</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link to="/history" className="flex items-center gap-2 w-full">
+                    <History className="size-3.5" />
+                    <span>রিচার্জ ও টোকেন</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => logout()}
+                  className="text-destructive focus:text-destructive flex items-center gap-2 cursor-pointer"
+                >
+                  <LogOut className="size-3.5" />
+                  <span>লগআউট</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openAuthModal("login")}
+                className="h-8 text-xs font-medium"
+              >
+                লগইন
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => openAuthModal("register")}
+                className="h-8 text-xs font-semibold"
+              >
+                নিবন্ধন
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Subnavigation Bar */}
+      <div className="flex md:hidden items-center justify-around border-t border-border/60 py-2 bg-background/95 text-xs text-muted-foreground">
+        <Link
+          to="/"
+          className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
+        >
+          <LayoutDashboard className="size-4" />
+          <span>ড্যাশবোর্ড</span>
+        </Link>
+        <Link
+          to="/history"
+          className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
+        >
+          <History className="size-4" />
+          <span>রিচার্জ</span>
+        </Link>
+        <Link
+          to="/snapshots"
+          className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
+        >
+          <Camera className="size-4" />
+          <span>স্ন্যাপশট</span>
+        </Link>
+        <Link
+          to="/tariffs"
+          className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
+        >
+          <Calculator className="size-4" />
+          <span>ট্যারিফ</span>
+        </Link>
+      </div>
+    </header>
+  )
+}
