@@ -421,53 +421,39 @@ function SnapshotsPage() {
           <span>{isBangla ? "স্ন্যাপশট ডেটা লোড হচ্ছে..." : "Loading pulse records..."}</span>
         </div>
       ) : !user && !isPreviewMode ? (
-        <div className="relative rounded-2xl overflow-hidden border border-border">
-          {/* Lock Overlay for Guests */}
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 bg-background/85 backdrop-blur-xs text-center space-y-3">
-            <div className="p-3 rounded-full bg-primary/10 text-primary">
-              <Clock className="size-6" />
-            </div>
-            <div className="space-y-1 max-w-sm">
-              <h3 className="text-base font-bold text-foreground">
-                {isBangla
-                  ? "দিনভিত্তিক হিসাব ও স্ন্যাপশট দেখতে লগইন করুন"
-                  : "Sign in to access daily pulse intelligence"}
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {isBangla
-                  ? "আপনার মিটারের প্রতিদিনের ব্যালেন্স, খরচ এবং দিনভিত্তিক খরচের হিসাব দেখতে একটি ফ্রি একাউন্টে লগইন করুন অথবা নমুনা ডেটা প্রিভিউ দেখুন।"
-                  : "Track exact daily electricity expenditure and burn rate with a free BillBari account or preview the sample Pro dashboard."}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-              <Button
-                onClick={() => setIsPreviewMode(true)}
-                variant="outline"
-                className="h-9 px-4 text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 cursor-pointer"
-              >
-                <Eye className="size-3.5" />
-                <span>{isBangla ? "নমুনা ডেটা দেখুন (প্রো প্রিভিউ)" : "View Sample Data (Pro Preview)"}</span>
-              </Button>
-
-              <Button
-                onClick={() => openAuthModal("login")}
-                className="h-9 px-5 text-xs font-semibold cursor-pointer"
-              >
-                {isBangla ? "লগইন বা নিবন্ধন করুন" : "Sign In or Register"}
-              </Button>
-            </div>
+        <Card className="rounded-2xl border shadow-xs p-6 text-center space-y-3">
+          <div className="mx-auto p-3 rounded-full bg-primary/10 text-primary w-fit">
+            <Clock className="size-6" />
           </div>
-
-          {/* Blurred Background Table Preview */}
-          <div className="filter blur-md select-none opacity-25 pointer-events-none p-2">
-            <SnapshotHistory
-              snapshots={SAMPLE_PRO_SNAPSHOTS}
-              meterNumber="36023363"
-              onTakeSnapshotClick={() => {}}
-            />
+          <div className="space-y-1 max-w-sm mx-auto">
+            <h3 className="text-base font-bold text-foreground">
+              {isBangla
+                ? "দিনভিত্তিক হিসাব ও স্ন্যাপশট দেখতে লগইন করুন"
+                : "Sign in to access daily pulse intelligence"}
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {isBangla
+                ? "আপনার মিটারের প্রতিদিনের ব্যালেন্স, খরচ এবং দিনভিত্তিক খরচের হিসাব দেখতে একটি ফ্রি একাউন্টে লগইন করুন অথবা নমুনা ডেটা প্রিভিউ দেখুন।"
+                : "Track exact daily electricity expenditure and burn rate with a free BillBari account or preview the sample Pro dashboard."}
+            </p>
           </div>
-        </div>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <Button
+              onClick={() => setIsPreviewMode(true)}
+              variant="outline"
+              className="h-9 px-4 text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 cursor-pointer"
+            >
+              <Eye className="size-3.5" />
+              <span>{isBangla ? "নমুনা ডেটা দেখুন (প্রো প্রিভিউ)" : "View Sample Data (Pro Preview)"}</span>
+            </Button>
+            <Button
+              onClick={() => openAuthModal("login")}
+              className="h-9 px-5 text-xs font-semibold cursor-pointer"
+            >
+              {isBangla ? "লগইন বা নিবন্ধন করুন" : "Sign In or Register"}
+            </Button>
+          </div>
+        </Card>
       ) : (
         <SnapshotHistory
           snapshots={displayedSnapshots}

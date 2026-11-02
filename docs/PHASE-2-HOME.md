@@ -1,6 +1,6 @@
 # Phase 2 — Home as answer-first (shadcn only)
 
-Status: implemented locally, not yet pushed. Phase 1 was pushed separately
+Status: pushed as commit `0a1bf44`. Phase 1 was pushed separately
 as commit `a96b331`.
 
 Scope: home route only (`src/routes/index.tsx`), plus the Phase 1 check

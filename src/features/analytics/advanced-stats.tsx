@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import type { EnergyAnalytics } from "./insights-generator"
 import { useLanguage } from "@/features/i18n/language-context"
 import {
@@ -14,7 +15,6 @@ import {
   Layers,
   Crown,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 interface AdvancedStatsProps {
   analytics: EnergyAnalytics
@@ -191,42 +191,38 @@ export function AdvancedStats({
           </CardContent>
         </Card>
 
-        {/* Card 3: Seasonality & Depletion Forecasting */}
-        <Card className="rounded-2xl border shadow-xs overflow-hidden relative">
-          {!isUnlocked && (
-            <div className="absolute inset-0 z-10 bg-background/85 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-center">
-              <div className="p-2 rounded-full bg-amber-500/10 text-amber-500 mb-1.5">
-                <Crown className="size-4 fill-amber-500" />
+        {/* Card 3: Seasonality & Depletion Forecasting.
+            Phase 3: when locked, this renders a clear locked Card only.
+            The old design rendered the real depletion date, runway, and
+            seasonal numbers underneath a blurred overlay. */}
+        {!isUnlocked ? (
+          <Card className="rounded-2xl border border-amber-500/30 shadow-xs overflow-hidden">
+            <CardContent className="p-5 space-y-3 text-xs">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="size-4 text-primary" />
+                <h4 className="font-bold text-xs sm:text-sm text-foreground">
+                  {isBangla ? "ব্যালেন্স শেষ হওয়ার পূর্বাভাস ও ঋতুভিত্তিক প্রভাব" : "Runway Forecasting & Seasonality"}
+                </h4>
               </div>
-              <h5 className="font-bold text-sm text-foreground">
-                {isBangla ? "মিটার প্লাস দিয়ে আনলক করুন" : "Unlock with Meter Plus"}
-              </h5>
-              <p className="text-[11px] text-muted-foreground max-w-xs mt-1 mb-2.5">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {isBangla
-                  ? "ব্যালেন্স শেষ হওয়ার পূর্বাভাস ও ঋতুভিত্তিক ব্যবহারের গভীর বিশ্লেষণ দেখতে মিটার প্লাস প্রয়োজন।"
-                  : "Access predictive runway forecasting and seasonal consumption telemetry."}
+                  ? "ব্যালেন্স শেষ হওয়ার পূর্বাভাস ও ঋতুভিত্তিক ব্যবহারের গভীর বিশ্লেষণ দেখতে লগইন ও মিটার প্লাস প্রয়োজন।"
+                  : "Runway forecasting and seasonal consumption analysis need sign-in and Meter Plus."}
               </p>
-              {onUpgradeClick ? (
-                <button
-                  type="button"
-                  onClick={onUpgradeClick}
-                  className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
-                >
+              {!isAuthenticated && onLoginClick ? (
+                <Button size="sm" onClick={onLoginClick} className="w-full">
+                  {isBangla ? "লগইন করুন" : "Sign In"}
+                </Button>
+              ) : onUpgradeClick ? (
+                <Button size="sm" onClick={onUpgradeClick} className="w-full bg-amber-500 hover:bg-amber-600 text-white">
                   <Crown className="size-3.5 fill-current" />
                   <span>{isBangla ? "আনলক করুন (৳২০)" : "Unlock (৳20)"}</span>
-                </button>
-              ) : onLoginClick ? (
-                <button
-                  type="button"
-                  onClick={onLoginClick}
-                  className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
-                >
-                  {isBangla ? "লগইন করুন" : "Sign In"}
-                </button>
+                </Button>
               ) : null}
-            </div>
-          )}
-
+            </CardContent>
+          </Card>
+        ) : (
+        <Card className="rounded-2xl border shadow-xs overflow-hidden relative">
           <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CalendarClock className="size-4 text-primary" />
@@ -239,7 +235,7 @@ export function AdvancedStats({
             </Badge>
           </div>
 
-          <CardContent className={cn("p-5 space-y-3.5 text-xs", !isUnlocked && "filter blur-sm select-none opacity-40")}>
+          <CardContent className="p-5 space-y-3.5 text-xs">
             <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-muted-foreground">
@@ -279,6 +275,7 @@ export function AdvancedStats({
             </div>
           </CardContent>
         </Card>
+        )}
 
         {/* Card 4: Slab Dynamics & Eco Footprint */}
         <Card className="rounded-2xl border shadow-xs overflow-hidden">
