@@ -17,7 +17,13 @@ export default defineConfig(({ mode }) => {
       ...(isProd ? [] : [devtools()]),
       tailwindcss(),
       tanstackStart(),
-      nitro(),
+      nitro({
+        vercel: {
+          functions: {
+            maxDuration: 60,
+          },
+        },
+      }),
       viteReact(),
     ],
     define: {
