@@ -59,9 +59,10 @@ export const Route = createRootRoute({
     ],
   }),
   notFoundComponent: () => (
-    <main className="container mx-auto p-4 pt-16 text-center">
-      <h1 className="text-3xl font-extrabold">৪০৪</h1>
-      <p className="text-muted-foreground mt-2">কাঙ্ক্ষিত পৃষ্ঠাটি পাওয়া যায়নি।</p>
+    <main className="container mx-auto p-4 pt-16 text-center space-y-2">
+      <h1 className="text-4xl font-extrabold font-mono text-primary">404</h1>
+      <p className="text-sm font-semibold text-foreground">পৃষ্ঠাটি পাওয়া যায়নি / Page Not Found</p>
+      <p className="text-xs text-muted-foreground">The requested page could not be located.</p>
     </main>
   ),
   component: RootComponent,

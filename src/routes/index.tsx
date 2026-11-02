@@ -13,6 +13,7 @@ import { ConsumptionChart } from "@/features/analytics/consumption-chart"
 import { RechargeTrendChart } from "@/features/analytics/recharge-trend-chart"
 import { SlabProgressCard } from "@/features/analytics/slab-progress-card"
 import { SnapshotDialog } from "@/features/snapshots/snapshot-dialog"
+import { BillSavingSection } from "@/features/tariffs/bill-saving-section"
 import { saveMeterFn } from "@/features/auth/auth-server"
 import { generateAnalytics } from "@/features/analytics/insights-generator"
 import { useAuth } from "@/features/auth/auth-context"
@@ -78,7 +79,11 @@ function DashboardPage() {
   const handleFetchMeter = async (meterToFetch?: string) => {
     const target = (meterToFetch || meterInput).replace(/[^0-9]/g, "").trim()
     if (!target || target.length < 8) {
-      toast.error("অনুগ্রহ করে ৮ থেকে ১১ ডিজিটের সঠিক মিটার বা গ্রাহক নম্বর দিন।")
+      toast.error(
+        isBangla
+          ? "অনুগ্রহ করে ৮ থেকে ১১ ডিজিটের সঠিক মিটার বা গ্রাহক নম্বর দিন।"
+          : "Please enter a valid 8 to 11 digit meter or customer number."
+      )
       return
     }
 
@@ -92,13 +97,21 @@ function DashboardPage() {
       const clean = text.replace(/[^0-9]/g, "").slice(0, 11)
       if (clean) {
         setMeterInput(clean)
-        toast.success("নম্বর পেস্ট হয়েছে!")
+        toast.success(isBangla ? "নম্বর পেস্ট হয়েছে!" : "Number pasted from clipboard!")
         handleFetchMeter(clean)
       } else {
-        toast.error("ক্লিপবোর্ডে কোনো সঠিক সংখ্যা পাওয়া যায়নি।")
+        toast.error(
+          isBangla
+            ? "ক্লিপবোর্ডে কোনো সঠিক সংখ্যা পাওয়া যায়নি।"
+            : "No valid number found in clipboard."
+        )
       }
     } catch {
-      toast.info("ব্রাউজার ক্লিপবোর্ড অনুমতি দেয়নি। সরাসরি বক্সে পেস্ট করুন।")
+      toast.info(
+        isBangla
+          ? "ব্রাউজার ক্লিপবোর্ড অনুমতি দেয়নি। সরাসরি বক্সে পেস্ট করুন।"
+          : "Browser clipboard permission denied. Please paste directly."
+      )
     }
   }
 
@@ -106,7 +119,11 @@ function DashboardPage() {
     if (!nescoData) return
     if (!user) {
       openAuthModal("login")
-      toast.info("মিটার সেভ করতে অনুগ্রহ করে লগইন করুন।")
+      toast.info(
+        isBangla
+          ? "মিটার সেভ করতে অনুগ্রহ করে লগইন করুন।"
+          : "Please sign in to save your meter."
+      )
       return
     }
 
@@ -120,17 +137,27 @@ function DashboardPage() {
           address: nescoData.customerInfo.address,
           tariff: nescoData.customerInfo.tariff,
           sanctionedLoad: String(nescoData.customerInfo.approvedLoadKw),
-          alias: `${nescoData.customerInfo.name} এর মিটার`,
+          alias: isBangla
+            ? `${nescoData.customerInfo.name} এর মিটার`
+            : `${nescoData.customerInfo.name}'s Meter`,
         },
       })
 
       if (res.success) {
-        toast.success("মিটারটি আপনার একাউন্টে সেভ করা হয়েছে!")
+        toast.success(
+          isBangla
+            ? "মিটারটি আপনার একাউন্টে সেভ করা হয়েছে!"
+            : "Meter saved to your account profile!"
+        )
       } else {
-        toast.error(res.error || "মিটার সংরক্ষণ করা যায়নি।")
+        toast.error(
+          res.error || (isBangla ? "মিটার সংরক্ষণ করা যায়নি।" : "Failed to save meter.")
+        )
       }
     } catch {
-      toast.error("মিটার সংরক্ষণে সমস্যা হয়েছে।")
+      toast.error(
+        isBangla ? "মিটার সংরক্ষণে সমস্যা হয়েছে।" : "An error occurred while saving meter."
+      )
     } finally {
       setIsSavingMeter(false)
     }
@@ -227,10 +254,14 @@ function DashboardPage() {
             <div className="mt-3 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-foreground space-y-2 text-xs">
               <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
                 <AlertTriangle className="size-4 shrink-0" />
-                <span>নেসকো সার্ভার সংযোগ বার্তা</span>
+                <span>{isBangla ? "নেসকো সার্ভার সংযোগ বার্তা" : "NESCO Server Connection Notice"}</span>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                {searchError}
+                {!isBangla && searchError.includes("403")
+                  ? "NESCO portal access blocked (HTTP 403 Forbidden). The official government portal is restricted to domestic Bangladesh IP ranges. Cloud servers outside BD are blocked."
+                  : !isBangla && searchError.includes("502")
+                  ? "NESCO server gateway unavailable (HTTP 502 Bad Gateway). The official government server temporarily failed to respond."
+                  : searchError}
               </p>
               {searchError.includes("403") && (
                 <div className="pt-2 border-t border-destructive/20 text-[11px] text-muted-foreground space-y-1.5">
@@ -355,7 +386,13 @@ function DashboardPage() {
                 </AlertTitle>
               </div>
               <AlertDescription className="text-xs mt-1 text-muted-foreground">
-                {nescoData.statusMessage}
+                {isBangla
+                  ? nescoData.statusMessage
+                  : nescoData.dataSource === "nesco_live"
+                  ? "Live telemetry retrieved from official NESCO server."
+                  : nescoData.dataSource === "cached_real"
+                  ? "Displaying previously verified session data."
+                  : "Displaying sample reference metrics."}
               </AlertDescription>
             </Alert>
           )}
@@ -524,7 +561,8 @@ function DashboardPage() {
                         {insight.type === "warning" && <AlertTriangle className="size-3.5 text-amber-500" />}
                         {insight.type === "success" && <CheckCircle2 className="size-3.5 text-emerald-500" />}
                         {insight.type === "info" && <Info className="size-3.5 text-primary" />}
-                        <span>{insight.title}</span>
+                        {insight.type === "tip" && <Sparkles className="size-3.5 text-emerald-500" />}
+                        <span>{isBangla ? insight.title : (insight.titleEnglish || insight.title)}</span>
                       </h4>
                       {insight.isCalculatedEstimate && (
                         <Badge variant="outline" className="text-[10px] h-4 font-normal">
@@ -533,12 +571,12 @@ function DashboardPage() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      {insight.description}
+                      {isBangla ? insight.description : (insight.descriptionEnglish || insight.description)}
                     </p>
                   </div>
                   {insight.metric && (
                     <div className="pt-2 text-xs font-semibold text-primary">
-                      {insight.metric}
+                      {isBangla ? insight.metric : (insight.metricEnglish || insight.metric)}
                     </div>
                   )}
                 </Card>
@@ -594,7 +632,19 @@ function DashboardPage() {
               </Card>
             </div>
           </div>
+
+          {/* 20+ Battle-Tested Real-World Bill Saving Strategies */}
+          <div className="pt-4">
+            <BillSavingSection />
+          </div>
         </>
+      )}
+
+      {/* When no meter is loaded yet, also present saving strategies */}
+      {!isLoading && !nescoData && (
+        <div className="pt-4">
+          <BillSavingSection />
+        </div>
       )}
 
       {/* Snapshot Dialog */}

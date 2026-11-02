@@ -6,6 +6,7 @@ import { getSampleMeterData } from "../src/features/nesco/sample-data"
 import { getDatabase } from "../src/features/db/server-db"
 import { PAYMENT_PLANS } from "../src/features/payments/types"
 import { APPLIANCES, HOUSEHOLD_PRESETS, calculateMonthlyUnits } from "../src/features/tariffs/appliance-data"
+import { BILL_SAVING_TIPS } from "../src/features/tariffs/bill-saving-advice"
 
 describe("Bangla & Currency Formatting Utilities", () => {
   it("converts english numerals to natural Bangla numerals", () => {
@@ -319,5 +320,46 @@ describe("Appliance Simulator & Real-World Energy Estimation", () => {
     expect(standard).toBeDefined()
     expect(Object.keys(bachelor!.counts).length).toBeGreaterThan(0)
     expect(Object.keys(standard!.counts).length).toBeGreaterThan(0)
+  })
+})
+
+describe("Bill Saving Strategies & Bilingual Telemetry", () => {
+  it("provides 20+ life-saving bill reduction strategies with quantified savings", () => {
+    expect(BILL_SAVING_TIPS.length).toBeGreaterThanOrEqual(20)
+
+    // Check key high impact strategies
+    const acSweetSpot = BILL_SAVING_TIPS.find((t) => t.id === "ac_25c_fan_combo")
+    const pumpStrategy = BILL_SAVING_TIPS.find((t) => t.id === "water_pump_morning_timing")
+    const slabAvoidance = BILL_SAVING_TIPS.find((t) => t.id === "slab_4_cliff_avoidance")
+    const vampireLoads = BILL_SAVING_TIPS.find((t) => t.id === "phantom_vampire_load_switch")
+
+    expect(acSweetSpot).toBeDefined()
+    expect(pumpStrategy).toBeDefined()
+    expect(slabAvoidance).toBeDefined()
+    expect(vampireLoads).toBeDefined()
+
+    // Verify all tips are fully bilingual
+    for (const tip of BILL_SAVING_TIPS) {
+      expect(tip.titleBangla.length).toBeGreaterThan(5)
+      expect(tip.titleEnglish.length).toBeGreaterThan(5)
+      expect(tip.descriptionBangla.length).toBeGreaterThan(15)
+      expect(tip.descriptionEnglish.length).toBeGreaterThan(15)
+      expect(tip.actionBangla.length).toBeGreaterThan(10)
+      expect(tip.actionEnglish.length).toBeGreaterThan(10)
+      expect(tip.savingsBdtPerMonth).toBeGreaterThan(0)
+    }
+  })
+
+  it("generates fully bilingual actionable insights with English fields", () => {
+    const sample = getSampleMeterData("36023363")
+    const analytics = generateAnalytics(sample)
+
+    expect(analytics.insights.length).toBeGreaterThanOrEqual(8)
+    for (const insight of analytics.insights) {
+      expect(insight.title).toBeTruthy()
+      expect(insight.titleEnglish).toBeTruthy()
+      expect(insight.description).toBeTruthy()
+      expect(insight.descriptionEnglish).toBeTruthy()
+    }
   })
 })

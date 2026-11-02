@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { calculateNescoBill, NESCO_LTA_SLABS, LIFELINE_RATE } from "@/lib/tariff-constants"
 import { Calculator, SlidersHorizontal, ArrowDown } from "lucide-react"
 import { ApplianceSimulator } from "@/features/tariffs/appliance-simulator"
+import { BillSavingSection } from "@/features/tariffs/bill-saving-section"
 import { useLanguage } from "@/features/i18n/language-context"
 
 export const Route = createFileRoute("/tariffs")({
@@ -320,6 +321,11 @@ function TariffsPage() {
           onApplyUnits={(newUnits) => setUnitsInput(newUnits)}
           currentUnits={unitsInput}
         />
+      </div>
+
+      {/* 20+ Battle-Tested Real-World Bill Saving Strategies */}
+      <div id="bill-saving-advice-section" className="pt-2">
+        <BillSavingSection />
       </div>
     </div>
   )

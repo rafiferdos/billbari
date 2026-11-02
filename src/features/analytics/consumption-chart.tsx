@@ -171,13 +171,13 @@ export function ConsumptionChart({ monthlyData, isSampleData }: ConsumptionChart
           {(metric === "both" || metric === "usage") && (
             <div className="flex items-center gap-2">
               <span className="size-2.5 rounded-full bg-primary" />
-              <span>বিদ্যুৎ ইউনিট (kWh)</span>
+              <span>{isBangla ? "বিদ্যুৎ ইউনিট (kWh)" : "Energy Usage (kWh)"}</span>
             </div>
           )}
           {(metric === "both" || metric === "recharge") && (
             <div className="flex items-center gap-2">
               <span className="size-2.5 rounded-full bg-chart-2" />
-              <span>রিচার্জ অর্থ (BDT ৳)</span>
+              <span>{isBangla ? "রিচার্জ অর্থ (BDT ৳)" : "Recharge Amount (৳)"}</span>
             </div>
           )}
         </div>

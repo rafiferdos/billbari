@@ -11,9 +11,12 @@ import {
 export interface ConsumptionInsight {
   id: string
   title: string
+  titleEnglish?: string
   description: string
+  descriptionEnglish?: string
   type: "success" | "warning" | "info" | "tip"
   metric?: string
+  metricEnglish?: string
   isCalculatedEstimate: boolean
 }
 
@@ -374,6 +377,12 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   // ==========================================
   const depletionDateObj = new Date(Date.now() + estimatedDaysRemaining * 86400000)
   const depletionDate = formatDateWithDayBangla(depletionDateObj)
+  const depletionDateEnglish = depletionDateObj.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
   const urgencyLevel: ExtendedRunwayStats["urgencyLevel"] =
     estimatedDaysRemaining <= 5 ? "critical" : estimatedDaysRemaining <= 10 ? "warning" : "healthy"
 
@@ -436,7 +445,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   }
 
   // ==========================================
-  // 7. GENERATE BANGLA ACTIONABLE INSIGHTS
+  // 7. GENERATE BILINGUAL ACTIONABLE INSIGHTS & SAVING TIPS
   // ==========================================
   const insights: ConsumptionInsight[] = []
 
@@ -445,27 +454,36 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     insights.push({
       id: "balance-critical",
       title: "জরুরি রিচার্জ প্রয়োজন!",
+      titleEnglish: "Urgent Recharge Required!",
       description: `বর্তমান অবশিষ্ট ব্যালেন্স ${formatBDT(currentBalance)} দিয়ে আর মাত্র প্রায় ${toBanglaNumber(estimatedDaysRemaining)} দিন চলবে (${depletionDate} এর মধ্যে শূন্য হতে পারে)। দ্রুত রিচার্জ করুন।`,
+      descriptionEnglish: `Remaining balance of ${formatBDT(currentBalance)} will only last ~${estimatedDaysRemaining} days (projected depletion by ${depletionDateEnglish}). Please recharge promptly to avoid power cutoff.`,
       type: "warning",
       metric: `${toBanglaNumber(estimatedDaysRemaining)} দিন বাকি`,
+      metricEnglish: `~${estimatedDaysRemaining} days left`,
       isCalculatedEstimate: true,
     })
   } else if (estimatedDaysRemaining <= 10) {
     insights.push({
       id: "balance-low",
       title: "ব্যালেন্স কমে আসছে",
+      titleEnglish: "Balance Running Low",
       description: `আপনার মিটারে আর প্রায় ${toBanglaNumber(estimatedDaysRemaining)} দিনের ব্যালেন্স অবশিষ্ট আছে। আনুমানিক ${depletionDate} নাগাদ শেষ হতে পারে।`,
+      descriptionEnglish: `You have approximately ${estimatedDaysRemaining} days of power credit remaining, projected to deplete around ${depletionDateEnglish}.`,
       type: "warning",
       metric: `${toBanglaNumber(estimatedDaysRemaining)} দিন বাকি`,
+      metricEnglish: `~${estimatedDaysRemaining} days remaining`,
       isCalculatedEstimate: true,
     })
   } else {
     insights.push({
       id: "balance-healthy",
       title: "ব্যালেন্স ভালো অবস্থায় আছে",
+      titleEnglish: "Credit in Healthy State",
       description: `বর্তমান ব্যালেন্স দিয়ে অনায়াসে প্রায় ${toBanglaNumber(estimatedDaysRemaining)} দিন চলবে (${depletionDate} পর্যন্ত)। আনুমানিক আরও ${toBanglaNumber(estimatedUnitsRemaining)} ইউনিট বিদ্যুৎ মিলবে।`,
+      descriptionEnglish: `Current credit comfortably covers ~${estimatedDaysRemaining} days of power (projected until ${depletionDateEnglish}), yielding ~${estimatedUnitsRemaining} kWh of electricity.`,
       type: "success",
       metric: `~${toBanglaNumber(estimatedDaysRemaining)} দিন চলবে`,
+      metricEnglish: `~${estimatedDaysRemaining} days runway`,
       isCalculatedEstimate: true,
     })
   }
@@ -475,9 +493,12 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     insights.push({
       id: "recharge-habit",
       title: "রিচার্জের অভ্যাসের চিত্র",
+      titleEnglish: "Recharge Trajectory & Habit",
       description: `আপনি গড়ে প্রতি ${toBanglaNumber(averageDaysBetweenRecharges)} দিনে একবার রিচার্জ করেন। গড় রিচার্জের আকার ${formatBDT(averageAmountBdt)} এবং পছন্দের মাধ্যম "${favoriteVia}" (${toBanglaNumber(favoriteViaPct)}% লেনদেন)।`,
+      descriptionEnglish: `You recharge roughly once every ${averageDaysBetweenRecharges} days. Average ticket size is ${formatBDT(averageAmountBdt)}, predominantly through ${favoriteVia} (${favoriteViaPct}% of total deposits).`,
       type: "info",
       metric: `প্রতি ${toBanglaNumber(averageDaysBetweenRecharges)} দিনে`,
+      metricEnglish: `Every ${averageDaysBetweenRecharges} days`,
       isCalculatedEstimate: true,
     })
   }
@@ -486,9 +507,12 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   insights.push({
     id: "effective-rate",
     title: "প্রকৃত গড় ইউনিট দর",
+    titleEnglish: "All-Inclusive Unit Rate",
     description: `মিটার ভাড়া (৳৪০), ডিমান্ড চার্জ (৳${toBanglaNumber(billCalc.demandCharge)}) ও ৫% ভ্যাট অন্তর্ভুক্ত করার পর আপনার প্রতি ইউনিটের প্রকৃত মোট ব্যয় পড়ছে প্রায় ${formatBDT(effectiveCostPerKwh)}।`,
+    descriptionEnglish: `Factoring in meter rent (৳40), demand charge (৳${billCalc.demandCharge}), and 5% VAT, your true cost per kWh is approximately ${formatBDT(effectiveCostPerKwh)}.`,
     type: "info",
     metric: `${formatBDT(effectiveCostPerKwh)} / kWh`,
+    metricEnglish: `${formatBDT(effectiveCostPerKwh)} / kWh`,
     isCalculatedEstimate: true,
   })
 
@@ -497,18 +521,24 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     insights.push({
       id: "slab-jump-warning",
       title: "পরবর্তী উচ্চ ট্যারিফ ধাপ সন্নিকটে!",
+      titleEnglish: "Next Tariff Tier Imminent!",
       description: `আর মাত্র ${toBanglaNumber(unitsRemainingInSlab)} ইউনিট ব্যবহার করলেই পরবর্তী ধাপ ${toBanglaNumber(nextSlabStep)}-এ পৌঁছে যাবেন, যেখানে রেট বেড়ে প্রতি ইউনিটে ${formatBDT(nextSlabRate)} হবে (ইউনিটে +৳${toBanglaNumber(slabJumpCostDelta)} বৃদ্ধি)।`,
+      descriptionEnglish: `Using just ${unitsRemainingInSlab} more kWh will push your consumption into Tier ${nextSlabStep}, increasing unit rate to ${formatBDT(nextSlabRate)} (+৳${slabJumpCostDelta}/kWh hike).`,
       type: "warning",
       metric: `${toBanglaNumber(unitsRemainingInSlab)} ইউনিট বাকি`,
+      metricEnglish: `${unitsRemainingInSlab} kWh to next tier`,
       isCalculatedEstimate: true,
     })
   } else if (activeSlab.step === 4) {
     insights.push({
       id: "slab-jump-4-to-5",
       title: "ট্যারিফ ধাপ ৪-এ সর্বোচ্চ সতর্কতা",
+      titleEnglish: "High Alert: Tier 4 Tariff Threshold",
       description: `মাসিক ব্যবহার ৪০০ ইউনিট অতিক্রম করলেই রেট একলাফে ৳৮.০২ থেকে বেড়ে ৳১২.৬৭ (+৳৪.৬৫) হয়ে যাবে! এই মাসে খরচ ৪০০ ইউনিটের মধ্যে রাখার চেষ্টা করুন।`,
+      descriptionEnglish: `Crossing 400 kWh immediately hikes unit price from ৳8.02 to ৳12.67 (+৳4.65/kWh)! Aim to keep your monthly usage strictly under 400 kWh.`,
       type: "warning",
       metric: `ধাপ ৪ (৳৮.০২/ইউনিট)`,
+      metricEnglish: `Tier 4 (৳8.02/kWh)`,
       isCalculatedEstimate: true,
     })
   }
@@ -518,18 +548,24 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     insights.push({
       id: "usage-reduced",
       title: "বিদ্যুৎ ব্যবহারে সাশ্রয় হয়েছে!",
+      titleEnglish: "Energy Consumption Reduced!",
       description: `গত ${formatMonthBangla(latestMonth?.month || "")} মাসে আপনার বিদ্যুৎ ব্যবহার আগের মাসের চেয়ে ${toBanglaNumber(Math.abs(monthOverMonthUnitsPct))}% কমেছে।`,
+      descriptionEnglish: `Last month (${latestMonth?.month || ""}), your power consumption dropped by ${Math.abs(monthOverMonthUnitsPct)}% compared to the prior month.`,
       type: "success",
       metric: `-${toBanglaNumber(Math.abs(monthOverMonthUnitsPct))}% কম খরচ`,
+      metricEnglish: `-${Math.abs(monthOverMonthUnitsPct)}% power saved`,
       isCalculatedEstimate: false,
     })
   } else if (monthOverMonthUnitsPct > 10) {
     insights.push({
       id: "usage-increased",
       title: "বিদ্যুৎ ব্যবহার বৃদ্ধি পেয়েছে",
+      titleEnglish: "Power Consumption Increased",
       description: `আগের মাসের চেয়ে গত মাসে বিদ্যুৎ ব্যবহার প্রায় ${toBanglaNumber(monthOverMonthUnitsPct)}% বেড়েছে। অপচয় রোধে সতর্ক হোন।`,
+      descriptionEnglish: `Power usage rose by ~${monthOverMonthUnitsPct}% compared to the prior month. Review appliance usage to curb unnecessary waste.`,
       type: "warning",
       metric: `+${toBanglaNumber(monthOverMonthUnitsPct)}% বৃদ্ধি`,
+      metricEnglish: `+${monthOverMonthUnitsPct}% higher usage`,
       isCalculatedEstimate: false,
     })
   }
@@ -539,9 +575,12 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     insights.push({
       id: "govt-rebate",
       title: "১% সরকারি রিবেট সাশ্রয়",
+      titleEnglish: "1% Government Incentive Earned",
       description: `প্রিপেইড মিটারে প্রতি রিচার্জে ১% সরকারি রিবেট সুবিধা থাকায় এ পর্যন্ত আপনার হিসেবে মোট ${formatBDT(totalGovernmentRebateBdt)} ক্যাশব্যাক সাশ্রয় হয়েছে।`,
+      descriptionEnglish: `Prepaid meters grant an automatic 1% rebate on every deposit, earning you ${formatBDT(totalGovernmentRebateBdt)} in cumulative government cashback.`,
       type: "success",
       metric: `${formatBDT(totalGovernmentRebateBdt)} রিবেট`,
+      metricEnglish: `${formatBDT(totalGovernmentRebateBdt)} cashback`,
       isCalculatedEstimate: false,
     })
   }
@@ -551,9 +590,12 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     insights.push({
       id: "seasonality-gap",
       title: "মৌসুমী খরচের তারতম্য",
+      titleEnglish: "Seasonal Consumption Swings",
       description: `আপনার সর্বোচ্চ বিদ্যুৎ ব্যবহার ছিল ${highestMonth.labelBangla} মাসে (${toBanglaNumber(highestMonth.usageKwh)} kWh), আর সর্বনিম্ন ছিল ${lowestMonth.labelBangla} মাসে (${toBanglaNumber(lowestMonth.usageKwh)} kWh)। শীতের চেয়ে গরমে প্রায় ${toBanglaNumber(seasonalityGapPct)}% বেশি বিদ্যুৎ প্রয়োজন হয়।`,
+      descriptionEnglish: `Peak usage reached ${highestMonth.month} (${highestMonth.usageKwh} kWh) while winter low was ${lowestMonth.month} (${lowestMonth.usageKwh} kWh). Summer draws ~${seasonalityGapPct}% more energy than winter.`,
       type: "info",
       metric: `${toBanglaNumber(seasonalityGapPct)}% মৌসুমী পার্থক্য`,
+      metricEnglish: `${seasonalityGapPct}% seasonal spread`,
       isCalculatedEstimate: true,
     })
   }
@@ -563,12 +605,70 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     insights.push({
       id: "latest-recharge-deductions",
       title: "সর্বশেষ রিচার্জ ও মিটারে জমা",
+      titleEnglish: "Last Recharge Net Credited",
       description: `সর্বশেষ ${formatBDT(lastRechargeAmount)} রিচার্জের বিপরীতে মিটার ভাড়া, ডিমান্ড চার্জ ও ভ্যাট বাবদ মোট ৳${toBanglaNumber(lastRechargeDeductionsBdt)} কর্তন হয়েছে। অবশিষ্ট ${formatBDT(lastRechargeNetEnergyBdt)} সরাসরি মিটারে যোগ হয়ে ${toBanglaNumber(lastRechargePowerKwh)} kWh বিদ্যুৎ প্রাপ্তি হয়েছে।`,
+      descriptionEnglish: `From your last ${formatBDT(lastRechargeAmount)} deposit, ৳${lastRechargeDeductionsBdt} went toward meter rent, demand charge, and VAT. The remaining ${formatBDT(lastRechargeNetEnergyBdt)} was credited for ${lastRechargePowerKwh} kWh of power.`,
       type: "info",
       metric: `${formatBDT(lastRechargeAmount)} ➔ ${formatBDT(lastRechargeNetEnergyBdt)} জমা`,
+      metricEnglish: `${formatBDT(lastRechargeAmount)} ➔ ${formatBDT(lastRechargeNetEnergyBdt)} net`,
       isCalculatedEstimate: false,
     })
   }
+
+  // ==========================================
+  // 8. HIGH-IMPACT BILL SAVING ADVICE INSIGHTS (3-4x EXPANDED)
+  // ==========================================
+  // Tip A: AC 25C + Low Fan
+  insights.push({
+    id: "tip-ac-sweetspot",
+    title: "সাশ্রয়ী টিপ: এসির ২৫°C ও ফ্যান কম্বিনেশন",
+    titleEnglish: "Efficiency Tip: AC at 25°C + Ceiling Fan",
+    description: "এসি ১৮°C বা ২০°C এর বদলে ২৫°C তে রেখে সিলিং ফ্যান লো স্পিডে চালালে মাসে প্রায় ৳১,৫০০ (৩০%) বিদ্যুৎ সাশ্রয় হয়। কম্প্রেসার অতিরিক্ত গরম হওয়া থেকে রক্ষা পায়।",
+    descriptionEnglish: "Setting AC to 25°C instead of 18°C while running a ceiling fan on low speed slashes cooling power costs by ~30% (~৳1,500/month).",
+    type: "tip",
+    metric: "~৳১,৫০০/মাস সাশ্রয়",
+    metricEnglish: "Save ~৳1,500/mo",
+    isCalculatedEstimate: true,
+  })
+
+  // Tip B: Water Pump Early Morning
+  insights.push({
+    id: "tip-pump-morning",
+    title: "সাশ্রয়ী টিপ: পানির মোটর সকাল ৬-৮টায় চালান",
+    titleEnglish: "Efficiency Tip: Run Water Pump in Early Morning",
+    description: "সন্ধ্যায় পিক আওয়ারে ভোল্টেজ নেমে যাওয়ায় মোটর অতিরিক্ত অ্যাম্পিয়ার টানে ও গরম হয়। সকাল ৬-৮টায় ২২০ ভোল্টে চালালে অর্ধেক সময়ে ট্যাঙ্কি ভরে ও ২৫% বিদ্যুৎ বাঁচে।",
+    descriptionEnglish: "Evening low-voltage sags force the water pump to draw high amps. Running your pump between 6-8 AM at full 220V fills tanks 25% faster.",
+    type: "tip",
+    metric: "~৳৫০০/মাস সাশ্রয়",
+    metricEnglish: "Save ~৳500/mo",
+    isCalculatedEstimate: true,
+  })
+
+  // Tip C: Standby / Phantom Load Killer
+  insights.push({
+    id: "tip-vampire-drain",
+    title: "সাশ্রয়ী টিপ: স্ট্যান্ডবাই চোর বন্ধ করুন",
+    titleEnglish: "Efficiency Tip: Kill Phantom Standby Drain",
+    description: "টিভি, মাইক্রোওয়েভ ডিসপ্লে ও চার্জার প্লাগে অন থাকলে দিনে ৩০-৫০ ওয়াট অপচয় হয়। রাতে ঘুমানোর পূর্বে মাল্টিপ্লাগ সুইচ অফে মাসে ২৫-৩৫ ইউনিট বাঁচে।",
+    descriptionEnglish: "Smart TVs, microwave clocks, and plugged-in chargers draw 30-50W 24/7. Flipping a master power strip switch saves 25-35 kWh/month (~৳350).",
+    type: "tip",
+    metric: "~৳৩৫০/মাস সাশ্রয়",
+    metricEnglish: "Save ~৳350/mo",
+    isCalculatedEstimate: true,
+  })
+
+  // Tip D: Batch Clothes Ironing
+  insights.push({
+    id: "tip-batch-ironing",
+    title: "সাশ্রয়ী টিপ: সপ্তাহের কাপড় একসাথে ইস্ত্রি",
+    titleEnglish: "Efficiency Tip: Batch Clothes Ironing",
+    description: "১০০০W ইস্ত্রি প্রতিবার গরম হতেই প্রথম ৫ মিনিট পুরো পাওয়ার টানে। প্রতিদিন ১টি করে না করে সপ্তাহে একদিনে সব ইস্ত্রি করলে ইস্ত্রির বিদ্যুৎ খরচ ৬৫% কমে যায়।",
+    descriptionEnglish: "A 1,000W iron draws peak power just heating up. Ironing a week's clothes in a single batch cuts iron power consumption by ~65%.",
+    type: "tip",
+    metric: "~৳৩০০/মাস সাশ্রয়",
+    metricEnglish: "Save ~৳300/mo",
+    isCalculatedEstimate: true,
+  })
 
   return {
     actual: {
