@@ -7,6 +7,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SourceBanner, SourceBadge } from "@/features/nesco/source-badge"
+import { SavedMetersMenu } from "@/features/meter/saved-meters-menu"
+import { AlertThresholdDialog, getAlertThreshold } from "@/features/meter/alert-threshold-dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatCard } from "@/features/analytics/stat-card"
 import { AdvancedStats } from "@/features/analytics/advanced-stats"
@@ -28,6 +31,7 @@ import {
   Hourglass,
   Gauge,
   Bookmark,
+  Bell,
   Camera,
   ArrowRight,
   Sparkles,
@@ -62,6 +66,8 @@ function DashboardPage() {
   const [meterInput, setMeterInput] = React.useState(activeMeter)
   const [isSnapshotDialogOpen, setIsSnapshotDialogOpen] = React.useState(false)
   const [isSavingMeter, setIsSavingMeter] = React.useState(false)
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = React.useState(false)
+  const [alertThreshold, setAlertThreshold] = React.useState<number | null>(null)
 
   // Sync meterInput with activeMeter
   React.useEffect(() => {
@@ -69,6 +75,15 @@ function DashboardPage() {
       setMeterInput(activeMeter)
     }
   }, [activeMeter])
+
+  // Low-balance alert threshold for the active meter (local device only)
+  React.useEffect(() => {
+    if (nescoData) {
+      setAlertThreshold(getAlertThreshold(nescoData.customerInfo.meterNumber))
+    } else {
+      setAlertThreshold(null)
+    }
+  }, [nescoData])
 
   // Analytics derived from active NescoData
   const analytics = React.useMemo(() => {
@@ -247,6 +262,10 @@ function DashboardPage() {
                 </>
               )}
             </Button>
+            <SavedMetersMenu
+              onSaveCurrentMeter={handleSaveMeter}
+              hasCurrentMeter={Boolean(nescoData)}
+            />
           </div>
 
           {searchError && (
@@ -391,7 +410,16 @@ function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAlertDialogOpen(true)}
+                    className="h-9 text-xs font-semibold gap-1.5"
+                  >
+                    <Bell className="size-3.5 text-primary" />
+                    <span>{isBangla ? "কম ব্যালেন্স সতর্কতা" : "Low-balance alert"}</span>
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -441,6 +469,22 @@ function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Low-balance warning, only when the user set a local threshold */}
+          {alertThreshold !== null && analytics.actual.currentBalance <= alertThreshold && (
+            <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200">
+              <AlertDescription className="text-xs flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {isBangla
+                    ? `ব্যালেন্স ${formatBDT(analytics.actual.currentBalance)} — আপনার সতর্কতা সীমা ${formatBDT(alertThreshold)}-এর নিচে।`
+                    : `Balance ${formatBDT(analytics.actual.currentBalance)} is below your alert limit ${formatBDT(alertThreshold)}.`}
+                </span>
+                <Button size="sm" variant="outline" onClick={() => setIsAlertDialogOpen(true)} className="h-7 text-xs">
+                  {isBangla ? "সীমা বদলান" : "Change limit"}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* KPI Stat Cards Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -640,6 +684,17 @@ function DashboardPage() {
         <div className="pt-4">
           <BillSavingSection />
         </div>
+      )}
+
+      {/* Low-balance alert dialog */}
+      {nescoData && analytics && (
+        <AlertThresholdDialog
+          open={isAlertDialogOpen}
+          onOpenChange={setIsAlertDialogOpen}
+          meterNumber={nescoData.customerInfo.meterNumber}
+          currentBalance={analytics.actual.currentBalance}
+          onSaved={(value) => setAlertThreshold(value)}
+        />
       )}
 
       {/* Snapshot Dialog */}
