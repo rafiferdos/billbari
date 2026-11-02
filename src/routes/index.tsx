@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatCard } from "@/features/analytics/stat-card"
 import { AdvancedStats } from "@/features/analytics/advanced-stats"
 import { ConsumptionChart } from "@/features/analytics/consumption-chart"
@@ -188,14 +189,9 @@ function DashboardPage() {
             {t.hero.subtitle}
           </p>
 
-          {/* Search Box */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleFetchMeter()
-            }}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2"
-          >
+          {/* Search Box: shadcn Input + Button only, no raw form or button.
+              Enter in the Input triggers the same search as the Button. */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
@@ -203,36 +199,40 @@ function DashboardPage() {
                 placeholder={t.hero.meterInputPlaceholder}
                 value={meterInput}
                 onChange={(e) => setMeterInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleFetchMeter()
+                }}
                 className="pl-10 pr-24 h-11 bg-background text-sm rounded-xl font-medium"
                 maxLength={11}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {meterInput && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
                     onClick={() => {
                       setMeterInput("")
                       clearActiveMeter()
                     }}
-                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                     title={t.hero.clearSearch}
+                    aria-label={t.hero.clearSearch}
                   >
                     <X className="size-3.5" />
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="xs"
                   onClick={handlePaste}
-                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors flex items-center gap-1 cursor-pointer"
                   title={t.hero.pasteFromClipboard}
                 >
                   <ClipboardPaste className="size-3" />
                   <span>{t.hero.pasteFromClipboard}</span>
-                </button>
+                </Button>
               </div>
             </div>
             <Button
-              type="submit"
+              onClick={() => handleFetchMeter()}
               disabled={isLoading}
               className="h-11 px-6 rounded-xl font-semibold gap-2 shrink-0 shadow-xs"
             >
@@ -248,7 +248,7 @@ function DashboardPage() {
                 </>
               )}
             </Button>
-          </form>
+          </div>
 
           {searchError && (
             <div className="mt-3 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-foreground space-y-2 text-xs">
@@ -531,6 +531,25 @@ function DashboardPage() {
             />
           </div>
 
+          {/* Answer detail in tabs: Overview, Insights, Charts, Saving.
+              The KPI cards and customer card above stay always visible. */}
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+              <TabsTrigger value="overview" className="text-xs">
+                {isBangla ? "ওভারভিউ" : "Overview"}
+              </TabsTrigger>
+              <TabsTrigger value="insights" className="text-xs">
+                {isBangla ? "তথ্য ও পরামর্শ" : "Insights"}
+              </TabsTrigger>
+              <TabsTrigger value="charts" className="text-xs">
+                {isBangla ? "চার্ট" : "Charts"}
+              </TabsTrigger>
+              <TabsTrigger value="saving" className="text-xs">
+                {isBangla ? "সাশ্রয়" : "Saving"}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
           {/* Advanced Real-World Statistics & Behavior Analysis */}
           <AdvancedStats
             analytics={analytics}
@@ -539,7 +558,9 @@ function DashboardPage() {
             onLoginClick={() => openAuthModal("login")}
             onUpgradeClick={() => openPricingModal()}
           />
+            </TabsContent>
 
+            <TabsContent value="insights" className="space-y-3">
           {/* Bangla / English Insights Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -584,6 +605,9 @@ function DashboardPage() {
             </div>
           </div>
 
+            </TabsContent>
+
+            <TabsContent value="charts" className="space-y-6">
           {/* Main Charts & Analytics Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
@@ -633,10 +657,13 @@ function DashboardPage() {
             </div>
           </div>
 
+            </TabsContent>
+
+            <TabsContent value="saving">
           {/* 20+ Battle-Tested Real-World Bill Saving Strategies */}
-          <div className="pt-4">
-            <BillSavingSection />
-          </div>
+          <BillSavingSection />
+            </TabsContent>
+          </Tabs>
         </>
       )}
 

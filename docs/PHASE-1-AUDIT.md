@@ -23,22 +23,34 @@ Enforcement: `pnpm check:controls` runs `scripts/check-shadcn-controls.mjs`.
 `pnpm lint` now runs ESLint and then this check, so a new raw control fails
 lint.
 
-## Audit result: already mostly compliant
+## Audit result: corrected baseline (2026-11-03)
 
-Only 6 raw-control occurrences exist in app code, all in dialogs:
+Correction to the original Phase 1 push: the first version of the check
+scanned line by line and missed tags that end at a line break, for example
+`<form` with attributes on the next line. The check now scans whole file
+contents. The true baseline is 25 raw-control occurrences, not 6.
 
-| File | Tag | Count | Phase 7 replacement |
+| File | Tag | Count | Replacement phase |
 | --- | --- | --- | --- |
-| `src/features/auth/auth-dialog.tsx` (lines 167, 208) | `form` | 2 | shadcn Form |
-| `src/features/payments/pricing-dialog.tsx` (line 265) | `form` | 1 | shadcn Form |
-| `src/features/payments/pricing-dialog.tsx` (lines 268, 282) | `label` | 2 | shadcn Label |
-| `src/features/snapshots/snapshot-dialog.tsx` (line 159) | `form` | 1 | shadcn Form |
+| `src/components/language-toggle.tsx` | `button` | 2 | Later phase |
+| `src/features/analytics/advanced-stats.tsx` | `button` | 2 | Later phase |
+| `src/features/analytics/stat-card.tsx` | `button` | 2 | Later phase |
+| `src/features/auth/auth-dialog.tsx` | `form` | 2 | Phase 7: shadcn Form |
+| `src/features/payments/pricing-dialog.tsx` | `form` | 1 | Phase 7: shadcn Form |
+| `src/features/payments/pricing-dialog.tsx` | `label` | 2 | Phase 7: shadcn Label |
+| `src/features/snapshots/snapshot-dialog.tsx` | `form` | 1 | Phase 7: shadcn Form |
+| `src/features/tariffs/appliance-simulator.tsx` | `button` | 4 | Later phase |
+| `src/features/tariffs/bill-saving-section.tsx` | `button` | 2 | Later phase |
+| `src/routes/history.tsx` | `form` | 2 | Later phase |
+| `src/routes/history.tsx` | `button` | 1 | Later phase |
+| `src/routes/index.tsx` | `form` | 1 | Phase 2: removed, search becomes Input + Button with Enter key |
+| `src/routes/index.tsx` | `button` | 2 | Phase 2: shadcn Button (clear and paste) |
+| `src/routes/tariffs.tsx` | `button` | 1 | Later phase |
 
-No raw `button`, `input`, `select`, `textarea`, or `table` exists in app
-code. Those are already shadcn Button, Input, Select (available, see below),
-and Table.
+No raw `input`, `select`, `textarea`, or `table` exists in app code.
+Those are already shadcn Input, Table, and (available, see below) Select.
 
-The check allowlists exactly these 6 occurrences, counted per file and tag.
+The check allowlists exactly these 25 occurrences, counted per file and tag.
 Removing one passes with a note. Adding any new raw control, or adding one
 more in an allowlisted file, fails lint.
 
@@ -82,10 +94,13 @@ Not yet used in app code, available for Phase 2 without adding a library:
    before power runs out.
 5. BillSavingSection appears twice in home route code, in mutually exclusive branches (with data, and without data), so it is duplicated code even though only one branch renders at a time.
 
-## Verification (Phase 1)
+## Verification (Phase 1, corrected)
 
-- `node scripts/check-shadcn-controls.mjs` — passes on the baseline above.
+- `node scripts/check-shadcn-controls.mjs` — passes on the corrected
+  baseline above: 25 occurrences.
 - `pnpm lint` — ESLint plus the check above (run after install; not run in
   this audit environment, which has no `node_modules` installed).
 - No source files other than `package.json`, this report, and the check
-  script were changed in Phase 1.
+  script were changed in Phase 1. The check-script correction itself is
+  part of the Phase 2 commit, so the Phase 1 commit on GitHub still
+  contains the line-based version of the check.

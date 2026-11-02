@@ -8,10 +8,22 @@
 // Allowed tags are interactive controls only. Layout/semantic tags
 // (div, span, main, h1, header, etc.) are out of scope for this check.
 //
-// Known exceptions (Phase 1 baseline, to be removed in Phase 7):
-//   src/features/auth/auth-dialog.tsx      form x2
+// Known exceptions (Phase 1 baseline, corrected 2026-11-03: the original
+// per-line scan missed tags that end at a line break, e.g. `<form` followed
+// by attributes on the next line. This script scans whole file contents.
+// Exceptions are to be removed in later phases, starting with index.tsx
+// in Phase 2):
+//   src/components/language-toggle.tsx        button x2
+//   src/features/analytics/advanced-stats.tsx button x2
+//   src/features/analytics/stat-card.tsx      button x2
+//   src/features/auth/auth-dialog.tsx         form x2
 //   src/features/payments/pricing-dialog.tsx  form x1, label x2
 //   src/features/snapshots/snapshot-dialog.tsx  form x1
+//   src/features/tariffs/appliance-simulator.tsx  button x4
+//   src/features/tariffs/bill-saving-section.tsx  button x2
+//   src/routes/history.tsx                    form x2, button x1
+//   src/routes/index.tsx                      form x1, button x2
+//   src/routes/tariffs.tsx                    button x1
 // The check counts occurrences per file+tag and fails only when a count
 // exceeds its allowed maximum, so removing an exception passes and
 // adding a new raw control anywhere fails.
@@ -42,10 +54,20 @@ const TAG_RE = new RegExp(`<(${CONTROL_TAGS.join("|")})(?=[\\s/>])`, "g")
 
 // file (relative to repo root) -> tag -> maximum allowed occurrences
 const ALLOWED = new Map([
+  ["src/components/language-toggle.tsx|button", 2],
+  ["src/features/analytics/advanced-stats.tsx|button", 2],
+  ["src/features/analytics/stat-card.tsx|button", 2],
   ["src/features/auth/auth-dialog.tsx|form", 2],
   ["src/features/payments/pricing-dialog.tsx|form", 1],
   ["src/features/payments/pricing-dialog.tsx|label", 2],
   ["src/features/snapshots/snapshot-dialog.tsx|form", 1],
+  ["src/features/tariffs/appliance-simulator.tsx|button", 4],
+  ["src/features/tariffs/bill-saving-section.tsx|button", 2],
+  ["src/routes/history.tsx|form", 2],
+  ["src/routes/history.tsx|button", 1],
+  ["src/routes/index.tsx|form", 1],
+  ["src/routes/index.tsx|button", 2],
+  ["src/routes/tariffs.tsx|button", 1],
 ])
 
 function collectFiles(dir) {
@@ -67,14 +89,16 @@ for (const dir of SCAN_DIRS) {
   if (!fs.existsSync(absDir)) continue
   for (const file of collectFiles(absDir)) {
     const rel = path.relative(ROOT, file)
-    const lines = fs.readFileSync(file, "utf8").split("\n")
-    for (let i = 0; i < lines.length; i++) {
-      for (const match of lines[i].matchAll(TAG_RE)) {
-        const tag = match[1]
-        const key = `${rel}|${tag}`
-        counts.set(key, (counts.get(key) ?? 0) + 1)
-        findings.push({ file: rel, line: i + 1, tag })
-      }
+    // Scan whole file content, not line by line: a tag such as `<form`
+    // or `<button` may be followed by attributes on the next line, and a
+    // per-line scan misses it when the tag ends at the line break.
+    const content = fs.readFileSync(file, "utf8")
+    for (const match of content.matchAll(TAG_RE)) {
+      const tag = match[1]
+      const key = `${rel}|${tag}`
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+      const line = content.slice(0, match.index).split("\n").length
+      findings.push({ file: rel, line, tag })
     }
   }
 }
