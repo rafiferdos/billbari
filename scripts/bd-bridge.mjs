@@ -1,4 +1,5 @@
 import http from "node:http"
+import { spawn } from "node:child_process"
 
 const PORT = Number(process.env.BRIDGE_PORT) || 3001
 const TARGET_URL = "https://customer.nesco.gov.bd/pre/panel"
@@ -63,16 +64,59 @@ const server = http.createServer(async (req, res) => {
   }
 })
 
+let tunnelProcess = null
+
+function startAutoTunnel() {
+  console.log("🔗 স্বয়ংক্রিয় পাবলিক টানেল সংযোগ তৈরি হচ্ছে...")
+  tunnelProcess = spawn("ssh", [
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "ServerAliveInterval=30",
+    "-R", `80:localhost:${PORT}`,
+    "nokey@localhost.run",
+  ])
+
+  let captured = false
+
+  tunnelProcess.stdout.on("data", (data) => {
+    const text = data.toString()
+    const match = text.match(/https:\/\/[a-zA-Z0-9.-]+\.(?:lhr\.life|localhost\.run)/)
+    if (match && !captured) {
+      captured = true
+      console.log("===============================================================")
+      console.log(`🎉 পাবলিক টানেল সফলভাবে চালু হয়েছে!`)
+      console.log(`🌐 লাইভ ব্রিজ URL: ${match[0]}`)
+      console.log(`👉 Vercel ড্যাশবোর্ডে Environment Variables-এ দিন:`)
+      console.log(`   NESCO_PROXY_URL = ${match[0]}`)
+      console.log(`⚡ ব্যাস! Vercel সরাসরি এই ব্রিজের মাধ্যমে নেসকো লাইভ ডেটা আনবে (কোনো 403 এরর ছাড়া)!`)
+      console.log("===============================================================")
+    }
+  })
+
+  tunnelProcess.on("close", (code) => {
+    if (code !== 0) {
+      console.log(`⚠️ টানেল সংযোগ বিচ্ছিন্ন হয়েছে, ৫ সেকেন্ড পর পুনরায় চেষ্টা করা হচ্ছে...`)
+      setTimeout(startAutoTunnel, 5000)
+    }
+  })
+}
+
 server.listen(PORT, () => {
   console.log("===============================================================")
   console.log(`⚡ বিলবাড়ি (BillBari) বাংলাদেশ প্রক্সি ব্রিজ সফলভাবে চালু হয়েছে!`)
   console.log(`👉 লোকাল পোর্ট: http://localhost:${PORT}`)
   console.log(`🎯 টার্গেট: ${TARGET_URL}`)
   console.log("===============================================================")
-  console.log(`💡 Vercel-এর সাথে যুক্ত করার নিয়ম:`)
-  console.log(`   ১. Cloudflare টানেল চালান: npx cloudflared tunnel --url http://localhost:${PORT}`)
-  console.log(`   ২. টানেল যে পাবলিক HTTPS লিংক দেবে, সেটি Vercel-এর Environment Variables-এ দিন:`)
-  console.log(`      NESCO_PROXY_URL = https://your-tunnel-link.trycloudflare.com`)
-  console.log(`   ৩. ব্যস! Vercel সরাসরি এই ব্রিজের মাধ্যমে নেসকো লাইভ ডেটা আনবে!`)
-  console.log("===============================================================")
+
+  // Automatically launch SSH tunnel
+  startAutoTunnel()
+})
+
+process.on("SIGINT", () => {
+  if (tunnelProcess) tunnelProcess.kill()
+  process.exit()
+})
+
+process.on("SIGTERM", () => {
+  if (tunnelProcess) tunnelProcess.kill()
+  process.exit()
 })

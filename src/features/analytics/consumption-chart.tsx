@@ -16,44 +16,53 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { MonthlyConsumptionRecord } from "../nesco/types"
-import { formatMonthBangla, toBanglaNumber, formatBDT } from "@/lib/bangla"
+import { formatMonthBangla } from "@/lib/bangla"
+import { useLanguage } from "@/features/i18n/language-context"
 
 interface ConsumptionChartProps {
   monthlyData: MonthlyConsumptionRecord[]
   isSampleData?: boolean
 }
 
-const chartConfig = {
-  usageKwh: {
-    label: "বিদ্যুৎ ব্যবহার (kWh)",
-    color: "var(--color-primary)",
-  },
-  rechargeBdt: {
-    label: "রিচার্জ টাকা (৳)",
-    color: "var(--color-chart-2)",
-  },
-} satisfies ChartConfig
-
 export function ConsumptionChart({ monthlyData, isSampleData }: ConsumptionChartProps) {
   const [metric, setMetric] = React.useState<"both" | "usage" | "recharge">("both")
+  const { t, isBangla, formatBDT, formatNumber } = useLanguage()
+
+  const chartConfig = React.useMemo(
+    () =>
+      ({
+        usageKwh: {
+          label: isBangla ? "বিদ্যুৎ ব্যবহার (kWh)" : "Energy Usage (kWh)",
+          color: "var(--color-primary)",
+        },
+        rechargeBdt: {
+          label: isBangla ? "রিচার্জ টাকা (৳)" : "Recharge (৳)",
+          color: "var(--color-chart-2)",
+        },
+      }) satisfies ChartConfig,
+    [isBangla]
+  )
 
   // Reverse so oldest is on the left, newest is on the right
   const formattedData = React.useMemo(() => {
-    return [...monthlyData].reverse().map((item) => ({
-      month: formatMonthBangla(item.month),
-      year: item.year,
-      label: `${formatMonthBangla(item.month)} '${String(item.year).slice(-2)}`,
-      usageKwh: item.usageKwh,
-      rechargeBdt: item.rechargeBdt,
-      discountBdt: Math.abs(item.discountBdt),
-    }))
-  }, [monthlyData])
+    return [...monthlyData].reverse().map((item) => {
+      const monthStr = isBangla ? formatMonthBangla(item.month) : String(item.month).slice(0, 3)
+      return {
+        month: monthStr,
+        year: item.year,
+        label: `${monthStr} '${String(item.year).slice(-2)}`,
+        usageKwh: item.usageKwh,
+        rechargeBdt: item.rechargeBdt,
+        discountBdt: Math.abs(item.discountBdt),
+      }
+    })
+  }, [monthlyData, isBangla])
 
   if (!formattedData.length) {
     return (
       <Card className="rounded-2xl">
         <CardContent className="py-12 text-center text-muted-foreground text-sm">
-          কোনো মাসিক ব্যবহারের ডেটা পাওয়া যায়নি।
+          {isBangla ? "কোনো মাসিক ব্যবহারের ডেটা পাওয়া যায়নি।" : "No monthly consumption records available."}
         </CardContent>
       </Card>
     )
@@ -65,22 +74,30 @@ export function ConsumptionChart({ monthlyData, isSampleData }: ConsumptionChart
         <div>
           <div className="flex items-center gap-2">
             <CardTitle className="text-base sm:text-lg font-bold">
-              মাসিক ব্যবহার ও রিচার্জ ট্রেন্ড
+              {t.charts.consumptionTitle}
             </CardTitle>
             <Badge variant={isSampleData ? "secondary" : "outline"} className="text-[11px] font-normal">
-              {isSampleData ? "রেফারেন্স ডেটা" : "নেসকো অফিশিয়াল"}
+              {isSampleData
+                ? isBangla ? "রেফারেন্স ডেটা" : "Reference Data"
+                : isBangla ? "নেসকো অফিশিয়াল" : "NESCO Official"}
             </Badge>
           </div>
           <CardDescription className="text-xs text-muted-foreground mt-0.5">
-            প্রতি মাসের মোট বিদ্যুৎ খরচ (kWh) ও রিচার্জ অর্থের ধারাবাহিক তুলনা
+            {t.charts.consumptionSubtitle}
           </CardDescription>
         </div>
 
         <Tabs value={metric} onValueChange={(val) => { if (val) setMetric(val as typeof metric) }}>
           <TabsList className="h-8">
-            <TabsTrigger value="both" className="text-xs px-2.5">উভয়</TabsTrigger>
-            <TabsTrigger value="usage" className="text-xs px-2.5">kWh ইউনিট</TabsTrigger>
-            <TabsTrigger value="recharge" className="text-xs px-2.5">টাকা (৳)</TabsTrigger>
+            <TabsTrigger value="both" className="text-xs px-2.5">
+              {isBangla ? "উভয়" : "Both"}
+            </TabsTrigger>
+            <TabsTrigger value="usage" className="text-xs px-2.5">
+              {isBangla ? "kWh ইউনিট" : "kWh Units"}
+            </TabsTrigger>
+            <TabsTrigger value="recharge" className="text-xs px-2.5">
+              {isBangla ? "টাকা (৳)" : "BDT (৳)"}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </CardHeader>
@@ -101,7 +118,7 @@ export function ConsumptionChart({ monthlyData, isSampleData }: ConsumptionChart
               tickLine={false}
               axisLine={false}
               tickMargin={6}
-              tickFormatter={(v) => toBanglaNumber(v)}
+              tickFormatter={(v) => formatNumber(v)}
               className="text-[11px] text-muted-foreground"
             />
             <ChartTooltip
@@ -111,9 +128,9 @@ export function ConsumptionChart({ monthlyData, isSampleData }: ConsumptionChart
                     if (name === "usageKwh") {
                       return (
                         <div className="flex items-center gap-1.5 font-medium">
-                          <span>ব্যবহার:</span>
+                          <span>{isBangla ? "ব্যবহার:" : "Usage:"}</span>
                           <span className="font-bold text-foreground">
-                            {toBanglaNumber(Array.isArray(value) ? value[0] : value)} kWh
+                            {formatNumber(Array.isArray(value) ? value[0] : value)} kWh
                           </span>
                         </div>
                       )
@@ -121,7 +138,7 @@ export function ConsumptionChart({ monthlyData, isSampleData }: ConsumptionChart
                     if (name === "rechargeBdt") {
                       return (
                         <div className="flex items-center gap-1.5 font-medium">
-                          <span>রিচার্জ:</span>
+                          <span>{isBangla ? "রিচার্জ:" : "Recharge:"}</span>
                           <span className="font-bold text-foreground">{formatBDT(Number(value))}</span>
                         </div>
                       )

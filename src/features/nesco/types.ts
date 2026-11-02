@@ -42,7 +42,7 @@ export interface MonthlyConsumptionRecord {
   monthEndBalance?: number
 }
 
-export type DataSource = "nesco_live" | "sample_demo"
+export type DataSource = "nesco_live" | "cached_real" | "sample_demo"
 
 export interface NescoFetchResult {
   success: boolean

@@ -17,7 +17,7 @@ import { saveMeterFn } from "@/features/auth/auth-server"
 import { generateAnalytics } from "@/features/analytics/insights-generator"
 import { useAuth } from "@/features/auth/auth-context"
 import { useMeter } from "@/features/meter/meter-context"
-import { formatBDT, toBanglaNumber, formatDateBangla } from "@/lib/bangla"
+import { useLanguage } from "@/features/i18n/language-context"
 import {
   Search,
   Zap,
@@ -39,6 +39,7 @@ import {
   CreditCard,
   BarChart3,
   X,
+  Clock,
 } from "lucide-react"
 
 export const Route = createFileRoute("/")({
@@ -47,6 +48,7 @@ export const Route = createFileRoute("/")({
 
 function DashboardPage() {
   const { user, isPremium, openAuthModal, openPricingModal } = useAuth()
+  const { t, isBangla, formatBDT, formatNumber, formatDate } = useLanguage()
   const {
     activeMeter,
     activeMeterData: nescoData,
@@ -141,14 +143,22 @@ function DashboardPage() {
         <div className="relative z-10 max-w-2xl space-y-3">
           <div className="flex items-center gap-2">
             <Badge className="bg-primary/20 text-primary border-primary/30 font-semibold px-2.5 py-0.5 text-xs">
-              ⚡ নেসকো প্রিপেইড মিটার
+              ⚡ {t.hero.badge}
             </Badge>
           </div>
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
-            আপনার বিদ্যুৎ খরচের <span className="text-primary">সহজ হিসাব</span>
+            {isBangla ? (
+              <>
+                আপনার বিদ্যুৎ খরচের <span className="text-primary">সহজ হিসাব</span>
+              </>
+            ) : (
+              <>
+                Clarity for your power. <span className="text-primary">Instant and precise.</span>
+              </>
+            )}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            নেসকো প্রি-পেইড গ্রাহক বা মিটার নম্বর পেস্ট করে ব্যালেন্স, রিচার্জ হিস্ট্রি এবং ইউনিট ব্যবহারের সহজ হিসাব দেখুন।
+            {t.hero.subtitle}
           </p>
 
           {/* Search Box */}
@@ -163,7 +173,7 @@ function DashboardPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="মিটার বা গ্রাহক নম্বর লিখুন বা পেস্ট করুন..."
+                placeholder={t.hero.meterInputPlaceholder}
                 value={meterInput}
                 onChange={(e) => setMeterInput(e.target.value)}
                 className="pl-10 pr-24 h-11 bg-background text-sm rounded-xl font-medium"
@@ -178,7 +188,7 @@ function DashboardPage() {
                       clearActiveMeter()
                     }}
                     className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                    title="মুছে ফেলুন"
+                    title={t.hero.clearSearch}
                   >
                     <X className="size-3.5" />
                   </button>
@@ -187,10 +197,10 @@ function DashboardPage() {
                   type="button"
                   onClick={handlePaste}
                   className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors flex items-center gap-1 cursor-pointer"
-                  title="ক্লিপবোর্ড থেকে পেস্ট করুন"
+                  title={t.hero.pasteFromClipboard}
                 >
                   <ClipboardPaste className="size-3" />
-                  <span>পেস্ট</span>
+                  <span>{t.hero.pasteFromClipboard}</span>
                 </button>
               </div>
             </div>
@@ -202,12 +212,12 @@ function DashboardPage() {
               {isLoading ? (
                 <>
                   <RefreshCw className="size-4 animate-spin" />
-                  <span>খোঁজা হচ্ছে...</span>
+                  <span>{t.hero.searchingButton}</span>
                 </>
               ) : (
                 <>
                   <Search className="size-4" />
-                  <span>তথ্য দেখুন</span>
+                  <span>{t.hero.searchButton}</span>
                 </>
               )}
             </Button>
@@ -224,16 +234,28 @@ function DashboardPage() {
               </p>
               {searchError.includes("403") && (
                 <div className="pt-2 border-t border-destructive/20 text-[11px] text-muted-foreground space-y-1.5">
-                  <p className="font-semibold text-foreground">💡 রিয়েল ডেটা দেখার সহজ উপায়:</p>
-                  <p>
-                    • <strong>লোকালহোস্টে:</strong> আপনার টার্মিনালে{" "}
-                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-primary font-bold">pnpm dev</code>{" "}
-                    চালিয়ে সার্চ করুন। আপনার লোকাল আইএসপি বাংলাদেশি হওয়ায় লাইভ ডেটা সরাসরি আসবে এবং তা ক্লাউড Turso ডাটাবেসে সেভ হয়ে যাবে।
+                  <p className="font-semibold text-foreground">
+                    {isBangla ? "💡 লাইভ ডেটা পাওয়ার উপায়:" : "💡 How to access live telemetry:"}
                   </p>
                   <p>
-                    • <strong>বাংলাদেশ ব্রিজ:</strong> অথবা টার্মিনালে{" "}
+                    • <strong>{isBangla ? "লোকালহোস্টে:" : "Locally:"}</strong>{" "}
+                    {isBangla
+                      ? "আপনার টার্মিনালে "
+                      : "Run "}
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-primary font-bold">pnpm dev</code>{" "}
+                    {isBangla
+                      ? "চালিয়ে ব্রাউজ করুন। আপনার লোকাল ইন্টারনেট সংযোগ বাংলাদেশি হওয়ায় লাইভ সরকারি সার্ভার সরাসরি সংযোগ পাবে।"
+                      : "in Bangladesh. Since your local ISP IP is within Bangladesh, it connects directly without restrictions."}
+                  </p>
+                  <p>
+                    • <strong>{isBangla ? "লাইভ সাইটে (যেমন Vercel):" : "On Live Deployment (Vercel):"}</strong>{" "}
+                    {isBangla
+                      ? "টার্মিনালে "
+                      : "Run "}
                     <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-primary font-bold">pnpm bridge</code>{" "}
-                    চালিয়ে Vercel-এর সাথে লিংক করতে পারেন।
+                    {isBangla
+                      ? "চালিয়ে টানেল লিংকটি Vercel-এর Environment Variable-এ NESCO_PROXY_URL হিসেবে সেভ করে দিন।"
+                      : "and set the public tunnel URL as NESCO_PROXY_URL in Vercel's Environment Variables."}
                   </p>
                 </div>
               )}
@@ -262,9 +284,13 @@ function DashboardPage() {
             <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
               <Zap className="size-5" />
             </div>
-            <h3 className="font-bold text-sm text-foreground">বর্তমান ব্যালেন্স ও স্ট্যাটাস</h3>
+            <h3 className="font-bold text-sm text-foreground">
+              {t.stats.currentBalance}
+            </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              আপনার মিটারে কত টাকা অবশিষ্ট আছে এবং মিটারের সার্বিক অবস্থা এক পলকে দেখতে পাবেন।
+              {isBangla
+                ? "আপনার মিটারে কত টাকা অবশিষ্ট আছে এবং মিটারের সার্বিক অবস্থা এক পলকে দেখতে পাবেন।"
+                : "Instantly view your remaining meter balance, credit runway, and connectivity status."}
             </p>
           </Card>
 
@@ -272,9 +298,13 @@ function DashboardPage() {
             <div className="size-9 rounded-xl bg-chart-1/10 text-chart-1 flex items-center justify-center font-bold">
               <CreditCard className="size-5" />
             </div>
-            <h3 className="font-bold text-sm text-foreground">রিচার্জ ও ২০ ডিজিট টোকেন</h3>
+            <h3 className="font-bold text-sm text-foreground">
+              {t.history.title}
+            </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              বিকাশ, নগদ, রকেটে রিচার্জের পর টোকেন কোড হারিয়ে গেলে সহজেই এখান থেকে কপি করে নিতে পারবেন।
+              {isBangla
+                ? "বিকাশ, নগদ, রকেটে রিচার্জের পর টোকেন কোড হারিয়ে গেলে সহজেই এখান থেকে কপি করে নিতে পারবেন।"
+                : "Easily inspect and copy 20-digit recharge tokens whenever you recharge via bKash or Nagad."}
             </p>
           </Card>
 
@@ -282,9 +312,13 @@ function DashboardPage() {
             <div className="size-9 rounded-xl bg-chart-2/10 text-chart-2 flex items-center justify-center font-bold">
               <BarChart3 className="size-5" />
             </div>
-            <h3 className="font-bold text-sm text-foreground">প্রতি মাসের ইউনিট খরচ</h3>
+            <h3 className="font-bold text-sm text-foreground">
+              {t.stats.latestMonthUnits}
+            </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              প্রতি মাসে কত ইউনিট বিদ্যুৎ ব্যবহার করছেন এবং সরকারি ট্যারিফ ধাপ অনুযায়ী খরচ দেখতে পাবেন।
+              {isBangla
+                ? "প্রতি মাসে কত ইউনিট বিদ্যুৎ ব্যবহার করছেন এবং সরকারি ট্যারিফ ধাপ অনুযায়ী খরচ দেখতে পাবেন।"
+                : "Track how many units you consume each month and model your power costs across stepped tariff tiers."}
             </p>
           </Card>
         </div>
@@ -299,19 +333,25 @@ function DashboardPage() {
               className={
                 nescoData.dataSource === "nesco_live"
                   ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-200"
+                  : nescoData.dataSource === "cached_real"
+                  ? "bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-200"
                   : "bg-muted/70 border-border"
               }
             >
               <div className="flex items-center gap-2">
                 {nescoData.dataSource === "nesco_live" ? (
                   <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                ) : nescoData.dataSource === "cached_real" ? (
+                  <Clock className="size-4 text-amber-600 dark:text-amber-400" />
                 ) : (
                   <Info className="size-4 text-primary" />
                 )}
                 <AlertTitle className="text-xs font-bold mb-0">
                   {nescoData.dataSource === "nesco_live"
-                    ? "সরকারি নেসকো লাইভ পোর্টাল থেকে সংগৃহীত"
-                    : "টেস্ট রেফারেন্স ডেটা"}
+                    ? t.status.liveSuccessTitle
+                    : nescoData.dataSource === "cached_real"
+                    ? t.status.cachedTitle
+                    : t.status.demoTitle}
                 </AlertTitle>
               </div>
               <AlertDescription className="text-xs mt-1 text-muted-foreground">
@@ -335,13 +375,13 @@ function DashboardPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1 font-mono">
-                      মিটার: <strong className="text-foreground">{nescoData.customerInfo.meterNumber}</strong>
+                      {t.nav.meterBadge}: <strong className="text-foreground">{formatNumber(nescoData.customerInfo.meterNumber)}</strong>
                     </span>
                     <span className="flex items-center gap-1 font-mono">
-                      গ্রাহক নং: <strong className="text-foreground">{nescoData.customerInfo.customerNumber}</strong>
+                      {t.customer.customerNo}: <strong className="text-foreground">{formatNumber(nescoData.customerInfo.customerNumber)}</strong>
                     </span>
                     <span className="flex items-center gap-1">
-                      অনুমোদিত লোড: <strong className="text-foreground">{toBanglaNumber(nescoData.customerInfo.approvedLoadKw)} kW</strong>
+                      {t.customer.sanctionedLoad}: <strong className="text-foreground">{formatNumber(nescoData.customerInfo.approvedLoadKw)} kW</strong>
                     </span>
                   </div>
                 </div>
@@ -355,7 +395,7 @@ function DashboardPage() {
                     className="h-9 text-xs font-semibold gap-1.5"
                   >
                     <Bookmark className="size-3.5 text-primary" />
-                    <span>{isSavingMeter ? "সেভ হচ্ছে..." : "মিটার সেভ করুন"}</span>
+                    <span>{isSavingMeter ? t.common.loading : t.customer.saveMeter}</span>
                   </Button>
                   <Button
                     size="sm"
@@ -366,7 +406,7 @@ function DashboardPage() {
                     className="h-9 text-xs font-semibold gap-1.5"
                   >
                     <Camera className="size-3.5" />
-                    <span>আজকের স্ন্যাপশট</span>
+                    <span>{t.stats.takeSnapshot}</span>
                   </Button>
                 </div>
               </div>
@@ -375,21 +415,21 @@ function DashboardPage() {
                 <div className="flex items-start gap-2">
                   <MapPin className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">ঠিকানা:</span>
+                    <span className="text-muted-foreground block text-[11px]">{t.customer.address}:</span>
                     <span className="font-medium text-foreground">{nescoData.customerInfo.address}</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Building2 className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">বিদ্যুৎ অফিস:</span>
+                    <span className="text-muted-foreground block text-[11px]">{isBangla ? "বিদ্যুৎ অফিস:" : "Electric Office:"}</span>
                     <span className="font-medium text-foreground">{nescoData.customerInfo.electricityOffice}</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Zap className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">ফিডার লাইন:</span>
+                    <span className="text-muted-foreground block text-[11px]">{t.customer.feeder}:</span>
                     <span className="font-medium text-foreground">{nescoData.customerInfo.feederName}</span>
                   </div>
                 </div>
@@ -397,22 +437,22 @@ function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* KPI Stat Cards Grid - Note: Day-related data requires login and is blurred if not authenticated */}
+          {/* KPI Stat Cards Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Actual Balance - Always visible */}
             <StatCard
-              title="অবশিষ্ট ব্যালেন্স"
+              title={t.stats.currentBalance}
               value={formatBDT(analytics.actual.currentBalance)}
-              subvalue="নেসকো মিটারের টাকা"
+              subvalue={t.stats.currentBalanceSub}
               icon={<Banknote className="size-5" />}
               highlight
             />
 
-            {/* Estimated Days Remaining - Day-related metric unlocked for premium detective members */}
+            {/* Estimated Days Remaining */}
             <StatCard
-              title="আনুমানিক বাকি দিন"
-              value={`~${toBanglaNumber(analytics.estimates.estimatedDaysRemaining)} দিন`}
-              subvalue="বর্তমান ব্যালেন্সের মেয়াদ"
+              title={t.stats.runwayDays}
+              value={`~${formatNumber(analytics.estimates.estimatedDaysRemaining)} ${t.stats.runwayDaysUnit}`}
+              subvalue={t.stats.runwayDaysSub}
               icon={<Hourglass className="size-5" />}
               isEstimate
               requiresAuth={!user}
@@ -421,16 +461,16 @@ function DashboardPage() {
               onUpgradeClick={() => openPricingModal()}
               trend={
                 analytics.estimates.estimatedDaysRemaining < 7
-                  ? { value: "জরুরি", isPositive: false, label: "রিচার্জ প্রয়োজন" }
-                  : { value: "ভালো অবস্থা", isPositive: true, label: "পর্যাপ্ত ব্যালেন্স" }
+                  ? { value: isBangla ? "জরুরি" : "Urgent", isPositive: false, label: isBangla ? "রিচার্জ প্রয়োজন" : "Recharge Soon" }
+                  : { value: isBangla ? "ভালো অবস্থা" : "Healthy", isPositive: true, label: isBangla ? "পর্যাপ্ত ব্যালেন্স" : "Sufficient Credit" }
               }
             />
 
-            {/* Estimated Daily Cost - Day-related metric unlocked for premium detective members */}
+            {/* Estimated Daily Cost */}
             <StatCard
-              title="প্রতিদিনের গড় খরচ"
-              value={`${formatBDT(analytics.estimates.avgDailyCostBdt)}/দিন`}
-              subvalue={`গড় ব্যবহার: ~${toBanglaNumber(analytics.estimates.avgDailyKwh)} kWh/দিন`}
+              title={t.stats.avgDailyCost}
+              value={`${formatBDT(analytics.estimates.avgDailyCostBdt)}/${t.stats.days}`}
+              subvalue={`${isBangla ? "গড় ব্যবহার:" : "Avg usage:"} ~${formatNumber(analytics.estimates.avgDailyKwh)} kWh/${t.stats.days}`}
               icon={<Gauge className="size-5" />}
               isEstimate
               requiresAuth={!user}
@@ -439,14 +479,16 @@ function DashboardPage() {
               onUpgradeClick={() => openPricingModal()}
             />
 
-            {/* Last Recharge - Shows Gross Recharge Amount with Net Energy Credited */}
+            {/* Last Recharge */}
             <StatCard
-              title="সর্বশেষ রিচার্জ"
+              title={isBangla ? "সর্বশেষ রিচার্জ" : "Last Recharge"}
               value={formatBDT(analytics.actual.lastRechargeAmount)}
               subvalue={
                 analytics.actual.lastRechargeDeductionsBdt > 0
-                  ? `মিটারে জমা: ${formatBDT(analytics.actual.lastRechargeNetEnergyBdt)} (${toBanglaNumber(analytics.actual.lastRechargePowerKwh)} kWh)`
-                  : `${formatDateBangla(analytics.actual.lastRechargeDate)} (${analytics.actual.lastRechargeVia})`
+                  ? isBangla
+                    ? `মিটারে জমা: ${formatBDT(analytics.actual.lastRechargeNetEnergyBdt)} (${formatNumber(analytics.actual.lastRechargePowerKwh)} kWh)`
+                    : `Credited: ${formatBDT(analytics.actual.lastRechargeNetEnergyBdt)} (${formatNumber(analytics.actual.lastRechargePowerKwh)} kWh)`
+                  : `${formatDate(analytics.actual.lastRechargeDate)} (${analytics.actual.lastRechargeVia})`
               }
               icon={<Calendar className="size-5" />}
             />
@@ -461,11 +503,13 @@ function DashboardPage() {
             onUpgradeClick={() => openPricingModal()}
           />
 
-          {/* Bangla Insights Section */}
+          {/* Bangla / English Insights Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4 text-primary" />
-              <h3 className="text-base sm:text-lg font-bold">খরচের গুরুত্বপূর্ণ তথ্য ও পরামর্শ</h3>
+              <h3 className="text-base sm:text-lg font-bold">
+                {isBangla ? "খরচের গুরুত্বপূর্ণ তথ্য ও পরামর্শ" : "Consumption Insights & Intelligence"}
+              </h3>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -484,7 +528,7 @@ function DashboardPage() {
                       </h4>
                       {insight.isCalculatedEstimate && (
                         <Badge variant="outline" className="text-[10px] h-4 font-normal">
-                          হিসাব
+                          {isBangla ? "হিসাব" : "Est."}
                         </Badge>
                       )}
                     </div>
@@ -521,27 +565,29 @@ function DashboardPage() {
 
               {/* Quick Navigation Card */}
               <Card className="rounded-2xl border p-5 shadow-xs bg-linear-to-br from-card to-muted/40 space-y-4">
-                <h4 className="font-bold text-sm">অন্যান্য পেজ দেখুন</h4>
+                <h4 className="font-bold text-sm">
+                  {isBangla ? "অন্যান্য পেজ দেখুন" : "Explore More"}
+                </h4>
                 <div className="space-y-2">
                   <Link
                     to="/history"
                     className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-background hover:border-primary/40 transition-colors text-xs font-medium"
                   >
-                    <span>রিচার্জ ও টোকেনের সম্পূর্ণ তালিকা</span>
+                    <span>{t.history.title}</span>
                     <ArrowRight className="size-3.5 text-muted-foreground" />
                   </Link>
                   <Link
                     to="/snapshots"
                     className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-background hover:border-primary/40 transition-colors text-xs font-medium"
                   >
-                    <span>প্রতিদিনের খরচের হিস্ট্রি (স্ন্যাপশট)</span>
+                    <span>{t.snapshots.title}</span>
                     <ArrowRight className="size-3.5 text-muted-foreground" />
                   </Link>
                   <Link
                     to="/tariffs"
                     className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-background hover:border-primary/40 transition-colors text-xs font-medium"
                   >
-                    <span>ট্যারিফ স্ল্যাব ও বিল হিসাব ক্যালকুলেটর</span>
+                    <span>{t.tariffs.title}</span>
                     <ArrowRight className="size-3.5 text-muted-foreground" />
                   </Link>
                 </div>
@@ -560,7 +606,7 @@ function DashboardPage() {
           currentBalance={analytics.actual.currentBalance}
           dailyEstimatedCost={analytics.estimates.avgDailyCostBdt}
           monthlyEstimatedCost={analytics.estimates.projectedMonthlyCostBdt}
-          sourceType={nescoData.dataSource}
+          sourceType={nescoData.dataSource === "sample_demo" ? "sample_demo" : "nesco_live"}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { EnergyAnalytics } from "./insights-generator"
-import { formatBDT, toBanglaNumber } from "@/lib/bangla"
+import { useLanguage } from "@/features/i18n/language-context"
 import {
   CreditCard,
   Coins,
@@ -9,7 +9,6 @@ import {
   Leaf,
   CalendarClock,
   Sparkles,
-  Lock,
   Flame,
   Snowflake,
   Layers,
@@ -32,8 +31,25 @@ export function AdvancedStats({
   onLoginClick,
   onUpgradeClick,
 }: AdvancedStatsProps) {
+  const { isBangla, formatBDT, formatNumber, formatDateWithDay } = useLanguage()
   const { rechargeStats, costEfficiency, seasonality, runway, eco, slabStats } = analytics
   const isUnlocked = isAuthenticated && isPremium
+
+  const totalDeductions = Math.max(0, rechargeStats.totalAmountBdt - rechargeStats.totalNetEnergyBdt)
+  const depletionDateObj = new Date(Date.now() + runway.estimatedDaysRemaining * 86400000)
+  const formattedDepletionDate = formatDateWithDay(depletionDateObj)
+  const hoursRemaining = Math.round(runway.estimatedDaysRemaining * 24)
+
+  const highestMonthLabel = seasonality.highestMonth
+    ? isBangla
+      ? seasonality.highestMonth.labelBangla
+      : `${seasonality.highestMonth.month} ${seasonality.highestMonth.year}`
+    : "-"
+  const lowestMonthLabel = seasonality.lowestMonth
+    ? isBangla
+      ? seasonality.lowestMonth.labelBangla
+      : `${seasonality.lowestMonth.month} ${seasonality.lowestMonth.year}`
+    : "-"
 
   return (
     <div className="space-y-4">
@@ -44,15 +60,17 @@ export function AdvancedStats({
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-bold text-foreground">
-              বাস্তব বিশ্লেষণ ও গুরুত্বপূর্ণ পরিসংখ্যান
+              {isBangla ? "বাস্তব বিশ্লেষণ ও গুরুত্বপূর্ণ পরিসংখ্যান" : "Consumption Telemetry & Intelligence"}
             </h3>
             <p className="text-xs text-muted-foreground">
-              নেসকো পোর্টালের রেকর্ড ও বিদ্যুৎ ব্যবহারের ওপর ভিত্তি করে নির্ভুল হিসাব
+              {isBangla
+                ? "নেসকো পোর্টালের রেকর্ড ও বিদ্যুৎ ব্যবহারের ওপর ভিত্তি করে নির্ভুল হিসাব"
+                : "Precise metrics modeled from official NESCO consumption telemetry"}
             </p>
           </div>
         </div>
         <Badge variant="outline" className="text-xs self-start sm:self-auto font-medium">
-          স্বয়ংক্রিয় হিসাব
+          {isBangla ? "স্বয়ংক্রিয় হিসাব" : "Automated Insights"}
         </Badge>
       </div>
 
@@ -63,314 +81,239 @@ export function AdvancedStats({
             <div className="flex items-center gap-2">
               <CreditCard className="size-4 text-primary" />
               <h4 className="font-bold text-xs sm:text-sm text-foreground">
-                রিচার্জ আচরণ ও অভ্যাসের পরিসংখ্যান
+                {isBangla ? "রিচার্জ আচরণ ও অভ্যাসের পরিসংখ্যান" : "Recharge Trajectory & Patterns"}
               </h4>
             </div>
             <Badge variant="secondary" className="text-[10px] font-semibold">
-              {toBanglaNumber(rechargeStats.totalCount)}টি রিচার্জ
+              {formatNumber(rechargeStats.totalCount)} {isBangla ? "টি রিচার্জ" : "recharges"}
             </Badge>
           </div>
           <CardContent className="p-5 space-y-3.5 text-xs">
             <div className="grid grid-cols-2 gap-3 pb-3 border-b border-border/60">
               <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground block">মোট রিচার্জের পরিমাণ</span>
+                <span className="text-[11px] text-muted-foreground block">
+                  {isBangla ? "মোট রিচার্জের পরিমাণ" : "Lifetime Recharge Sum"}
+                </span>
                 <span className="text-base sm:text-lg font-extrabold text-foreground font-mono">
                   {formatBDT(rechargeStats.totalAmountBdt)}
                 </span>
                 <span className="text-[10px] text-muted-foreground block">
-                  মোট {toBanglaNumber(rechargeStats.totalKwh)} kWh ক্রয়
+                  {isBangla
+                    ? `গড় টিকেট: ${formatBDT(rechargeStats.averageAmountBdt)}`
+                    : `Avg ticket: ${formatBDT(rechargeStats.averageAmountBdt)}`}
                 </span>
               </div>
               <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground block">গড় রিচার্জের আকার</span>
-                <span className="text-base sm:text-lg font-extrabold text-primary font-mono">
-                  {formatBDT(rechargeStats.averageAmountBdt)}
+                <span className="text-[11px] text-muted-foreground block">
+                  {isBangla ? "বিদ্যুৎ বাবদ প্রকৃত জমা" : "Net Energy Credited"}
                 </span>
-                <span className="text-[10px] text-muted-foreground block">প্রতি লেনদেনে গড়</span>
+                <span className="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                  {formatBDT(rechargeStats.totalNetEnergyBdt)}
+                </span>
+                <span className="text-[10px] text-muted-foreground block">
+                  {isBangla
+                    ? `কাটতি বাদ গেছে: ${formatBDT(totalDeductions)}`
+                    : `Deductions: ${formatBDT(totalDeductions)}`}
+                </span>
               </div>
             </div>
 
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">পছন্দের রিচার্জ মাধ্যম:</span>
-                <span className="font-semibold text-foreground flex items-center gap-1.5">
-                  <Badge variant="outline" className="text-[11px] font-semibold">
-                    {rechargeStats.favoriteVia}
-                  </Badge>
-                  <span className="text-[11px] text-muted-foreground">
-                    ({toBanglaNumber(rechargeStats.favoriteViaPct)}% লেনদেন)
-                  </span>
-                </span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>{isBangla ? "সর্বোচ্চ একক রিচার্জ:" : "Largest Single Recharge:"}</span>
+                <span className="font-semibold text-foreground">{formatBDT(rechargeStats.maxAmountBdt)}</span>
               </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">এককালীন সর্বনিম্ন ও সর্বোচ্চ:</span>
-                <span className="font-semibold text-foreground font-mono">
-                  {formatBDT(rechargeStats.minAmountBdt)} — {formatBDT(rechargeStats.maxAmountBdt)}
-                </span>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>{isBangla ? "সর্বনিম্ন রিচার্জ:" : "Minimum Single Recharge:"}</span>
+                <span className="font-semibold text-foreground">{formatBDT(rechargeStats.minAmountBdt)}</span>
               </div>
-
-              {rechargeStats.lastRechargeDeductionsBdt > 0 && (
-                <div className="flex items-center justify-between p-2 rounded-xl bg-primary/5 border border-primary/20">
-                  <span className="text-muted-foreground text-[11px]">সর্বশেষ রিচার্জ ও জমা:</span>
-                  <span className="font-semibold text-foreground text-[11px]">
-                    {formatBDT(rechargeStats.lastRechargeAmount)} (মিটারে {formatBDT(rechargeStats.lastRechargeNetEnergyBdt)})
-                  </span>
-                </div>
-              )}
-
-              {/* Day-based metric: Interval between recharges */}
-              <div className="relative pt-1">
-                {!isUnlocked && (
-                  <div className="absolute inset-0 bg-background/85 backdrop-blur-xs rounded-lg flex items-center justify-between px-3 z-10 border border-amber-500/30">
-                    <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                      {isAuthenticated ? (
-                        <Crown className="size-3 text-amber-500 fill-amber-500" />
-                      ) : (
-                        <Lock className="size-3 text-primary" />
-                      )}
-                      দিনভিত্তিক রিচার্জ ব্যবধান
-                    </span>
-                    <button
-                      type="button"
-                      onClick={isAuthenticated ? onUpgradeClick : onLoginClick}
-                      className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
-                    >
-                      {isAuthenticated ? "মিটার প্লাস (৳২০)" : "লগইন করে দেখুন"}
-                    </button>
-                  </div>
-                )}
-                <div
-                  className={cn(
-                    "flex items-center justify-between",
-                    !isUnlocked && "filter blur-xs opacity-40 select-none"
-                  )}
-                >
-                  <span className="text-muted-foreground">রিচার্জের গড় ব্যবধান:</span>
-                  <span className="font-semibold text-foreground">
-                    {rechargeStats.averageDaysBetweenRecharges
-                      ? `প্রতি ~${toBanglaNumber(rechargeStats.averageDaysBetweenRecharges)} দিন পর পর`
-                      : "যথেষ্ট রেকর্ড নেই"}
-                  </span>
-                </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>{isBangla ? "রিচার্জের প্রধান মাধ্যম:" : "Primary Recharge Channel:"}</span>
+                <span className="font-semibold text-foreground">{rechargeStats.favoriteVia}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Card 2: True Cost & Financial Efficiency */}
+        {/* Card 2: True Cost Efficiency */}
         <Card className="rounded-2xl border shadow-xs overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Coins className="size-4 text-emerald-600 dark:text-emerald-400" />
+              <Coins className="size-4 text-chart-2" />
               <h4 className="font-bold text-xs sm:text-sm text-foreground">
-                প্রকৃত বিদ্যুৎ ব্যয় ও আর্থিক সাশ্রয়
+                {isBangla ? "প্রকৃত খরচ দক্ষতা ও সরকারি সুবিধা" : "Cost Efficiency & Incentives"}
               </h4>
             </div>
-            <Badge variant="secondary" className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-              ১% রিবেট অন্তর্ভুক্ত
+            <Badge variant="outline" className="text-[10px] font-semibold border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+              {isBangla ? "১% রিবেট সংযুক্ত" : "1% Rebate Active"}
             </Badge>
           </div>
           <CardContent className="p-5 space-y-3.5 text-xs">
             <div className="grid grid-cols-2 gap-3 pb-3 border-b border-border/60">
               <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground block">প্রকৃত গড় ইউনিট দর</span>
-                <span className="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                <span className="text-[11px] text-muted-foreground block">
+                  {isBangla ? "কার্যকর ইউনিট দর" : "Effective Unit Rate"}
+                </span>
+                <span className="text-base sm:text-lg font-extrabold text-foreground font-mono">
                   {formatBDT(costEfficiency.effectiveCostPerKwh)}
                 </span>
                 <span className="text-[10px] text-muted-foreground block">
-                  ভ্যাট ও ডিমান্ড চার্জসহ / kWh
+                  {isBangla ? "ভ্যাট ও রেন্ট সমন্বিত প্রতি ইউনিট" : "All-inclusive per kWh"}
                 </span>
               </div>
               <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground block">মোট সরকারি রিবেট সঞ্চয়</span>
-                <span className="text-base sm:text-lg font-extrabold text-foreground font-mono">
-                  {formatBDT(costEfficiency.totalGovernmentRebateBdt)}
+                <span className="text-[11px] text-muted-foreground block">
+                  {isBangla ? "সরকারি ১% রিবেট আয়" : "Government 1% Rebate"}
                 </span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-medium">
-                  ১% প্রিপেইড ক্যাশব্যাক
+                <span className="text-base sm:text-lg font-extrabold text-primary font-mono">
+                  +{formatBDT(costEfficiency.totalGovernmentRebateBdt)}
+                </span>
+                <span className="text-[10px] text-muted-foreground block">
+                  {isBangla ? "রিচার্জে সরকারি ক্যাশব্যাক" : "Official incentive savings"}
                 </span>
               </div>
             </div>
 
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">বর্তমান ব্যালেন্সে মিলবে:</span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>{isBangla ? "মাসিক ফিক্সড ওভারহেড:" : "Monthly Fixed Overhead:"}</span>
                 <span className="font-semibold text-foreground">
-                  ~{toBanglaNumber(costEfficiency.estimatedUnitsRemaining)} kWh ইউনিট বিদ্যুৎ
+                  {formatBDT(costEfficiency.fixedOverheadPerMonthBdt)}
                 </span>
               </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">মাসিক স্থায়ী ফিক্সড চার্জ:</span>
-                <span className="font-semibold text-foreground font-mono">
-                  {formatBDT(costEfficiency.fixedOverheadPerMonthBdt)} / মাস
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">শুধুমাত্র বিদ্যুতের নিট রেট:</span>
-                <span className="font-semibold text-foreground font-mono">
-                  {formatBDT(costEfficiency.netCostWithoutOverheadPerKwh)} / kWh
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>{isBangla ? "নেট বিদ্যুৎ শক্তি দর:" : "Pure Energy Cost:"}</span>
+                <span className="font-semibold text-foreground">
+                  {formatBDT(costEfficiency.netCostWithoutOverheadPerKwh)}/kWh
                 </span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Card 3: Seasonality & Peak/Off-Peak Extremes */}
-        <Card className="rounded-2xl border shadow-xs overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="size-4 text-amber-500" />
-              <h4 className="font-bold text-xs sm:text-sm text-foreground">
-                মৌসুমী ও সর্বোচ্চ/সর্বনিম্ন খরচের প্যাটার্ন
-              </h4>
-            </div>
-            <Badge variant="secondary" className="text-[10px] font-semibold">
-              বার্ষিক বিশ্লেষণ
-            </Badge>
-          </div>
-          <CardContent className="p-5 space-y-3.5 text-xs">
-            {seasonality.highestMonth && seasonality.lowestMonth ? (
-              <>
-                <div className="grid grid-cols-2 gap-3 pb-3 border-b border-border/60">
-                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                      <Flame className="size-3" />
-                      <span>সর্বোচ্চ খরচের মাস (পিক)</span>
-                    </div>
-                    <div className="font-bold text-foreground text-xs">
-                      {seasonality.highestMonth.labelBangla}
-                    </div>
-                    <div className="text-[11px] font-mono text-muted-foreground">
-                      {toBanglaNumber(seasonality.highestMonth.usageKwh)} kWh ({formatBDT(seasonality.highestMonth.rechargeBdt)})
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-1">
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400">
-                      <Snowflake className="size-3" />
-                      <span>সর্বনিম্ন খরচের মাস (অফ-পিক)</span>
-                    </div>
-                    <div className="font-bold text-foreground text-xs">
-                      {seasonality.lowestMonth.labelBangla}
-                    </div>
-                    <div className="text-[11px] font-mono text-muted-foreground">
-                      {toBanglaNumber(seasonality.lowestMonth.usageKwh)} kWh ({formatBDT(seasonality.lowestMonth.rechargeBdt)})
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">মৌসুমী খরচের তারতম্য:</span>
-                    <span className="font-bold text-foreground">
-                      {toBanglaNumber(seasonality.seasonalityGapPct)}% পরিবর্তন (শীত বনাম গরম)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">প্রতি মাসের গড় ব্যবহার:</span>
-                    <span className="font-semibold text-foreground">
-                      ~{toBanglaNumber(seasonality.averageMonthlyKwh)} kWh ({formatBDT(seasonality.averageMonthlyExpenseBdt)})
-                    </span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <p className="text-muted-foreground py-4 text-center">
-                মৌসুমী তথ্য পর্যালোচনার জন্য পর্যাপ্ত মাসিক রেকর্ড পাওয়া যায়নি।
+        {/* Card 3: Seasonality & Depletion Forecasting */}
+        <Card className="rounded-2xl border shadow-xs overflow-hidden relative">
+          {!isUnlocked && (
+            <div className="absolute inset-0 z-10 bg-background/85 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-center">
+              <div className="p-2 rounded-full bg-amber-500/10 text-amber-500 mb-1.5">
+                <Crown className="size-4 fill-amber-500" />
+              </div>
+              <h5 className="font-bold text-sm text-foreground">
+                {isBangla ? "মিটার প্লাস দিয়ে আনলক করুন" : "Unlock with Meter Plus"}
+              </h5>
+              <p className="text-[11px] text-muted-foreground max-w-xs mt-1 mb-2.5">
+                {isBangla
+                  ? "ব্যালেন্স শেষ হওয়ার পূর্বাভাস ও ঋতুভিত্তিক ব্যবহারের গভীর বিশ্লেষণ দেখতে মিটার প্লাস প্রয়োজন।"
+                  : "Access predictive runway forecasting and seasonal consumption telemetry."}
               </p>
-            )}
-          </CardContent>
-        </Card>
+              {onUpgradeClick ? (
+                <button
+                  type="button"
+                  onClick={onUpgradeClick}
+                  className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Crown className="size-3.5 fill-current" />
+                  <span>{isBangla ? "আনলক করুন (৳২০)" : "Unlock (৳20)"}</span>
+                </button>
+              ) : onLoginClick ? (
+                <button
+                  type="button"
+                  onClick={onLoginClick}
+                  className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
+                >
+                  {isBangla ? "লগইন করুন" : "Sign In"}
+                </button>
+              ) : null}
+            </div>
+          )}
 
-        {/* Card 4: Runway, Slab Warnings & Eco Footprint */}
-        <Card className="rounded-2xl border shadow-xs overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CalendarClock className="size-4 text-primary" />
               <h4 className="font-bold text-xs sm:text-sm text-foreground">
-                মেয়াদ, স্ল্যাব সতর্কতা ও পরিবেশ
+                {isBangla ? "ব্যালেন্স শেষ হওয়ার পূর্বাভাস ও ঋতুভিত্তিক প্রভাব" : "Runway Forecasting & Seasonality"}
               </h4>
             </div>
-            <Badge
-              variant={
-                runway.urgencyLevel === "critical"
-                  ? "destructive"
-                  : runway.urgencyLevel === "warning"
-                  ? "secondary"
-                  : "outline"
-              }
-              className="text-[10px] font-semibold"
-            >
-              {runway.urgencyLevel === "critical"
-                ? "জরুরি রিচার্জ"
-                : runway.urgencyLevel === "warning"
-                ? "সতর্কতা"
-                : "পর্যাপ্ত ব্যালেন্স"}
+            <Badge variant="outline" className="text-[10px] font-semibold">
+              {isBangla ? "স্মার্ট ফোরকাস্ট" : "Predictive Model"}
             </Badge>
           </div>
-          <CardContent className="p-5 space-y-3.5 text-xs">
-            {/* Day-based metric: Depletion date */}
-            <div className="relative pb-3 border-b border-border/60">
-              {!isUnlocked && (
-                <div className="absolute inset-0 bg-background/85 backdrop-blur-xs rounded-xl flex items-center justify-between px-3 z-10 border border-amber-500/30">
-                  <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
-                    {isAuthenticated ? (
-                      <Crown className="size-3 text-amber-500 fill-amber-500" />
-                    ) : (
-                      <Lock className="size-3 text-primary" />
-                    )}
-                    ব্যালেন্স শেষ হওয়ার সুনির্দিষ্ট দিন দেখতে
-                  </span>
-                  <button
-                    type="button"
-                    onClick={isAuthenticated ? onUpgradeClick : onLoginClick}
-                    className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
-                  >
-                    {isAuthenticated ? "মিটার প্লাস (৳২০)" : "লগইন করুন"}
-                  </button>
-                </div>
-              )}
-              <div
-                className={cn(
-                  "space-y-1",
-                  !isUnlocked && "filter blur-xs opacity-40 select-none"
-                )}
-              >
-                <span className="text-[11px] text-muted-foreground block">
-                  ব্যালেন্স আনুমানিক শেষ হওয়ার তারিখ
+
+          <CardContent className={cn("p-5 space-y-3.5 text-xs", !isUnlocked && "filter blur-sm select-none opacity-40")}>
+            <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">
+                  {isBangla ? "ব্যালেন্স শেষ হওয়ার সম্ভাব্য তারিখ:" : "Projected Exhaustion Date:"}
                 </span>
-                <span className="text-sm sm:text-base font-extrabold text-foreground block">
-                  {runway.depletionDate}
+                <span className="font-extrabold text-foreground font-mono">
+                  {formattedDepletionDate}
                 </span>
-                <span className="text-[10px] text-muted-foreground block">
-                  বর্তমান খরচে আর প্রায় {toBanglaNumber(runway.estimatedDaysRemaining)} দিন চলবে
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-muted-foreground">{isBangla ? "অবশিষ্ট সময়সীমা:" : "Estimated Runway:"}</span>
+                <span className="font-bold text-primary font-mono">
+                  ~{formatNumber(runway.estimatedDaysRemaining)} {isBangla ? "দিন" : "days"} ({formatNumber(hoursRemaining)} {isBangla ? "ঘণ্টা" : "hrs"})
                 </span>
               </div>
             </div>
 
-            <div className="space-y-2.5 pt-1">
-              {/* Slab Headroom */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="p-2.5 rounded-xl border border-border/60 bg-muted/20 space-y-1">
+                <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold text-[11px]">
+                  <Flame className="size-3.5" />
+                  <span>{isBangla ? "গ্রীষ্মকালীন শীর্ষ" : "Summer Peak"}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {highestMonthLabel} ({formatNumber(seasonality.highestMonth?.usageKwh ?? 0)} kWh)
+                </div>
+              </div>
+              <div className="p-2.5 rounded-xl border border-border/60 bg-muted/20 space-y-1">
+                <div className="flex items-center gap-1 text-sky-600 dark:text-sky-400 font-semibold text-[11px]">
+                  <Snowflake className="size-3.5" />
+                  <span>{isBangla ? "শীতকালীন সর্বনিম্ন" : "Winter Low"}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {lowestMonthLabel} ({formatNumber(seasonality.lowestMonth?.usageKwh ?? 0)} kWh)
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 4: Slab Dynamics & Eco Footprint */}
+        <Card className="rounded-2xl border shadow-xs overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers className="size-4 text-emerald-600 dark:text-emerald-400" />
+              <h4 className="font-bold text-xs sm:text-sm text-foreground">
+                {isBangla ? "ট্যারিফ স্ল্যাব অপ্টিমাইজেশন ও পরিবেশগত প্রভাব" : "Slab Dynamics & Eco Footprint"}
+              </h4>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-semibold">
+              {isBangla ? "গ্রিন অ্যানালিটিক্স" : "Eco Telemetry"}
+            </Badge>
+          </div>
+          <CardContent className="p-5 space-y-3.5 text-xs">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground flex items-center gap-1">
-                  <Layers className="size-3.5 text-primary" />
-                  <span>বর্তমান ট্যারিফ ধাপ:</span>
+                  <TrendingUp className="size-3.5 text-primary" />
+                  <span>{isBangla ? "বর্তমান ট্যারিফ ধাপ:" : "Active Tariff Tier:"}</span>
                 </span>
                 <span className="font-semibold text-foreground">
-                  ধাপ {toBanglaNumber(slabStats.activeSlabStep)} ({formatBDT(slabStats.ratePerUnit)}/kWh)
+                  {isBangla ? `ধাপ ${formatNumber(slabStats.activeSlabStep)}` : `Tier ${formatNumber(slabStats.activeSlabStep)}`} ({formatBDT(slabStats.ratePerUnit)}/kWh)
                 </span>
               </div>
 
               {slabStats.unitsRemainingInSlab !== null && slabStats.nextSlabRate && (
                 <div className="flex items-center justify-between p-2 rounded-xl bg-muted/50 border border-border/50">
-                  <span className="text-[11px] text-muted-foreground">পরবর্তী ধাপে যেতে বাকি:</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {isBangla ? "পরবর্তী ধাপে যেতে বাকি:" : "Units to Next Tier:"}
+                  </span>
                   <span className="font-bold text-foreground flex items-center gap-1">
-                    <span>{toBanglaNumber(slabStats.unitsRemainingInSlab)} ইউনিট</span>
+                    <span>{formatNumber(slabStats.unitsRemainingInSlab)} {isBangla ? "ইউনিট" : "kWh"}</span>
                     <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">
-                      (+৳{toBanglaNumber(slabStats.slabJumpCostDelta)} বৃদ্ধি)
+                      (+{formatBDT(slabStats.slabJumpCostDelta)})
                     </span>
                   </span>
                 </div>
@@ -380,17 +323,17 @@ export function AdvancedStats({
               <div className="flex items-center justify-between pt-1">
                 <span className="text-muted-foreground flex items-center gap-1">
                   <Leaf className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>পরিবেশগত প্রভাব (CO₂):</span>
+                  <span>{isBangla ? "পরিবেশগত প্রভাব (CO₂):" : "Carbon Footprint (CO₂):"}</span>
                 </span>
                 <span className="font-semibold text-foreground">
-                  ~{toBanglaNumber(eco.carbonKg)} কেজি কার্বন নির্গমন
+                  ~{formatNumber(eco.carbonKg)} {isBangla ? "কেজি কার্বন নির্গমন" : "kg CO₂ emitted"}
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>কার্বন সমতায় বছরে প্রয়োজনীয় গাছ:</span>
+                <span>{isBangla ? "কার্বন সমতায় বছরে প্রয়োজনীয় গাছ:" : "Trees required to offset:"}</span>
                 <Badge variant="outline" className="text-[11px] font-semibold border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
-                  ~{toBanglaNumber(eco.treesNeeded)}টি গাছ
+                  ~{formatNumber(eco.treesNeeded)} {isBangla ? "টি গাছ" : "trees"}
                 </Badge>
               </div>
             </div>

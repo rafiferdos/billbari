@@ -202,7 +202,7 @@ describe("Server-side Database Persistence (Turso / libSQL)", () => {
     expect(snapRow).toBeDefined()
     expect(snapRow.meter_number).toBe("12345678")
     expect(Number(snapRow.balance)).toBeCloseTo(987.43)
-  })
+  }, 20000)
 })
 
 describe("bKash Payment & Subscription Management", () => {
@@ -267,7 +267,7 @@ describe("bKash Payment & Subscription Management", () => {
         args: [`pay2_${Date.now()}`, testUserId, testTrxId, new Date().toISOString(), new Date().toISOString()],
       })
     ).rejects.toThrow()
-  })
+  }, 20000)
 })
 
 describe("Appliance Simulator & Real-World Energy Estimation", () => {

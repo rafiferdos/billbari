@@ -4,6 +4,7 @@
 export interface TariffStep {
   step: number
   nameBangla: string
+  nameEnglish: string
   minUnits: number
   maxUnits: number | null // null for unbounded
   ratePerUnit: number // BDT per kWh
@@ -13,6 +14,7 @@ export const NESCO_LTA_SLABS: TariffStep[] = [
   {
     step: 1,
     nameBangla: "ধাপ ১ (১ - ৭৫ ইউনিট)",
+    nameEnglish: "Tier 1 (1 - 75 kWh)",
     minUnits: 1,
     maxUnits: 75,
     ratePerUnit: 5.26,
@@ -20,6 +22,7 @@ export const NESCO_LTA_SLABS: TariffStep[] = [
   {
     step: 2,
     nameBangla: "ধাপ ২ (৭৬ - ২০০ ইউনিট)",
+    nameEnglish: "Tier 2 (76 - 200 kWh)",
     minUnits: 76,
     maxUnits: 200,
     ratePerUnit: 7.2,
@@ -27,6 +30,7 @@ export const NESCO_LTA_SLABS: TariffStep[] = [
   {
     step: 3,
     nameBangla: "ধাপ ৩ (২০১ - ৩০০ ইউনিট)",
+    nameEnglish: "Tier 3 (201 - 300 kWh)",
     minUnits: 201,
     maxUnits: 300,
     ratePerUnit: 7.59,
@@ -34,6 +38,7 @@ export const NESCO_LTA_SLABS: TariffStep[] = [
   {
     step: 4,
     nameBangla: "ধাপ ৪ (৩০১ - ৪০০ ইউনিট)",
+    nameEnglish: "Tier 4 (301 - 400 kWh)",
     minUnits: 301,
     maxUnits: 400,
     ratePerUnit: 8.02,
@@ -41,6 +46,7 @@ export const NESCO_LTA_SLABS: TariffStep[] = [
   {
     step: 5,
     nameBangla: "ধাপ ৫ (৪০১ - ৬০০ ইউনিট)",
+    nameEnglish: "Tier 5 (401 - 600 kWh)",
     minUnits: 401,
     maxUnits: 600,
     ratePerUnit: 12.67,
@@ -48,6 +54,7 @@ export const NESCO_LTA_SLABS: TariffStep[] = [
   {
     step: 6,
     nameBangla: "ধাপ ৬ (৬০১+ ইউনিট)",
+    nameEnglish: "Tier 6 (601+ kWh)",
     minUnits: 601,
     maxUnits: null,
     ratePerUnit: 14.61,
@@ -75,6 +82,7 @@ export interface BillBreakdown {
   slabBreakdown: {
     step: number
     nameBangla: string
+    nameEnglish: string
     unitsInSlab: number
     rate: number
     amount: number
@@ -101,6 +109,7 @@ export function calculateNescoBill(
     slabBreakdown.push({
       step: 0,
       nameBangla: "লাইফলাইন (০ - ৫০ ইউনিট)",
+      nameEnglish: "Lifeline (0 - 50 kWh)",
       unitsInSlab: safeUnits,
       rate: LIFELINE_RATE,
       amount,
@@ -123,6 +132,7 @@ export function calculateNescoBill(
       slabBreakdown.push({
         step: slab.step,
         nameBangla: slab.nameBangla,
+        nameEnglish: slab.nameEnglish,
         unitsInSlab,
         rate: slab.ratePerUnit,
         amount,

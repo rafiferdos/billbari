@@ -6,15 +6,16 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { calculateNescoBill, NESCO_LTA_SLABS, LIFELINE_RATE } from "@/lib/tariff-constants"
-import { formatBDT, toBanglaNumber } from "@/lib/bangla"
 import { Calculator, SlidersHorizontal, ArrowDown } from "lucide-react"
 import { ApplianceSimulator } from "@/features/tariffs/appliance-simulator"
+import { useLanguage } from "@/features/i18n/language-context"
 
 export const Route = createFileRoute("/tariffs")({
   component: TariffsPage,
 })
 
 function TariffsPage() {
+  const { t, isBangla, formatBDT, formatNumber } = useLanguage()
   const [unitsInput, setUnitsInput] = React.useState<number>(240)
   const [loadKw, setLoadKw] = React.useState<number>(2)
   const [isSinglePhase, setIsSinglePhase] = React.useState<boolean>(true)
@@ -32,11 +33,11 @@ function TariffsPage() {
               <Calculator className="size-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              নেসকো প্রিপেইড ট্যারিফ ও বিল ক্যালকুলেটর
+              {t.tariffs.title}
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            বাংলাদেশ এনার্জি রেগুলেটরি কমিশন (BERC) কর্তৃক নির্ধারিত আবাসিক LT-A ট্যারিফ অনুযায়ী বিল হিসাব
+            {t.tariffs.subtitle}
           </p>
         </div>
 
@@ -49,7 +50,7 @@ function TariffsPage() {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-xs font-semibold text-primary transition-colors cursor-pointer self-start sm:self-auto"
         >
           <SlidersHorizontal className="size-3.5" />
-          <span>ঘরের যন্ত্রপাতি দিয়ে ইউনিট মাপুন</span>
+          <span>{isBangla ? "ঘরের যন্ত্রপাতি দিয়ে ইউনিট মাপুন" : "Simulate Home Appliances"}</span>
           <ArrowDown className="size-3" />
         </button>
       </div>
@@ -58,16 +59,18 @@ function TariffsPage() {
         {/* Calculator Controls */}
         <Card className="rounded-2xl border shadow-xs h-fit">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold">ব্যবহারের পরিমাণ দিন</CardTitle>
+            <CardTitle className="text-base font-bold">
+              {isBangla ? "ব্যবহারের পরিমাণ দিন" : "Input Power Usage"}
+            </CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
-              মাসিক আনুমানিক বিদ্যুৎ ইউনিট ও সংযোগ তথ্য
+              {isBangla ? "মাসিক আনুমানিক বিদ্যুৎ ইউনিট ও সংযোগ তথ্য" : "Estimated monthly units & load details"}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <Label htmlFor="units" className="text-xs font-medium">
-                মাসিক বিদ্যুৎ খরচ (kWh ইউনিট)
+                {isBangla ? "মাসিক বিদ্যুৎ খরচ (kWh ইউনিট)" : "Monthly Energy Usage (kWh)"}
               </Label>
               <div className="relative">
                 <Input
@@ -97,7 +100,7 @@ function TariffsPage() {
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="space-y-1.5">
                 <Label htmlFor="load" className="text-xs font-medium">
-                  অনুমোদিত লোড (kW)
+                  {t.customer.sanctionedLoad} (kW)
                 </Label>
                 <Input
                   id="load"
@@ -111,7 +114,7 @@ function TariffsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium">সংযোগের ধরন</Label>
+                <Label className="text-xs font-medium">{t.customer.phase}</Label>
                 <div className="flex gap-1.5">
                   <button
                     type="button"
@@ -142,13 +145,13 @@ function TariffsPage() {
             {/* Total Bill Highlight Box */}
             <div className="rounded-2xl bg-primary/10 border border-primary/20 p-4 text-center space-y-1 mt-4">
               <span className="text-xs font-medium text-muted-foreground block">
-                আনুমানিক মোট প্রদেয় বিল
+                {t.tariffs.summaryNetBill}
               </span>
               <div className="text-3xl font-extrabold text-primary">
                 {formatBDT(breakdown.totalBill)}
               </div>
               <span className="text-[11px] text-muted-foreground block">
-                গড় রেট: <strong>{formatBDT(breakdown.effectiveRatePerUnit)}</strong> প্রতি kWh
+                {isBangla ? "গড় রেট:" : "Effective rate:"} <strong>{formatBDT(breakdown.effectiveRatePerUnit)}</strong> / kWh
               </span>
             </div>
           </CardContent>
@@ -159,13 +162,17 @@ function TariffsPage() {
           <Card className="rounded-2xl border shadow-xs overflow-hidden">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-bold">ধাপভিত্তিক ট্যারিফ বিল বিভাজন</CardTitle>
+                <CardTitle className="text-base font-bold">
+                  {isBangla ? "ধাপভিত্তিক ট্যারিফ বিল বিভাজন" : "Tier-by-Tier Bill Breakdown"}
+                </CardTitle>
                 <Badge variant="outline" className="text-xs">
-                  {breakdown.activeStep.nameBangla}
+                  {isBangla ? breakdown.activeStep.nameBangla : breakdown.activeStep.nameEnglish}
                 </Badge>
               </div>
               <CardDescription className="text-xs text-muted-foreground">
-                কোন ধাপে কত ইউনিট এবং কত টাকা ধার্য হয়েছে
+                {isBangla
+                  ? "কোন ধাপে কত ইউনিট এবং কত টাকা ধার্য হয়েছে"
+                  : "Units and rate allocation applied across each stepped bracket"}
               </CardDescription>
             </CardHeader>
 
@@ -173,20 +180,20 @@ function TariffsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="text-xs">
-                    <TableHead>ট্যারিফ ধাপ</TableHead>
-                    <TableHead>ব্যবহার ইউনিট</TableHead>
-                    <TableHead>প্রতি ইউনিট রেট</TableHead>
-                    <TableHead className="text-right">মোট অর্থ (৳)</TableHead>
+                    <TableHead>{isBangla ? "ট্যারিফ ধাপ" : "Tariff Slab"}</TableHead>
+                    <TableHead>{isBangla ? "ব্যবহার ইউনিট" : "Units (kWh)"}</TableHead>
+                    <TableHead>{isBangla ? "প্রতি ইউনিট রেট" : "Rate per kWh"}</TableHead>
+                    <TableHead className="text-right">{isBangla ? "মোট অর্থ (৳)" : "Amount (৳)"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {breakdown.slabBreakdown.map((item, idx) => (
                     <TableRow key={idx} className="text-xs">
                       <TableCell className="font-medium text-foreground">
-                        {item.nameBangla}
+                        {isBangla ? item.nameBangla : item.nameEnglish}
                       </TableCell>
                       <TableCell className="font-semibold text-primary">
-                        {toBanglaNumber(item.unitsInSlab)} kWh
+                        {formatNumber(item.unitsInSlab)} kWh
                       </TableCell>
                       <TableCell>{formatBDT(item.rate)}</TableCell>
                       <TableCell className="text-right font-bold">
@@ -198,7 +205,7 @@ function TariffsPage() {
                   {/* Summary Rows */}
                   <TableRow className="text-xs bg-muted/30">
                     <TableCell colSpan={3} className="text-muted-foreground font-medium">
-                      বিদ্যুৎ শক্তি চার্জ (Energy Charge):
+                      {t.tariffs.summaryEnergyCost}:
                     </TableCell>
                     <TableCell className="text-right font-bold">
                       {formatBDT(breakdown.energyCharge)}
@@ -207,28 +214,28 @@ function TariffsPage() {
 
                   <TableRow className="text-xs bg-muted/30">
                     <TableCell colSpan={3} className="text-muted-foreground">
-                      ডিমান্ড চার্জ ({toBanglaNumber(loadKw)} kW × ৳৪২):
+                      {t.slab.demandCharge} ({formatNumber(loadKw)} kW × ৳42):
                     </TableCell>
                     <TableCell className="text-right">{formatBDT(breakdown.demandCharge)}</TableCell>
                   </TableRow>
 
                   <TableRow className="text-xs bg-muted/30">
                     <TableCell colSpan={3} className="text-muted-foreground">
-                      মিটার ভাড়া ({isSinglePhase ? "সিঙ্গেল ফেজ" : "থ্রি ফেজ"}):
+                      {t.slab.meterRent} ({isSinglePhase ? (isBangla ? "সিঙ্গেল ফেজ" : "Single Phase") : (isBangla ? "থ্রি ফেজ" : "3-Phase")}):
                     </TableCell>
                     <TableCell className="text-right">{formatBDT(breakdown.meterRent)}</TableCell>
                   </TableRow>
 
                   <TableRow className="text-xs bg-muted/30">
                     <TableCell colSpan={3} className="text-muted-foreground">
-                      সরকারি ভ্যাট (৫%):
+                      {t.slab.vat}:
                     </TableCell>
                     <TableCell className="text-right">{formatBDT(breakdown.vatAmount)}</TableCell>
                   </TableRow>
 
                   <TableRow className="text-xs bg-muted/30 text-emerald-600 dark:text-emerald-400">
                     <TableCell colSpan={3} className="font-medium">
-                      প্রিপেইড রিবেট / ছাড় (১%):
+                      {t.slab.rebate}:
                     </TableCell>
                     <TableCell className="text-right font-bold">
                       -{formatBDT(breakdown.rebateAmount)}
@@ -237,7 +244,7 @@ function TariffsPage() {
 
                   <TableRow className="text-sm bg-primary/5 font-extrabold border-t-2 border-primary/20">
                     <TableCell colSpan={3} className="text-foreground">
-                      সর্বমোট আনুমানিক প্রদেয় বিল:
+                      {t.tariffs.summaryNetBill}:
                     </TableCell>
                     <TableCell className="text-right text-primary text-base">
                       {formatBDT(breakdown.totalBill)}
@@ -253,9 +260,11 @@ function TariffsPage() {
       {/* Official Slabs Reference Table */}
       <Card className="rounded-2xl border shadow-xs overflow-hidden">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-bold">নেসকো LT-A অফিশিয়াল ট্যারিফ চার্ট</CardTitle>
+          <CardTitle className="text-base font-bold">
+            {t.tariffs.officialRatesTitle}
+          </CardTitle>
           <CardDescription className="text-xs text-muted-foreground">
-            বাংলাদেশে বাংলাদেশ এনার্জি রেগুলেটরি কমিশন কর্তৃক অনুমোদিত সর্বশেষ রেট তালিকা
+            {t.tariffs.officialRatesSubtitle}
           </CardDescription>
         </CardHeader>
 
@@ -263,34 +272,40 @@ function TariffsPage() {
           <Table>
             <TableHeader>
               <TableRow className="text-xs">
-                <TableHead>ধাপ ক্রম</TableHead>
-                <TableHead>ইউনিট সীমা</TableHead>
-                <TableHead>প্রতি ইউনিট রেট (৳)</TableHead>
-                <TableHead>মন্তব্য</TableHead>
+                <TableHead>{isBangla ? "ধাপ ক্রম" : "#"}</TableHead>
+                <TableHead>{isBangla ? "ইউনিট সীমা" : "Consumption Range"}</TableHead>
+                <TableHead>{isBangla ? "প্রতি ইউনিট রেট (৳)" : "Rate / kWh"}</TableHead>
+                <TableHead>{isBangla ? "মন্তব্য" : "Notes"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow className="text-xs">
-                <TableCell className="font-semibold">লাইফলাইন</TableCell>
-                <TableCell>০ - ৫০ ইউনিট</TableCell>
+                <TableCell className="font-semibold">{t.slab.lifelineTier}</TableCell>
+                <TableCell>{isBangla ? "০ - ৫০ ইউনিট" : "0 - 50 kWh"}</TableCell>
                 <TableCell className="font-bold text-emerald-600 dark:text-emerald-400">
                   {formatBDT(LIFELINE_RATE)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  শুধুমাত্র মোট মাসিক ব্যবহার ৫০ ইউনিটের মধ্যে সীমাবদ্ধ থাকলে প্রযোজ্য
+                  {isBangla
+                    ? "শুধুমাত্র মোট মাসিক ব্যবহার ৫০ ইউনিটের মধ্যে সীমাবদ্ধ থাকলে প্রযোজ্য"
+                    : "Exclusive subsidized lifeline rate for low-consumption households"}
                 </TableCell>
               </TableRow>
               {NESCO_LTA_SLABS.map((s) => (
                 <TableRow key={s.step} className="text-xs">
-                  <TableCell className="font-semibold">{toBanglaNumber(s.step)}</TableCell>
+                  <TableCell className="font-semibold">
+                    {isBangla ? `ধাপ ${formatNumber(s.step)}` : `Tier ${formatNumber(s.step)}`}
+                  </TableCell>
                   <TableCell>
-                    {toBanglaNumber(s.minUnits)} - {s.maxUnits ? `${toBanglaNumber(s.maxUnits)} ইউনিট` : "ঊর্ধ্বে"}
+                    {formatNumber(s.minUnits)} - {s.maxUnits ? `${formatNumber(s.maxUnits)} kWh` : (isBangla ? "ঊর্ধ্বে" : "above")}
                   </TableCell>
                   <TableCell className="font-bold text-foreground">
                     {formatBDT(s.ratePerUnit)}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {s.step >= 5 ? "উচ্চতর ধাপ (সতর্কতা কাম্য)" : "সাধারণ আবাসিক রেট"}
+                    {s.step >= 5
+                      ? isBangla ? "উচ্চতর ধাপ (সতর্কতা কাম্য)" : "High consumption bracket"
+                      : isBangla ? "সাধারণ আবাসিক রেট" : "Standard residential bracket"}
                   </TableCell>
                 </TableRow>
               ))}

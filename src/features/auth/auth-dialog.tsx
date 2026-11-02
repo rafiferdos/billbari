@@ -13,9 +13,11 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { LogIn, UserPlus, ShieldCheck, Mail, Lock, User as UserIcon, AlertCircle } from "lucide-react"
 import { useAuth } from "./auth-context"
+import { useLanguage } from "@/features/i18n/language-context"
 
 export function AuthDialog() {
   const { isAuthModalOpen, closeAuthModal, authModalTab, login, register, loginWithGoogle } = useAuth()
+  const { t, isBangla } = useLanguage()
 
   const [activeTab, setActiveTab] = useState<string>(authModalTab)
   const [loginEmail, setLoginEmail] = useState("")
@@ -39,7 +41,11 @@ export function AuthDialog() {
     try {
       const ok = await login(loginEmail, loginPass)
       if (!ok) {
-        setErrorMsg("ইমেইল বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে পুনরায় চেষ্টা করুন।")
+        setErrorMsg(
+          isBangla
+            ? "ইমেইল বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে পুনরায় চেষ্টা করুন।"
+            : "Invalid email or password. Please verify and try again."
+        )
       }
     } finally {
       setIsSubmitting(false)
@@ -50,14 +56,22 @@ export function AuthDialog() {
     e.preventDefault()
     setErrorMsg(null)
     if (registerPass.length < 6) {
-      setErrorMsg("পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে।")
+      setErrorMsg(
+        isBangla
+          ? "পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে।"
+          : "Password must be at least 6 characters."
+      )
       return
     }
     setIsSubmitting(true)
     try {
       const ok = await register(registerName, registerEmail, registerPass)
       if (!ok) {
-        setErrorMsg("রেজিস্ট্রেশন সম্পন্ন করা সম্ভব হয়নি। এই ইমেইল ইতোমধ্যে ব্যবহৃত হতে পারে।")
+        setErrorMsg(
+          isBangla
+            ? "রেজিস্ট্রেশন সম্পন্ন করা সম্ভব হয়নি। এই ইমেইল ইতোমধ্যে ব্যবহৃত হতে পারে।"
+            : "Registration failed. This email may already be in use."
+        )
       }
     } finally {
       setIsSubmitting(false)
@@ -83,11 +97,11 @@ export function AuthDialog() {
               ⚡
             </div>
             <DialogTitle className="text-xl font-bold tracking-tight">
-              বিলবাড়ি একাউন্ট
+              {t.auth.dialogTitle}
             </DialogTitle>
           </div>
           <DialogDescription className="text-muted-foreground text-sm">
-            মিটার ট্র্যাকিং, দৈনিক খরচের স্ন্যাপশট ও ট্রেন্ড হিস্ট্রি সেভ করতে লগইন করুন।
+            {t.auth.dialogSubtitle}
           </DialogDescription>
         </DialogHeader>
 
@@ -125,13 +139,13 @@ export function AuthDialog() {
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.25 2.64 1.27 6.59l4.01 3.15c.95-2.84 3.6-4.99 6.72-4.99z"
               />
             </svg>
-            <span>Google একাউন্ট দিয়ে এগিয়ে যান</span>
+            <span>{t.auth.googleBtn}</span>
           </Button>
 
           <div className="relative flex items-center justify-center">
             <span className="w-full border-t border-border" />
             <span className="bg-background px-2.5 text-xs text-muted-foreground uppercase tracking-wider">
-              অথবা ইমেইল
+              {isBangla ? "অথবা ইমেইল" : "or email"}
             </span>
             <span className="w-full border-t border-border" />
           </div>
@@ -140,11 +154,11 @@ export function AuthDialog() {
             <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="login" className="gap-1.5">
                 <LogIn className="size-3.5" />
-                <span>লগইন</span>
+                <span>{t.auth.loginTab}</span>
               </TabsTrigger>
               <TabsTrigger value="register" className="gap-1.5">
                 <UserPlus className="size-3.5" />
-                <span>নিবন্ধন</span>
+                <span>{t.auth.registerTab}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -154,13 +168,13 @@ export function AuthDialog() {
                 <div className="space-y-1.5">
                   <Label htmlFor="login-email" className="text-xs font-medium flex items-center gap-1.5">
                     <Mail className="size-3 text-muted-foreground" />
-                    <span>ইমেইল ঠিকানা</span>
+                    <span>{t.auth.emailLabel}</span>
                   </Label>
                   <Input
                     id="login-email"
                     type="email"
                     required
-                    placeholder="example@mail.com"
+                    placeholder={t.auth.emailPlaceholder}
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     className="h-9"
@@ -170,7 +184,7 @@ export function AuthDialog() {
                 <div className="space-y-1.5">
                   <Label htmlFor="login-pass" className="text-xs font-medium flex items-center gap-1.5">
                     <Lock className="size-3 text-muted-foreground" />
-                    <span>পাসওয়ার্ড</span>
+                    <span>{t.auth.passwordLabel}</span>
                   </Label>
                   <Input
                     id="login-pass"
@@ -184,7 +198,7 @@ export function AuthDialog() {
                 </div>
 
                 <Button type="submit" className="w-full h-9 font-medium mt-2" disabled={isSubmitting}>
-                  {isSubmitting ? "লগইন হচ্ছে..." : "লগইন করুন"}
+                  {isSubmitting ? t.auth.submitting : t.auth.loginBtn}
                 </Button>
               </form>
             </TabsContent>
@@ -195,13 +209,13 @@ export function AuthDialog() {
                 <div className="space-y-1.5">
                   <Label htmlFor="reg-name" className="text-xs font-medium flex items-center gap-1.5">
                     <UserIcon className="size-3 text-muted-foreground" />
-                    <span>আপনার পূর্ণ নাম</span>
+                    <span>{t.auth.nameLabel}</span>
                   </Label>
                   <Input
                     id="reg-name"
                     type="text"
                     required
-                    placeholder="যেমন: মো: কামরুল হাসান"
+                    placeholder={t.auth.namePlaceholder}
                     value={registerName}
                     onChange={(e) => setRegisterName(e.target.value)}
                     className="h-9"
@@ -211,13 +225,13 @@ export function AuthDialog() {
                 <div className="space-y-1.5">
                   <Label htmlFor="reg-email" className="text-xs font-medium flex items-center gap-1.5">
                     <Mail className="size-3 text-muted-foreground" />
-                    <span>ইমেইল ঠিকানা</span>
+                    <span>{t.auth.emailLabel}</span>
                   </Label>
                   <Input
                     id="reg-email"
                     type="email"
                     required
-                    placeholder="name@domain.com"
+                    placeholder={t.auth.emailPlaceholder}
                     value={registerEmail}
                     onChange={(e) => setRegisterEmail(e.target.value)}
                     className="h-9"
@@ -227,13 +241,13 @@ export function AuthDialog() {
                 <div className="space-y-1.5">
                   <Label htmlFor="reg-pass" className="text-xs font-medium flex items-center gap-1.5">
                     <Lock className="size-3 text-muted-foreground" />
-                    <span>পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)</span>
+                    <span>{t.auth.passwordLabel}</span>
                   </Label>
                   <Input
                     id="reg-pass"
                     type="password"
                     required
-                    placeholder="••••••••"
+                    placeholder={t.auth.passwordPlaceholder}
                     value={registerPass}
                     onChange={(e) => setRegisterPass(e.target.value)}
                     className="h-9"
@@ -241,16 +255,20 @@ export function AuthDialog() {
                 </div>
 
                 <Button type="submit" className="w-full h-9 font-medium mt-2" disabled={isSubmitting}>
-                  {isSubmitting ? "একাউন্ট তৈরি হচ্ছে..." : "নিবন্ধন সম্পন্ন করুন"}
+                  {isSubmitting ? t.auth.submitting : t.auth.registerBtn}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
-        </div>
 
-        <div className="text-[11px] text-muted-foreground text-center pt-2 flex items-center justify-center gap-1">
-          <ShieldCheck className="size-3.5 text-primary" />
-          <span>এনক্রিপ্ট করা নিরাপদ সেশন ও লোকাল ডেটা সুরক্ষা</span>
+          <div className="pt-2 border-t border-border/80 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <ShieldCheck className="size-3.5 text-emerald-500" />
+            <span>
+              {isBangla
+                ? "বিলবাড়ি ১০০% নিরাপদ ও নাগরিক ফ্রেন্ডলি।"
+                : "100% secure, transparent, and private."}
+            </span>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

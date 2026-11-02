@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Lock, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/features/i18n/language-context"
 
 interface StatCardProps {
   title: string
@@ -37,6 +38,7 @@ export function StatCard({
   onLoginClick,
   onUpgradeClick,
 }: StatCardProps) {
+  const { isBangla } = useLanguage()
   const isLocked = requiresAuth || requiresPremium
 
   return (
@@ -58,10 +60,22 @@ export function StatCard({
             )}
           </div>
           <span className="text-xs font-bold text-foreground leading-tight">
-            {requiresPremium && !requiresAuth ? "মিটার প্লাস ফিচার" : "দিনভিত্তিক হিসাব দেখতে"}
+            {requiresPremium && !requiresAuth
+              ? isBangla
+                ? "মিটার প্লাস ফিচার"
+                : "Meter Plus Feature"
+              : isBangla
+              ? "দিনভিত্তিক হিসাব দেখতে"
+              : "Daily Intelligence"}
           </span>
           <span className="text-[11px] text-muted-foreground mt-0.5">
-            {requiresPremium && !requiresAuth ? "সাবস্ক্রিপশন প্রয়োজন" : "লগইন করা প্রয়োজন"}
+            {requiresPremium && !requiresAuth
+              ? isBangla
+                ? "সাবস্ক্রিপশন প্রয়োজন"
+                : "Subscription Required"
+              : isBangla
+              ? "লগইন করা প্রয়োজন"
+              : "Sign In Required"}
           </span>
           {requiresPremium && !requiresAuth && onUpgradeClick ? (
             <button
@@ -70,7 +84,7 @@ export function StatCard({
               className="mt-2 px-3 py-1 text-[11px] font-bold rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors shadow-xs cursor-pointer flex items-center gap-1"
             >
               <Crown className="size-3 fill-current" />
-              <span>আনলক করুন (৳২০)</span>
+              <span>{isBangla ? "আনলক করুন (৳২০)" : "Unlock (৳20)"}</span>
             </button>
           ) : onLoginClick ? (
             <button
@@ -78,7 +92,7 @@ export function StatCard({
               onClick={onLoginClick}
               className="mt-2 px-3 py-1 text-[11px] font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
             >
-              লগইন করুন
+              {isBangla ? "লগইন করুন" : "Sign In"}
             </button>
           ) : null}
         </div>
@@ -107,7 +121,7 @@ export function StatCard({
                   variant="outline"
                   className="text-[10px] h-4 px-1.5 font-normal text-muted-foreground border-dashed"
                 >
-                  আনুমানিক হিসাব
+                  {isBangla ? "আনুমানিক হিসাব" : "Estimated"}
                 </Badge>
               )}
             </div>

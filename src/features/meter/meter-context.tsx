@@ -17,7 +17,8 @@ export interface MeterContextType {
 
 const MeterContext = React.createContext<MeterContextType | undefined>(undefined)
 
-const STORAGE_KEY = "billbari_active_meter"
+const SESSION_METER_KEY = "billbari_session_meter"
+const SESSION_DATA_KEY = "billbari_session_meter_data"
 
 export function MeterProvider({ children }: { children: React.ReactNode }) {
   const [activeMeter, setActiveMeterState] = React.useState<string>("")
@@ -25,17 +26,19 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
   const [error, setError] = React.useState<string | null>(null)
 
-  // Safe localStorage helper
+  // Safe sessionStorage helper (persists only for current session as requested)
   const setActiveMeter = React.useCallback((meter: string) => {
     const clean = meter.replace(/[^0-9]/g, "").trim()
     setActiveMeterState(clean)
     if (typeof window !== "undefined") {
       try {
         if (clean) {
-          localStorage.setItem(STORAGE_KEY, clean)
+          sessionStorage.setItem(SESSION_METER_KEY, clean)
         } else {
-          localStorage.removeItem(STORAGE_KEY)
+          sessionStorage.removeItem(SESSION_METER_KEY)
+          sessionStorage.removeItem(SESSION_DATA_KEY)
         }
+        localStorage.removeItem("billbari_active_meter")
       } catch {
         // ignore storage errors
       }
@@ -44,6 +47,17 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
 
   const setMeterData = React.useCallback((data: NescoFetchResult | null) => {
     setActiveMeterData(data)
+    if (typeof window !== "undefined") {
+      try {
+        if (data) {
+          sessionStorage.setItem(SESSION_DATA_KEY, JSON.stringify(data))
+        } else {
+          sessionStorage.removeItem(SESSION_DATA_KEY)
+        }
+      } catch {
+        // ignore storage errors
+      }
+    }
   }, [])
 
   const clearActiveMeter = React.useCallback(() => {
@@ -52,7 +66,9 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
     setError(null)
     if (typeof window !== "undefined") {
       try {
-        localStorage.removeItem(STORAGE_KEY)
+        sessionStorage.removeItem(SESSION_METER_KEY)
+        sessionStorage.removeItem(SESSION_DATA_KEY)
+        localStorage.removeItem("billbari_active_meter")
       } catch {
         // ignore
       }
@@ -88,7 +104,9 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
 
         if (typeof window !== "undefined") {
           try {
-            localStorage.setItem(STORAGE_KEY, num)
+            sessionStorage.setItem(SESSION_METER_KEY, num)
+            sessionStorage.setItem(SESSION_DATA_KEY, JSON.stringify(result))
+            localStorage.removeItem("billbari_active_meter")
           } catch {
             // ignore
           }
@@ -125,27 +143,51 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
     [activeMeter, activeMeterData]
   )
 
-  // Initialize from URL param or localStorage on mount
+  // Initialize from URL param or sessionStorage on mount (maintains state across page navigation)
   React.useEffect(() => {
     if (typeof window === "undefined") return
 
+    // Clean up old legacy localStorage persistence
+    try {
+      localStorage.removeItem("billbari_active_meter")
+    } catch {}
+
     let initialMeter = ""
+    let restoredData: NescoFetchResult | null = null
+
     try {
       const searchParams = new URLSearchParams(window.location.search)
       const urlMeter = searchParams.get("meter")?.replace(/[^0-9]/g, "").trim()
       if (urlMeter && urlMeter.length >= 8) {
         initialMeter = urlMeter
       } else {
-        const saved = localStorage.getItem(STORAGE_KEY)
+        const saved = sessionStorage.getItem(SESSION_METER_KEY)
         if (saved && saved.length >= 8) {
           initialMeter = saved
+        }
+      }
+
+      // Check for active session meter data
+      const savedDataJson = sessionStorage.getItem(SESSION_DATA_KEY)
+      if (savedDataJson) {
+        const parsed = JSON.parse(savedDataJson) as NescoFetchResult
+        if (parsed?.customerInfo?.meterNumber) {
+          restoredData = parsed
         }
       }
     } catch {
       // ignore
     }
 
-    if (initialMeter) {
+    if (
+      restoredData &&
+      initialMeter &&
+      (restoredData.customerInfo.meterNumber === initialMeter ||
+        restoredData.customerInfo.customerNumber === initialMeter)
+    ) {
+      setActiveMeterState(initialMeter)
+      setActiveMeterData(restoredData)
+    } else if (initialMeter) {
       setActiveMeterState(initialMeter)
       // Auto fetch in background
       fetchMeter(initialMeter, { silent: true })

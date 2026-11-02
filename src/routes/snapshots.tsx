@@ -9,6 +9,7 @@ import { getSnapshotsFn, type SnapshotRecord } from "@/features/snapshots/snapsh
 import { snapshotsCollection, syncSnapshotsToClient } from "@/features/db/client-db"
 import { useAuth } from "@/features/auth/auth-context"
 import { useMeter } from "@/features/meter/meter-context"
+import { useLanguage } from "@/features/i18n/language-context"
 import { Camera, ShieldCheck, Sparkles, Loader2 } from "lucide-react"
 
 export const Route = createFileRoute("/snapshots")({
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/snapshots")({
 function SnapshotsPage() {
   const { user, openAuthModal } = useAuth()
   const { activeMeter, activeMeterData } = useMeter()
+  const { t, isBangla } = useLanguage()
   const [meterFilter, setMeterFilter] = React.useState<string>(activeMeter || "")
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [serverSnapshots, setServerSnapshots] = React.useState<SnapshotRecord[]>([])
@@ -98,11 +100,11 @@ function SnapshotsPage() {
               <Camera className="size-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              দৈনিক খরচের হিসাব ও স্ন্যাপশট
+              {t.snapshots.title}
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            নিয়মিত ব্যালেন্স লিখে রেখে প্রতিদিন কত টাকা খরচ হচ্ছে তা সহজে দেখুন
+            {t.snapshots.subtitle}
           </p>
         </div>
 
@@ -117,7 +119,7 @@ function SnapshotsPage() {
           className="h-9 text-xs font-semibold gap-1.5"
         >
           <Camera className="size-4" />
-          <span>আজকের স্ন্যাপশট তুলুন</span>
+          <span>{t.snapshots.addSnapshotBtn}</span>
         </Button>
       </div>
 
@@ -127,10 +129,16 @@ function SnapshotsPage() {
             <div className="space-y-1">
               <h4 className="text-sm font-bold flex items-center gap-1.5 text-foreground">
                 <Sparkles className="size-4 text-primary" />
-                <span>দৈনিক স্ন্যাপশট হিস্ট্রি সেভ করতে লগইন করুন</span>
+                <span>
+                  {isBangla
+                    ? "দৈনিক স্ন্যাপশট হিস্ট্রি সেভ করতে লগইন করুন"
+                    : "Sign in to record your daily pulse history"}
+                </span>
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                লগইন করলে আপনার মিটার স্ন্যাপশট ক্লাউড ডাটাবেজে স্থায়ীভাবে সংরক্ষিত থাকবে এবং যেকোনো ডিভাইস থেকে অ্যাক্সেস করা যাবে।
+                {isBangla
+                  ? "লগইন করলে আপনার মিটার স্ন্যাপশট ক্লাউড ডাটাবেজে স্থায়ীভাবে সংরক্ষিত থাকবে এবং যেকোনো ডিভাইস থেকে অ্যাক্সেস করা যাবে।"
+                  : "Preserve daily meter readings securely in your cloud profile across all devices."}
               </p>
             </div>
             <Button
@@ -138,7 +146,7 @@ function SnapshotsPage() {
               onClick={() => openAuthModal("login")}
               className="h-8 text-xs font-semibold shrink-0"
             >
-              বিনামূল্যে লগইন / নিবন্ধন
+              {isBangla ? "বিনামূল্যে লগইন / নিবন্ধন" : "Free Sign In / Sign Up"}
             </Button>
           </div>
         </Alert>
@@ -146,7 +154,8 @@ function SnapshotsPage() {
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <ShieldCheck className="size-4 text-emerald-500" />
           <span>
-            লগইন রয়েছে: <strong className="text-foreground">{user.name}</strong> ({user.email}) | TanStack DB রিয়েক্টিভ স্টোরেজ সক্রিয়
+            {isBangla ? "লগইন রয়েছে:" : "Logged in as:"}{" "}
+            <strong className="text-foreground">{user.name}</strong> ({user.email}) | TanStack DB
           </span>
         </div>
       )}
@@ -155,7 +164,7 @@ function SnapshotsPage() {
       {isLoading ? (
         <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground text-xs">
           <Loader2 className="size-6 animate-spin text-primary" />
-          <span>স্ন্যাপশট ডেটা লোড হচ্ছে...</span>
+          <span>{isBangla ? "স্ন্যাপশট ডেটা লোড হচ্ছে..." : "Loading pulse records..."}</span>
         </div>
       ) : !user ? (
         <div className="relative rounded-2xl overflow-hidden border border-border">
@@ -166,17 +175,21 @@ function SnapshotsPage() {
             </div>
             <div className="space-y-1 max-w-sm">
               <h3 className="text-base font-bold text-foreground">
-                দিনভিত্তিক হিসাব ও স্ন্যাপশট দেখতে লগইন করুন
+                {isBangla
+                  ? "দিনভিত্তিক হিসাব ও স্ন্যাপশট দেখতে লগইন করুন"
+                  : "Sign in to access daily pulse intelligence"}
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                আপনার মিটারের প্রতিদিনের ব্যালেন্স, খরচ এবং দিনভিত্তিক খরচের হিসাব দেখতে একটি ফ্রি একাউন্টে লগইন করুন।
+                {isBangla
+                  ? "আপনার মিটারের প্রতিদিনের ব্যালেন্স, খরচ এবং দিনভিত্তিক খরচের হিসাব দেখতে একটি ফ্রি একাউন্টে লগইন করুন।"
+                  : "Track exact daily electricity expenditure and burn rate with a free BillBari account."}
               </p>
             </div>
             <Button
               onClick={() => openAuthModal("login")}
               className="h-9 px-5 text-xs font-semibold"
             >
-              লগইন বা নিবন্ধন করুন
+              {isBangla ? "লগইন বা নিবন্ধন করুন" : "Sign In or Register"}
             </Button>
           </div>
 

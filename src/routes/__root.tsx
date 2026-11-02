@@ -13,6 +13,7 @@ import { AuthProvider } from "@/features/auth/auth-context"
 import { AuthDialog } from "@/features/auth/auth-dialog"
 import { PricingDialog } from "@/features/payments/pricing-dialog"
 import { MeterProvider } from "@/features/meter/meter-context"
+import { LanguageProvider } from "@/features/i18n/language-context"
 import { dbClient } from "@/features/db/client-db"
 
 import appCss from "../styles.css?url"
@@ -75,20 +76,22 @@ function RootComponent() {
       <QueryClientProvider client={queryClient}>
         <DbProvider client={dbClient}>
           <TooltipProvider>
-            <AuthProvider>
-              <MeterProvider>
-                <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
-                  <Navbar />
-                  <main className="flex-1">
-                    <Outlet />
-                  </main>
-                  <Footer />
-                  <AuthDialog />
-                  <PricingDialog />
-                  <Toaster position="top-right" />
-                </div>
-              </MeterProvider>
-            </AuthProvider>
+            <LanguageProvider>
+              <AuthProvider>
+                <MeterProvider>
+                  <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
+                    <Navbar />
+                    <main className="flex-1">
+                      <Outlet />
+                    </main>
+                    <Footer />
+                    <AuthDialog />
+                    <PricingDialog />
+                    <Toaster position="top-right" />
+                  </div>
+                </MeterProvider>
+              </AuthProvider>
+            </LanguageProvider>
           </TooltipProvider>
         </DbProvider>
       </QueryClientProvider>

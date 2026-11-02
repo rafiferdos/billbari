@@ -22,7 +22,7 @@ import { toast } from "sonner"
 import type { SnapshotRecord } from "./snapshot-server"
 import { deleteSnapshotFn } from "./snapshot-server"
 import { snapshotsCollection } from "../db/client-db"
-import { formatBDT, toBanglaNumber, formatDateBangla } from "@/lib/bangla"
+import { useLanguage } from "@/features/i18n/language-context"
 import { Trash2, TrendingDown, TrendingUp, AlertCircle, Camera } from "lucide-react"
 
 interface SnapshotHistoryProps {
@@ -38,6 +38,7 @@ export function SnapshotHistory({
   onSnapshotDeleted,
   onTakeSnapshotClick,
 }: SnapshotHistoryProps) {
+  const { t, isBangla, formatBDT, formatNumber, formatDate } = useLanguage()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -84,14 +85,14 @@ export function SnapshotHistory({
         } catch {
           // ignore
         }
-        toast.success("স্ন্যাপশট ডিলিট করা হয়েছে।")
+        toast.success(isBangla ? "স্ন্যাপশট ডিলিট করা হয়েছে।" : "Snapshot deleted successfully.")
         onSnapshotDeleted?.(deleteId)
         setDeleteId(null)
       } else {
-        toast.error("স্ন্যাপশট ডিলিট করতে সমস্যা হয়েছে।")
+        toast.error(isBangla ? "স্ন্যাপশট ডিলিট করতে সমস্যা হয়েছে।" : "Failed to delete snapshot.")
       }
     } catch {
-      toast.error("স্ন্যাপশট ডিলিট করা যায়নি।")
+      toast.error(isBangla ? "স্ন্যাপশট ডিলিট করা যায়নি।" : "Could not delete snapshot.")
     } finally {
       setIsDeleting(false)
     }
@@ -113,31 +114,53 @@ export function SnapshotHistory({
               </span>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-sm sm:text-base">প্রতিদিনের আসল খরচের হিসাব (Daily Burn)</h4>
+                  <h4 className="font-bold text-sm sm:text-base">
+                    {isBangla ? "প্রতিদিনের আসল খরচের হিসাব (Daily Burn)" : "Actual Daily Burn Rate"}
+                  </h4>
                   <Badge variant="outline" className="text-[10px] bg-background">
-                    {toBanglaNumber(trajectory.diffDays)} দিনের হিসাব
+                    {formatNumber(trajectory.diffDays)} {isBangla ? "দিনের হিসাব" : "day interval"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  গত {toBanglaNumber(trajectory.diffDays)} দিনে আপনার প্রতিদিন গড়ে{" "}
-                  <strong className="text-foreground">{formatBDT(trajectory.actualDailyBurn)}</strong> খরচ হয়েছে।
-                  {trajectory.isHigherThanEstimate ? (
-                    <span className="text-rose-600 dark:text-rose-400 font-medium">
-                      {" "}(অনুমানকৃত খরচের চেয়ে প্রায় {toBanglaNumber(trajectory.diffPct)}% বেশি দ্রুত ব্যালেন্স শেষ হচ্ছে)।
-                    </span>
+                  {isBangla ? (
+                    <>
+                      গত {formatNumber(trajectory.diffDays)} দিনে আপনার প্রতিদিন গড়ে{" "}
+                      <strong className="text-foreground">{formatBDT(trajectory.actualDailyBurn)}</strong> খরচ হয়েছে।
+                      {trajectory.isHigherThanEstimate ? (
+                        <span className="text-rose-600 dark:text-rose-400 font-medium">
+                          {" "}(অনুমানকৃত খরচের চেয়ে প্রায় {formatNumber(trajectory.diffPct)}% বেশি দ্রুত ব্যালেন্স শেষ হচ্ছে)।
+                        </span>
+                      ) : (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                          {" "}(অনুমানের চেয়ে {formatNumber(trajectory.diffPct)}% কম খরচে সাশ্রয়ী ব্যবহার হচ্ছে)।
+                        </span>
+                      )}
+                    </>
                   ) : (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                      {" "}(অনুমানের চেয়ে {toBanglaNumber(trajectory.diffPct)}% কম খরচে সাশ্রয়ী ব্যবহার হচ্ছে)।
-                    </span>
+                    <>
+                      Over the past {formatNumber(trajectory.diffDays)} days, your daily burn rate averaged{" "}
+                      <strong className="text-foreground">{formatBDT(trajectory.actualDailyBurn)}</strong>.
+                      {trajectory.isHigherThanEstimate ? (
+                        <span className="text-rose-600 dark:text-rose-400 font-medium">
+                          {" "}(Burn rate is ~{formatNumber(trajectory.diffPct)}% higher than projected).
+                        </span>
+                      ) : (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                          {" "}(Burn rate is ~{formatNumber(trajectory.diffPct)}% more efficient than projected).
+                        </span>
+                      )}
+                    </>
                   )}
                 </p>
               </div>
             </div>
 
             <div className="text-right shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
-              <span className="text-[11px] text-muted-foreground block">বাস্তব দৈনিক ক্ষয়:</span>
+              <span className="text-[11px] text-muted-foreground block">
+                {isBangla ? "বাস্তব দৈনিক ক্ষয়:" : "Actual Daily Burn:"}
+              </span>
               <span className="text-xl font-extrabold text-foreground">
-                {formatBDT(trajectory.actualDailyBurn)} / দিন
+                {formatBDT(trajectory.actualDailyBurn)} / {isBangla ? "দিন" : "day"}
               </span>
             </div>
           </CardContent>
@@ -149,10 +172,12 @@ export function SnapshotHistory({
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
           <div>
             <CardTitle className="text-base sm:text-lg font-bold">
-              সংরক্ষিত মিটার স্ন্যাপশট হিস্ট্রি
+              {isBangla ? "সংরক্ষিত মিটার স্ন্যাপশট হিস্ট্রি" : "Saved Daily Pulse Records"}
             </CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
-              মিটার নং {meterNumber}-এর তারিখভিত্তিক রেকর্ডকৃত ব্যালেন্স ও আনুমানিক দৈনিক খরচ
+              {isBangla
+                ? `মিটার নং ${formatNumber(meterNumber)}-এর তারিখভিত্তিক রেকর্ডকৃত ব্যালেন্স ও আনুমানিক দৈনিক খরচ`
+                : `Chronological pulse ledger for meter #${formatNumber(meterNumber)}`}
             </CardDescription>
           </div>
 
@@ -162,7 +187,7 @@ export function SnapshotHistory({
             className="h-8 text-xs font-semibold gap-1.5"
           >
             <Camera className="size-3.5" />
-            <span>নতুন স্ন্যাপশট তুলুন</span>
+            <span>{t.snapshots.addSnapshotBtn}</span>
           </Button>
         </CardHeader>
 
@@ -170,9 +195,9 @@ export function SnapshotHistory({
           {!meterSnapshots.length ? (
             <div className="py-12 text-center text-muted-foreground space-y-2">
               <Camera className="size-8 mx-auto text-muted-foreground/40" />
-              <p className="text-sm font-medium">এই মিটারের কোনো স্ন্যাপশট এখনও সংরক্ষিত হয়নি।</p>
+              <p className="text-sm font-medium">{t.snapshots.noSnapshotsTitle}</p>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                আজকের ব্যালেন্স সংরক্ষণ করে প্রতিদিনের খরচের ওঠানামা ট্র্যাক করতে উপরের বাটনে ক্লিক করুন।
+                {t.snapshots.noSnapshotsDesc}
               </p>
             </div>
           ) : (
@@ -180,29 +205,29 @@ export function SnapshotHistory({
               <Table>
                 <TableHeader>
                   <TableRow className="text-xs">
-                    <TableHead>তারিখ</TableHead>
-                    <TableHead>অবশিষ্ট ব্যালেন্স (৳)</TableHead>
-                    <TableHead>মিটার রিডিং (kWh)</TableHead>
-                    <TableHead>দৈনিক আনুমানিক ব্যয়</TableHead>
-                    <TableHead>উৎস</TableHead>
-                    <TableHead>নোট / মন্তব্য</TableHead>
-                    <TableHead className="text-right">একশন</TableHead>
+                    <TableHead>{t.snapshots.tableDate}</TableHead>
+                    <TableHead>{t.snapshots.tableBalance}</TableHead>
+                    <TableHead>{isBangla ? "মিটার রিডিং (kWh)" : "Reading (kWh)"}</TableHead>
+                    <TableHead>{t.snapshots.tableCost}</TableHead>
+                    <TableHead>{isBangla ? "উৎস" : "Source"}</TableHead>
+                    <TableHead>{t.snapshots.tableNotes}</TableHead>
+                    <TableHead className="text-right">{t.snapshots.tableActions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {meterSnapshots.map((item) => (
                     <TableRow key={item.id} className="text-xs hover:bg-muted/40">
                       <TableCell className="font-semibold whitespace-nowrap">
-                        {formatDateBangla(item.snapshotDate)}
+                        {formatDate(item.snapshotDate)}
                       </TableCell>
                       <TableCell className="font-bold text-foreground">
                         {formatBDT(item.balance)}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {item.readingKwh > 0 ? `${toBanglaNumber(item.readingKwh)} kWh` : "-"}
+                        {item.readingKwh > 0 ? `${formatNumber(item.readingKwh)} kWh` : "-"}
                       </TableCell>
                       <TableCell className="font-medium text-primary">
-                        ~{formatBDT(item.dailyEstimatedCost)}/দিন
+                        ~{formatBDT(item.dailyEstimatedCost)}/{isBangla ? "দিন" : "day"}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -210,10 +235,10 @@ export function SnapshotHistory({
                           className="text-[10px] font-normal"
                         >
                           {item.sourceType === "nesco_live"
-                            ? "নেসকো লাইভ"
+                            ? (isBangla ? "নেসকো লাইভ" : "NESCO Live")
                             : item.sourceType === "sample_demo"
-                            ? "ডেমো রেফারেন্স"
-                            : "ম্যানুয়াল রিডিং"}
+                            ? (isBangla ? "ডেমো রেফারেন্স" : "Demo Reference")
+                            : (isBangla ? "ম্যানুয়াল রিডিং" : "Manual Pulse")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground max-w-[180px] truncate">
@@ -223,7 +248,7 @@ export function SnapshotHistory({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-7 text-muted-foreground hover:text-destructive"
+                          className="size-7 text-muted-foreground hover:text-destructive cursor-pointer"
                           onClick={() => setDeleteId(item.id)}
                         >
                           <Trash2 className="size-3.5" />
@@ -244,10 +269,14 @@ export function SnapshotHistory({
           <DialogHeader>
             <div className="flex items-center gap-2 text-destructive mb-1">
               <AlertCircle className="size-4" />
-              <DialogTitle className="text-base font-bold">স্ন্যাপশট মুছে ফেলতে চান?</DialogTitle>
+              <DialogTitle className="text-base font-bold">
+                {isBangla ? "স্ন্যাপশট মুছে ফেলতে চান?" : "Delete Snapshot?"}
+              </DialogTitle>
             </div>
             <DialogDescription className="text-xs text-muted-foreground">
-              এই রেকর্ডটি আপনার ট্র্যাকিং হিস্ট্রি থেকে স্থায়ীভাবে মুছে ফেলা হবে।
+              {isBangla
+                ? "এই রেকর্ডটি আপনার ট্র্যাকিং হিস্ট্রি থেকে স্থায়ীভাবে মুছে ফেলা হবে।"
+                : "This pulse record will be permanently deleted from your ledger."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex items-center justify-end gap-2 pt-2">
@@ -259,7 +288,7 @@ export function SnapshotHistory({
               onClick={() => setDeleteId(null)}
               disabled={isDeleting}
             >
-              বাতিল
+              {t.common.cancel}
             </Button>
             <Button
               type="button"
@@ -269,7 +298,7 @@ export function SnapshotHistory({
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "মুছে ফেলা হচ্ছে..." : "মুছে ফেলুন"}
+              {isDeleting ? (isBangla ? "মুছে ফেলা হচ্ছে..." : "Deleting...") : t.common.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

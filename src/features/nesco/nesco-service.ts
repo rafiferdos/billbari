@@ -1,10 +1,11 @@
 import * as cheerio from "cheerio"
 import type { MonthlyConsumptionRecord, RechargeRecord, NescoFetchResult } from "./types"
 import { getSampleMeterData } from "./sample-data"
-import { getDatabase } from "../db/server-db"
 
 const DEFAULT_PORTAL_URL = "https://customer.nesco.gov.bd/pre/panel"
-const TIMEOUT_MS = 14000 // 14 seconds max for NESCO server response
+const TIMEOUT_MS = 25000 // 25 seconds headroom for NESCO and tunnel response
+const BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
 function getPortalUrl(): string {
   const custom = process.env.NESCO_PROXY_URL || process.env.NESCO_PORTAL_URL
@@ -265,38 +266,25 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
     return getSampleMeterData(cleanCustNo)
   }
 
-  const db = await getDatabase()
   const portalUrl = getPortalUrl()
-
-  // First check if this meter was previously successfully fetched and cached in the database
-  let cachedData: NescoFetchResult | null = null
-  try {
-    const cachedRes = await db.execute({
-      sql: `SELECT data_json, cached_at FROM cached_meter_data WHERE meter_number = ? OR customer_number = ? ORDER BY cached_at DESC LIMIT 1`,
-      args: [cleanCustNo, cleanCustNo],
-    })
-    const cachedRow = cachedRes.rows[0] as unknown as { data_json: string; cached_at: string } | undefined
-    if (cachedRow?.data_json) {
-      const parsed = JSON.parse(cachedRow.data_json) as NescoFetchResult
-      // Guard against old corrupted cache where tokens were empty string
-      const isCorrupted =
-        parsed.rechargeHistory?.length > 0 &&
-        parsed.rechargeHistory.some((r) => r.amountBdt > 0 && !r.token?.trim())
-
-      if (!isCorrupted) {
-        cachedData = parsed
-      }
-    }
-  } catch (cacheErr) {
-    console.warn("DB cache lookup error:", cacheErr)
-  }
 
   try {
     // 1. Initial GET to obtain session cookies and CSRF token
     const getRes = await fetch(portalUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "User-Agent": BROWSER_USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Sec-Ch-Ua": '"Not-A.Brand";v="99", "Chromium";v="124", "Google Chrome";v="124"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1",
       },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
@@ -323,25 +311,51 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
       throw new Error("নেসকো পোর্টাল থেকে CSRF টোকেন পাওয়া যায়নি।")
     }
 
-    // 2. POST for Recharge History & Customer Info
+    // 2. Fetch Recharge History & Monthly Usage in parallel for maximum speed
     const rechargeBody = new URLSearchParams({
       _token: csrfToken,
       cust_no: cleanCustNo,
       submit: "রিচার্জ হিস্ট্রি",
     })
 
-    const rechargeRes = await fetch(portalUrl, {
-      method: "POST",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "Cookie": cookieHeader,
-        "Referer": portalUrl,
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Origin": "https://customer.nesco.gov.bd",
-      },
-      body: rechargeBody.toString(),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+    const usageBody = new URLSearchParams({
+      _token: csrfToken,
+      cust_no: cleanCustNo,
+      submit: "মাসিক ব্যবহার",
     })
+
+    const postHeaders = {
+      "User-Agent": BROWSER_USER_AGENT,
+      "Cookie": cookieHeader,
+      "Referer": portalUrl,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Origin": "https://customer.nesco.gov.bd",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Accept-Language": "bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Sec-Ch-Ua": '"Not-A.Brand";v="99", "Chromium";v="124", "Google Chrome";v="124"',
+      "Sec-Ch-Ua-Mobile": "?0",
+      "Sec-Ch-Ua-Platform": '"Windows"',
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "same-origin",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+    }
+
+    const [rechargeRes, usageRes] = await Promise.all([
+      fetch(portalUrl, {
+        method: "POST",
+        headers: postHeaders,
+        body: rechargeBody.toString(),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      }),
+      fetch(portalUrl, {
+        method: "POST",
+        headers: postHeaders,
+        body: usageBody.toString(),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      }),
+    ])
 
     if (!rechargeRes.ok) {
       if (rechargeRes.status === 403) {
@@ -350,39 +364,18 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
       throw new Error(`নেসকো রিচার্জ রিকোয়েস্ট ব্যর্থ (স্ট্যাটাস ${rechargeRes.status})`)
     }
 
-    const rechargeHtml = await rechargeRes.text()
+    const [rechargeHtml, usageHtml] = await Promise.all([
+      rechargeRes.text(),
+      usageRes.text(),
+    ])
+
     const $recharge = cheerio.load(rechargeHtml)
     const hasRechargeTable = rechargeHtml.includes("bfont_post")
 
     if (!hasRechargeTable) {
-      if (cachedData) {
-        cachedData.statusMessage = "নেসকো সার্ভারে বর্তমানে লাইভ তথ্য পাওয়া যায়নি। পূর্বে সংরক্ষিত আসল ডেটা দেখানো হচ্ছে।"
-        return cachedData
-      }
       throw new Error("নেসকো সার্ভারে এই মিটার বা গ্রাহক নম্বরের কোনো রেকর্ড পাওয়া যায়নি। অনুগ্রহ করে সঠিক নম্বর দিন।")
     }
 
-    // 3. POST for Monthly Usage
-    const usageBody = new URLSearchParams({
-      _token: csrfToken,
-      cust_no: cleanCustNo,
-      submit: "মাসিক ব্যবহার",
-    })
-
-    const usageRes = await fetch(portalUrl, {
-      method: "POST",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "Cookie": cookieHeader,
-        "Referer": portalUrl,
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Origin": "https://customer.nesco.gov.bd",
-      },
-      body: usageBody.toString(),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    })
-
-    const usageHtml = await usageRes.text()
     const $usage = cheerio.load(usageHtml)
 
     const customerInfo = parseCustomerInfo($recharge, cleanCustNo)
@@ -399,55 +392,13 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
       fetchedAt: new Date().toISOString(),
     }
 
-    // Cache real data to Database
-    try {
-      const primaryMeter = customerInfo.meterNumber || cleanCustNo
-      const primaryCust = customerInfo.customerNumber || cleanCustNo
-      const nowIso = new Date().toISOString()
-      const jsonStr = JSON.stringify(result)
-
-      await db.execute({
-        sql: `
-          INSERT INTO cached_meter_data (meter_number, customer_number, cached_at, data_json)
-          VALUES (?, ?, ?, ?)
-          ON CONFLICT(meter_number) DO UPDATE SET
-            customer_number = excluded.customer_number,
-            cached_at = excluded.cached_at,
-            data_json = excluded.data_json
-        `,
-        args: [primaryMeter, primaryCust, nowIso, jsonStr],
-      })
-
-      // If user queried with customer number or alias, ensure that key also exists
-      if (cleanCustNo !== primaryMeter) {
-        await db.execute({
-          sql: `
-            INSERT INTO cached_meter_data (meter_number, customer_number, cached_at, data_json)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(meter_number) DO UPDATE SET
-              customer_number = excluded.customer_number,
-              cached_at = excluded.cached_at,
-              data_json = excluded.data_json
-          `,
-          args: [cleanCustNo, primaryCust, nowIso, jsonStr],
-        })
-      }
-    } catch (cacheErr) {
-      console.warn("Could not cache NESCO response to Database:", cacheErr)
-    }
-
     return result
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err)
-    console.warn(`[NESCO Live Fetch Warning for ${cleanCustNo}]:`, errorMsg)
-
-    // If we have previously cached real data in DB, return that real data
-    if (cachedData) {
-      cachedData.statusMessage = `নেসকো লাইভ সংযোগ ব্যর্থ (${errorMsg})। পূর্বে সংরক্ষিত আসল ডেটা দেখানো হচ্ছে।`
-      return cachedData
+    let errorMsg = err instanceof Error ? err.message : String(err)
+    if (errorMsg.toLowerCase().includes("timeout") || errorMsg.toLowerCase().includes("aborted")) {
+      errorMsg = "নেসকো সরকারি সার্ভার সাড়া দিতে অতিরিক্ত সময় নিয়েছে (Timeout)। অনুগ্রহ করে কয়েক সেকেন্ড পর পুনরায় সার্চ বাটনে চাপুন।"
     }
-
-    // Never return fake dummy data! Throw the real honest error!
+    console.warn(`[NESCO Live Fetch Warning for ${cleanCustNo}]:`, errorMsg)
     throw new Error(errorMsg)
   }
 }

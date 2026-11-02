@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useAuth } from "@/features/auth/auth-context"
 import { useMeter } from "@/features/meter/meter-context"
-import { toBanglaNumber } from "@/lib/bangla"
+import { useLanguage } from "@/features/i18n/language-context"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -15,17 +15,19 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "./theme-toggle"
+import { LanguageToggle } from "./language-toggle"
 import { Zap, LogOut, Camera, History, Calculator, LayoutDashboard, ChevronDown, Crown } from "lucide-react"
 
 export function Navbar() {
   const { user, isPremium, openAuthModal, logout, openPricingModal } = useAuth()
   const { activeMeter } = useMeter()
+  const { t, formatNumber } = useLanguage()
   const navigate = useNavigate()
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        {/* Brand - Strictly Bengali */}
+        {/* Brand */}
         <Link to="/" className="flex items-center gap-2.5 group">
           <div className="size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">
             <Zap className="size-5 fill-current" />
@@ -33,11 +35,11 @@ export function Navbar() {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-foreground">
-                বিলবাড়ি
+                {t.brand.name}
               </span>
             </div>
             <span className="text-[10px] text-muted-foreground block -mt-1 font-medium">
-              নেসকো প্রিপেইড মিটারের হিসাব
+              {t.brand.tagline}
             </span>
           </div>
         </Link>
@@ -50,7 +52,7 @@ export function Navbar() {
           >
             <span className="flex items-center gap-1.5">
               <LayoutDashboard className="size-4" />
-              <span>ড্যাশবোর্ড</span>
+              <span>{t.nav.dashboard}</span>
             </span>
           </Link>
           <Link
@@ -59,7 +61,7 @@ export function Navbar() {
           >
             <span className="flex items-center gap-1.5">
               <History className="size-4" />
-              <span>রিচার্জ হিস্ট্রি</span>
+              <span>{t.nav.history}</span>
             </span>
           </Link>
           <Link
@@ -68,7 +70,7 @@ export function Navbar() {
           >
             <span className="flex items-center gap-1.5">
               <Camera className="size-4" />
-              <span>দৈনিক খরচ</span>
+              <span>{t.nav.snapshots}</span>
             </span>
           </Link>
           <Link
@@ -77,21 +79,21 @@ export function Navbar() {
           >
             <span className="flex items-center gap-1.5">
               <Calculator className="size-4" />
-              <span>ট্যারিফ ও বিল হিসাব</span>
+              <span>{t.nav.tariffs}</span>
             </span>
           </Link>
         </nav>
 
-        {/* User Account, Theme Toggle & Auth Actions */}
+        {/* User Account, Language Switcher, Theme Toggle & Auth Actions */}
         <div className="flex items-center gap-2 sm:gap-2.5">
           {activeMeter && (
             <Link
               to="/"
               className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 hover:bg-primary/15 border border-primary/20 text-xs text-primary font-mono font-medium transition-colors"
-              title="সক্রিয় মিটার: ড্যাশবোর্ডে যান"
+              title={t.nav.activeMeterTitle}
             >
               <Zap className="size-3 text-primary shrink-0" />
-              <span>মিটার: {toBanglaNumber(activeMeter)}</span>
+              <span>{t.nav.meterBadge}: {formatNumber(activeMeter)}</span>
             </Link>
           )}
           {isPremium ? (
@@ -100,7 +102,7 @@ export function Navbar() {
               className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1"
             >
               <Crown className="size-3 fill-amber-500 text-amber-500" />
-              <span>{user?.subscriptionTier === "lifetime" ? "প্রিমিয়াম আনলিমিটেড" : "মিটার প্লাস"}</span>
+              <span>{user?.subscriptionTier === "lifetime" ? t.nav.premiumUnlimited : t.nav.meterPlus}</span>
             </Badge>
           ) : (
             <Button
@@ -110,10 +112,13 @@ export function Navbar() {
               className="h-8 text-xs font-semibold gap-1.5 border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/5 hover:bg-amber-500/10"
             >
               <Crown className="size-3.5 fill-amber-500 text-amber-500" />
-              <span className="hidden sm:inline">মিটার প্লাস (৳২০)</span>
-              <span className="sm:hidden">প্লাস</span>
+              <span className="hidden sm:inline">{t.nav.meterPlus}</span>
+              <span className="sm:hidden">{t.nav.plusShort}</span>
             </Button>
           )}
+
+          {/* Apple-style Language Toggle */}
+          <LanguageToggle />
 
           {/* Dark / Light Mode Toggle */}
           <ThemeToggle />
@@ -150,21 +155,21 @@ export function Navbar() {
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <Camera className="size-3.5" />
-                    <span>সংরক্ষিত দৈনিক হিসাব</span>
+                    <span>{t.nav.savedSnapshots}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => navigate({ to: "/history" })}
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <History className="size-3.5" />
-                    <span>রিচার্জ ও টোকেন</span>
+                    <span>{t.nav.rechargeAndTokens}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={openPricingModal}
                     className="flex items-center gap-2 cursor-pointer text-amber-600 dark:text-amber-400 font-medium"
                   >
                     <Crown className="size-3.5 fill-amber-500 text-amber-500" />
-                    <span>{isPremium ? "সদস্যপদ স্ট্যাটাস" : "মিটার প্লাস (৳২০)"}</span>
+                    <span>{isPremium ? t.nav.membershipStatus : t.nav.meterPlus}</span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
@@ -173,7 +178,7 @@ export function Navbar() {
                   className="text-destructive focus:text-destructive flex items-center gap-2 cursor-pointer"
                 >
                   <LogOut className="size-3.5" />
-                  <span>লগআউট</span>
+                  <span>{t.nav.logout}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -185,14 +190,14 @@ export function Navbar() {
                 onClick={() => openAuthModal("login")}
                 className="h-8 text-xs font-medium"
               >
-                লগইন
+                {t.nav.login}
               </Button>
               <Button
                 size="sm"
                 onClick={() => openAuthModal("register")}
                 className="h-8 text-xs font-semibold"
               >
-                নিবন্ধন
+                {t.nav.register}
               </Button>
             </div>
           )}
@@ -206,28 +211,28 @@ export function Navbar() {
           className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <LayoutDashboard className="size-4" />
-          <span>ড্যাশবোর্ড</span>
+          <span>{t.nav.dashboard}</span>
         </Link>
         <Link
           to="/history"
           className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <History className="size-4" />
-          <span>রিচার্জ</span>
+          <span>{t.nav.history}</span>
         </Link>
         <Link
           to="/snapshots"
           className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <Camera className="size-4" />
-          <span>দৈনিক খরচ</span>
+          <span>{t.nav.snapshots}</span>
         </Link>
         <Link
           to="/tariffs"
           className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <Calculator className="size-4" />
-          <span>ট্যারিফ হিসাব</span>
+          <span>{t.nav.tariffs}</span>
         </Link>
       </div>
     </header>

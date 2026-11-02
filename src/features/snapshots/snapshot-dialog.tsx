@@ -15,7 +15,7 @@ import { toast } from "sonner"
 import { saveSnapshotFn, type SnapshotRecord } from "./snapshot-server"
 import { snapshotsCollection } from "../db/client-db"
 import { useAuth } from "../auth/auth-context"
-import { formatBDT } from "@/lib/bangla"
+import { useLanguage } from "@/features/i18n/language-context"
 import { Camera, Calendar, Hash, Banknote, Gauge, FileText, CheckCircle2 } from "lucide-react"
 
 interface SnapshotDialogProps {
@@ -40,6 +40,7 @@ export function SnapshotDialog({
   onSaved,
 }: SnapshotDialogProps) {
   const { user, openAuthModal } = useAuth()
+  const { t, isBangla, formatBDT, formatNumber } = useLanguage()
 
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0])
   const [balance, setBalance] = useState<string>(() => String(currentBalance || ""))
@@ -58,7 +59,7 @@ export function SnapshotDialog({
 
     if (!user) {
       openAuthModal("login")
-      toast.error("স্ন্যাপশট সংরক্ষণ করতে লগইন করা প্রয়োজন।")
+      toast.error(isBangla ? "স্ন্যাপশট সংরক্ষণ করতে লগইন করা প্রয়োজন।" : "Please sign in to log a snapshot.")
       return
     }
 
@@ -81,7 +82,6 @@ export function SnapshotDialog({
       })
 
       if (res.success && res.snapshot) {
-        // Reactive local update via TanStack DB
         try {
           snapshotsCollection.insert({
             id: res.snapshot.id,
@@ -99,14 +99,14 @@ export function SnapshotDialog({
           // ignore duplicate in local
         }
 
-        toast.success("মিটার স্ন্যাপশট সফলভাবে ডাটাবেজে সংরক্ষিত হয়েছে!")
+        toast.success(isBangla ? "মিটার স্ন্যাপশট সফলভাবে ডাটাবেজে সংরক্ষিত হয়েছে!" : "Snapshot saved successfully!")
         onSaved?.(res.snapshot)
         onOpenChange(false)
       } else {
-        toast.error(res.error || "সংরক্ষণ করতে ব্যর্থ হয়েছে।")
+        toast.error(res.error || (isBangla ? "সংরক্ষণ করতে ব্যর্থ হয়েছে।" : "Failed to save snapshot."))
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "সংরক্ষণে ত্রুটি দেখা দিয়েছে।")
+      toast.error(err instanceof Error ? err.message : (isBangla ? "সংরক্ষণে ত্রুটি দেখা দিয়েছে।" : "An error occurred."))
     } finally {
       setIsSubmitting(false)
     }
@@ -121,28 +121,30 @@ export function SnapshotDialog({
               <span className="p-2 rounded-xl bg-primary/10 text-primary">
                 <Camera className="size-4" />
               </span>
-              <DialogTitle className="text-lg font-bold">দৈনিক খরচের স্ন্যাপশট নিন</DialogTitle>
+              <DialogTitle className="text-lg font-bold">
+                {t.snapshots.dialogTitle}
+              </DialogTitle>
             </div>
             <Badge variant="outline" className="text-xs">
-              মিটার: {meterNumber}
+              {t.nav.meterBadge}: {formatNumber(meterNumber)}
             </Badge>
           </div>
           <DialogDescription className="text-xs text-muted-foreground mt-1">
-            আজকের ব্যালেন্স ও রিডিং লিখে রেখে প্রতিদিনের আসল খরচের হিসাব রাখুন।
+            {t.snapshots.dialogDesc}
           </DialogDescription>
         </DialogHeader>
 
         {!user && (
           <Alert className="py-2.5 bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-200">
             <AlertDescription className="text-xs flex items-center justify-between gap-2">
-              <span>স্ন্যাপশট সংরক্ষণ করতে বিনামূল্যে লগইন করুন।</span>
+              <span>{isBangla ? "স্ন্যাপশট সংরক্ষণ করতে বিনামূল্যে লগইন করুন।" : "Sign in to save your daily pulse log."}</span>
               <Button
                 size="sm"
                 variant="outline"
                 className="h-7 text-xs border-amber-500/30 font-medium"
                 onClick={() => openAuthModal("login")}
               >
-                লগইন করুন
+                {t.nav.login}
               </Button>
             </AlertDescription>
           </Alert>
@@ -153,7 +155,7 @@ export function SnapshotDialog({
             <div className="space-y-1.5">
               <Label htmlFor="snap-date" className="text-xs flex items-center gap-1.5">
                 <Calendar className="size-3 text-muted-foreground" />
-                <span>তারিখ</span>
+                <span>{isBangla ? "তারিখ" : "Date"}</span>
               </Label>
               <Input
                 id="snap-date"
@@ -168,7 +170,7 @@ export function SnapshotDialog({
             <div className="space-y-1.5">
               <Label htmlFor="snap-balance" className="text-xs flex items-center gap-1.5">
                 <Banknote className="size-3 text-muted-foreground" />
-                <span>অবশিষ্ট ব্যালেন্স (৳)</span>
+                <span>{t.snapshots.balanceLabel}</span>
               </Label>
               <Input
                 id="snap-balance"
@@ -187,13 +189,13 @@ export function SnapshotDialog({
             <div className="space-y-1.5">
               <Label htmlFor="snap-reading" className="text-xs flex items-center gap-1.5">
                 <Gauge className="size-3 text-muted-foreground" />
-                <span>মিটার রিডিং (ঐচ্ছিক kWh)</span>
+                <span>{isBangla ? "মিটার রিডিং (ঐচ্ছিক kWh)" : "Meter Reading (Optional kWh)"}</span>
               </Label>
               <Input
                 id="snap-reading"
                 type="number"
                 step="0.1"
-                placeholder="যেমন: ৩২৪৫.২"
+                placeholder={isBangla ? "যেমন: ৩২৪৫.২" : "e.g. 3245.2"}
                 value={readingKwh}
                 onChange={(e) => setReadingKwh(e.target.value)}
                 className="h-9 text-xs"
@@ -203,13 +205,13 @@ export function SnapshotDialog({
             <div className="space-y-1.5">
               <Label htmlFor="snap-meter" className="text-xs flex items-center gap-1.5">
                 <Hash className="size-3 text-muted-foreground" />
-                <span>মিটার নম্বর</span>
+                <span>{t.snapshots.meterLabel}</span>
               </Label>
               <Input
                 id="snap-meter"
                 disabled
                 value={meterNumber}
-                className="h-9 text-xs bg-muted/50"
+                className="h-9 text-xs bg-muted/50 font-mono"
               />
             </div>
           </div>
@@ -217,12 +219,12 @@ export function SnapshotDialog({
           <div className="space-y-1.5">
             <Label htmlFor="snap-notes" className="text-xs flex items-center gap-1.5">
               <FileText className="size-3 text-muted-foreground" />
-              <span>নোট বা মন্তব্য (ঐচ্ছিক)</span>
+              <span>{t.snapshots.notesLabel}</span>
             </Label>
             <Input
               id="snap-notes"
               type="text"
-              placeholder="যেমন: বাসায় মেহমান এসেছিল / ফ্রিজ সার্ভিসিং করা হয়েছে"
+              placeholder={isBangla ? "যেমন: বাসায় মেহমান এসেছিল / ফ্রিজ সার্ভিসিং করা হয়েছে" : "e.g. Guests over / AC ran all night"}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="h-9 text-xs"
@@ -232,15 +234,23 @@ export function SnapshotDialog({
           {/* Estimates preview section */}
           <div className="rounded-xl bg-muted/60 p-3 border border-border/80 space-y-1.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">আনুমানিক দৈনিক খরচ:</span>
-              <span className="font-bold text-foreground">{formatBDT(dailyEstimatedCost)} / দিন</span>
+              <span className="text-muted-foreground">
+                {isBangla ? "আনুমানিক দৈনিক খরচ:" : "Estimated Daily Cost:"}
+              </span>
+              <span className="font-bold text-foreground">
+                {formatBDT(dailyEstimatedCost)} / {isBangla ? "দিন" : "day"}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">পুরো মাসের সম্ভাব্য খরচ:</span>
+              <span className="text-muted-foreground">
+                {isBangla ? "পুরো মাসের সম্ভাব্য খরচ:" : "Projected Monthly Cost:"}
+              </span>
               <span className="font-bold text-primary">{formatBDT(monthlyEstimatedCost)}</span>
             </div>
             <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/60">
-              * প্রকৃত ব্যালেন্স থেকে প্রতিদিনের খরচ স্বয়ংক্রিয়ভাবে তুলনা করা হবে।
+              {isBangla
+                ? "* প্রকৃত ব্যালেন্স থেকে প্রতিদিনের খরচ স্বয়ংক্রিয়ভাবে তুলনা করা হবে।"
+                : "* Daily burn rate calculated automatically from subsequent balance changes."}
             </div>
           </div>
 
@@ -252,7 +262,7 @@ export function SnapshotDialog({
               onClick={() => onOpenChange(false)}
               className="h-8 text-xs"
             >
-              বাতিল
+              {t.snapshots.cancelBtn}
             </Button>
             <Button
               type="submit"
@@ -261,7 +271,7 @@ export function SnapshotDialog({
               className="h-8 text-xs font-semibold gap-1.5"
             >
               <CheckCircle2 className="size-3.5" />
-              <span>{isSubmitting ? "সংরক্ষিত হচ্ছে..." : "স্ন্যাপশট সেভ করুন"}</span>
+              <span>{isSubmitting ? (isBangla ? "সংরক্ষিত হচ্ছে..." : "Saving...") : t.snapshots.saveBtn}</span>
             </Button>
           </div>
         </form>

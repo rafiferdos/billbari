@@ -11,7 +11,7 @@ import {
   type HouseholdPreset,
 } from "./appliance-data"
 import { calculateNescoBill } from "@/lib/tariff-constants"
-import { formatBDT, toBanglaNumber } from "@/lib/bangla"
+import { useLanguage } from "@/features/i18n/language-context"
 import {
   Wind,
   Flame,
@@ -77,15 +77,153 @@ function renderIcon(iconName: string, className: string = "size-4") {
   }
 }
 
+const PRESET_EN: Record<string, { name: string; subtitle: string; tag: string }> = {
+  bachelor_pad: { name: "Bachelor Studio", subtitle: "Fan, lights, mini-fridge & laptop", tag: "Low Energy" },
+  small_family: { name: "Small Family", subtitle: "Fans, lights, fridge, TV, washer", tag: "Moderate" },
+  standard_family: { name: "Standard Family", subtitle: "Night AC, fans, large fridge, pump, TV", tag: "Most Popular" },
+  winter_home: { name: "Winter Home", subtitle: "Room heater, geyser, electric kettle", tag: "Winter Peak" },
+  modern_luxury: { name: "Modern Luxury", subtitle: "2 ACs, 2 fridges, geyser, PC, washer", tag: "High Energy" },
+}
+
+const APPLIANCE_EN: Record<string, { name: string; desc: string; tip: string; category: string }> = {
+  ac_inverter: {
+    name: "Inverter AC (1.5 Ton)",
+    desc: "Running 8 hours nightly at 25°C consumes ~180 to 220 kWh/month.",
+    tip: "Setting the thermostat to 25°C instead of 18°C saves ~6% energy per degree.",
+    category: "Cooling & Heating",
+  },
+  ac_non_inverter: {
+    name: "Non-Inverter AC (1.5 Ton)",
+    desc: "Compressor cycles at 100% full load, drawing ~260 to 320 kWh/month.",
+    tip: "Upgrading to an inverter model saves up to ৳1,200 on monthly power bills.",
+    category: "Cooling & Heating",
+  },
+  ceiling_fan: {
+    name: "Ceiling Fan",
+    desc: "Running 14 hours daily consumes approximately 32 kWh/month.",
+    tip: "BLDC inverter fans consume only 28W vs 75W standard (60% energy savings).",
+    category: "Cooling & Heating",
+  },
+  room_heater: {
+    name: "Room Heater",
+    desc: "Running 3 hours daily in winter consumes ~135 kWh/month.",
+    tip: "Room heaters rapidly elevate meters into peak tariff brackets; use lower heat mode.",
+    category: "Cooling & Heating",
+  },
+  refrigerator: {
+    name: "Frost Refrigerator",
+    desc: "Runs 24/7 with cycling compressor, consuming ~45 to 55 kWh/month.",
+    tip: "Avoid leaving the door ajar to prevent extra compressor cycling.",
+    category: "Kitchen & Dining",
+  },
+  deep_freezer: {
+    name: "Deep Freezer",
+    desc: "Continuous deep freezing draws ~60 to 75 kWh/month.",
+    tip: "Defrost periodically to maintain peak refrigeration efficiency.",
+    category: "Kitchen & Dining",
+  },
+  microwave: {
+    name: "Microwave Oven",
+    desc: "Reheating meals 20 mins daily consumes ~12 kWh/month.",
+    tip: "Significantly faster and more energy efficient than gas/electric stoves for reheating.",
+    category: "Kitchen & Dining",
+  },
+  rice_cooker: {
+    name: "Electric Rice Cooker",
+    desc: "Cooking once daily draws ~25 to 30 kWh/month.",
+    tip: "Unplug immediately after meals to stop standby heating element drain.",
+    category: "Kitchen & Dining",
+  },
+  induction_cooker: {
+    name: "Induction Cooktop",
+    desc: "Daily heavy cooking consumes ~80 to 120 kWh/month.",
+    tip: "Use flat-bottom induction cookware for maximum magnetic heat transfer.",
+    category: "Kitchen & Dining",
+  },
+  kettle: {
+    name: "Electric Kettle",
+    desc: "Boiling water 3-4 times daily takes ~12 to 15 kWh/month.",
+    tip: "Boil only the exact volume of water you intend to use.",
+    category: "Kitchen & Dining",
+  },
+  blender: {
+    name: "Blender & Grinder",
+    desc: "Short daily operation uses a negligible ~3 to 5 kWh/month.",
+    tip: "Minimal energy footprint due to brief runtime.",
+    category: "Kitchen & Dining",
+  },
+  tv: {
+    name: "Smart LED TV (43\")",
+    desc: "Watching 6 hours daily consumes ~15 to 18 kWh/month.",
+    tip: "Modern LED TVs consume very little power compared to old tube monitors.",
+    category: "Tech & Media",
+  },
+  desktop_pc: {
+    name: "Desktop Workstation",
+    desc: "Working 8 hours daily draws ~45 to 60 kWh/month.",
+    tip: "Enable automated Sleep / Hibernate when stepping away from your desk.",
+    category: "Tech & Media",
+  },
+  laptop: {
+    name: "Laptop & Charger",
+    desc: "Working 8 hours daily draws ~10 to 15 kWh/month.",
+    tip: "Laptops consume up to 80% less power than high-power desktop towers.",
+    category: "Tech & Media",
+  },
+  wifi_router: {
+    name: "WiFi Router (24/7)",
+    desc: "Runs continuously, consuming ~6 to 8 kWh/month.",
+    tip: "Consumes very little energy; completely safe to leave running 24/7.",
+    category: "Tech & Media",
+  },
+  sound_system: {
+    name: "Home Theater System",
+    desc: "Listening 3 hours daily draws ~6 to 10 kWh/month.",
+    tip: "Turn off standby power switches at night to eliminate vampire drain.",
+    category: "Tech & Media",
+  },
+  water_pump: {
+    name: "Water Pump (1 HP)",
+    desc: "Pumping water 1 hour daily consumes ~25 to 30 kWh/month.",
+    tip: "Install an automated float switch to prevent wasteful roof tank overflows.",
+    category: "Heavy Utilities",
+  },
+  geyser: {
+    name: "Water Geyser",
+    desc: "Heating water 1 hour daily draws ~45 to 60 kWh/month in winter.",
+    tip: "Turn on 15 minutes before your shower, then switch off immediately.",
+    category: "Heavy Utilities",
+  },
+  washing_machine: {
+    name: "Washing Machine",
+    desc: "Running 4-5 loads weekly consumes ~15 to 20 kWh/month.",
+    tip: "Wash with full loads and cold water for significant energy savings.",
+    category: "Heavy Utilities",
+  },
+  iron: {
+    name: "Clothes Iron",
+    desc: "Ironing 30 mins alternate days draws ~12 to 18 kWh/month.",
+    tip: "Iron your week's clothing in a single session while the element is hot.",
+    category: "Heavy Utilities",
+  },
+  led_bulb: {
+    name: "LED Bulb (12W)",
+    desc: "Running 8 hours nightly consumes only ~2.8 kWh/month.",
+    tip: "Replace all older CFL or incandescent lamps with high-efficiency LEDs.",
+    category: "Lighting & Daily",
+  },
+}
+
 interface ApplianceSimulatorProps {
   onApplyUnits: (units: number) => void
   currentUnits: number
 }
 
 export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimulatorProps) {
+  const { t, isBangla, formatBDT, formatNumber } = useLanguage()
+
   // Appliance counts state: id -> count
   const [counts, setCounts] = React.useState<Record<string, number>>(() => {
-    // Default to Standard Family
     const defaultPreset = HOUSEHOLD_PRESETS.find((p) => p.id === "standard_family")
     return defaultPreset ? { ...defaultPreset.counts } : {}
   })
@@ -97,7 +235,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
 
   // Update count for an appliance
   const updateCount = (id: string, delta: number) => {
-    setActivePresetId("") // custom state
+    setActivePresetId("")
     setCounts((prev) => {
       const current = prev[id] || 0
       const next = Math.max(0, Math.min(20, current + delta))
@@ -153,18 +291,18 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
       totalDevices: deviceSum,
       topConsumer: highestItem
         ? {
-            name: highestItem.nameBangla,
+            name: isBangla ? highestItem.nameBangla : APPLIANCE_EN[highestItem.id]?.name || highestItem.nameBangla,
             kwh: highestKwh,
             percent: kwhSum > 0 ? Math.round((highestKwh / kwhSum) * 100) : 0,
           }
         : null,
       breakdownList: list.sort((a, b) => b.kwh - a.kwh),
     }
-  }, [counts])
+  }, [counts, isBangla])
 
   // Calculated estimated bill for these units
   const estimatedBill = React.useMemo(() => {
-    if (totalKwh <= 0) return { totalBill: 0, activeStep: { nameBangla: "০ ইউনিট" } }
+    if (totalKwh <= 0) return { totalBill: 0, activeStep: { nameBangla: "০ ইউনিট", nameEnglish: "0 kWh" } }
     return calculateNescoBill(totalKwh, 2, true)
   }, [totalKwh])
 
@@ -198,11 +336,11 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                   <SlidersHorizontal className="size-4" />
                 </span>
                 <CardTitle className="text-base sm:text-lg font-bold">
-                  ঘরের যন্ত্রপাতি পিকার ও আনুমানিক খরচ সিমুলেটর
+                  {t.tariffs.simulatorTitle}
                 </CardTitle>
               </div>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                আপনার বাসায় বা রুমে কী কী যন্ত্রপাতি আছে নির্বাচন করুন — স্বয়ংক্রিয়ভাবে মাসিক বিদ্যুৎ খরচ ও বিল বের হবে
+                {t.tariffs.simulatorSubtitle}
               </CardDescription>
             </div>
 
@@ -215,7 +353,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                 className="h-8 text-xs text-muted-foreground hover:text-destructive gap-1 self-start sm:self-auto"
               >
                 <RotateCcw className="size-3" />
-                <span>সব মুছুন</span>
+                <span>{isBangla ? "সব মুছুন" : "Reset"}</span>
               </Button>
             )}
           </div>
@@ -225,11 +363,16 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
           {/* Preset Buttons */}
           <div className="space-y-2">
             <span className="text-xs font-semibold text-muted-foreground block">
-              বাসার ধরন অনুযায়ী রেডিমেড প্রোফাইল বাছুন (১-ক্লিকে সেট করুন):
+              {t.tariffs.presetTitle}
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {HOUSEHOLD_PRESETS.map((p) => {
                 const isActive = activePresetId === p.id
+                const en = PRESET_EN[p.id]
+                const name = isBangla ? p.nameBangla : en?.name || p.nameBangla
+                const sub = isBangla ? p.subtitleBangla : en?.subtitle || p.subtitleBangla
+                const tag = isBangla ? p.tagBangla : en?.tag || p.tagBangla
+
                 return (
                   <button
                     key={p.id}
@@ -246,14 +389,14 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                         {renderIcon(p.iconName, "size-3")}
                       </span>
                       <span className="text-[10px] font-bold text-muted-foreground">
-                        {p.tagBangla}
+                        {tag}
                       </span>
                     </div>
                     <div className="font-bold text-xs text-foreground truncate">
-                      {p.nameBangla}
+                      {name}
                     </div>
                     <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                      {p.subtitleBangla}
+                      {sub}
                     </div>
                   </button>
                 )
@@ -266,25 +409,25 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center sm:text-left">
               <div className="space-y-0.5">
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  মোট নির্বাচিত যন্ত্রপাতি
+                  {isBangla ? "মোট নির্বাচিত যন্ত্রপাতি" : "Selected Appliances"}
                 </span>
                 <div className="text-xl sm:text-2xl font-extrabold text-foreground font-mono">
-                  {toBanglaNumber(totalDevices)} <span className="text-xs font-normal">টি</span>
+                  {formatNumber(totalDevices)} <span className="text-xs font-normal">{isBangla ? "টি" : "units"}</span>
                 </div>
               </div>
 
               <div className="space-y-0.5">
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  মাসিক আনুমানিক বিদ্যুৎ
+                  {t.tariffs.summaryTotalUnits}
                 </span>
                 <div className="text-xl sm:text-2xl font-extrabold text-primary font-mono">
-                  {toBanglaNumber(totalKwh)} <span className="text-xs font-normal">kWh</span>
+                  {formatNumber(totalKwh)} <span className="text-xs font-normal">kWh</span>
                 </div>
               </div>
 
               <div className="space-y-0.5">
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  সম্ভাব্য মাসিক বিল
+                  {t.tariffs.summaryNetBill}
                 </span>
                 <div className="text-xl sm:text-2xl font-extrabold text-foreground font-mono">
                   {formatBDT(estimatedBill.totalBill)}
@@ -293,10 +436,10 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
 
               <div className="space-y-0.5">
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  আনুমানিক ট্যারিফ ধাপ
+                  {t.slab.currentTier}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                  {estimatedBill.activeStep.nameBangla}
+                  {isBangla ? estimatedBill.activeStep.nameBangla : estimatedBill.activeStep.nameEnglish}
                 </div>
               </div>
             </div>
@@ -306,16 +449,16 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
               <div className="text-xs text-muted-foreground space-y-1">
                 {topConsumer ? (
                   <div>
-                    ⚡ সর্বোচ্চ বিদ্যুৎ খরচ: <strong>{topConsumer.name}</strong> (মোট ব্যবহারের{" "}
-                    <strong>{toBanglaNumber(topConsumer.percent)}%</strong> বা{" "}
-                    <strong>{toBanglaNumber(Math.round(topConsumer.kwh))} kWh</strong>)
+                    ⚡ {isBangla ? "সর্বোচ্চ বিদ্যুৎ খরচ:" : "Peak consumer:"} <strong>{topConsumer.name}</strong> ({isBangla ? "মোট ব্যবহারের" : "accounting for"}{" "}
+                    <strong>{formatNumber(topConsumer.percent)}%</strong> {isBangla ? "বা" : "or"}{" "}
+                    <strong>{formatNumber(Math.round(topConsumer.kwh))} kWh</strong>)
                   </div>
                 ) : (
-                  <div>নিচের তালিকা থেকে যন্ত্রপাতির সংখ্যা বাড়িয়ে সিমুলেশন শুরু করুন।</div>
+                  <div>{isBangla ? "নিচের তালিকা থেকে যন্ত্রপাতির সংখ্যা বাড়িয়ে সিমুলেশন শুরু করুন।" : "Increase appliance counts below to model home energy consumption."}</div>
                 )}
                 {currentUnits !== totalKwh && (
                   <div className="text-[11px] opacity-80">
-                    বর্তমানে মূল ক্যালকুলেটরে সেট করা: <strong>{toBanglaNumber(currentUnits)} kWh</strong>
+                    {isBangla ? "বর্তমানে মূল ক্যালকুলেটরে সেট করা:" : "Currently set on calculator:"} <strong>{formatNumber(currentUnits)} kWh</strong>
                   </div>
                 )}
               </div>
@@ -330,11 +473,15 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                 {copiedApplied ? (
                   <>
                     <Check className="size-3.5 text-white" />
-                    <span>ক্যালকুলেটরে বসানো হয়েছে!</span>
+                    <span>{isBangla ? "ক্যালকুলেটরে বসানো হয়েছে!" : "Applied to Calculator!"}</span>
                   </>
                 ) : (
                   <>
-                    <span>এই {toBanglaNumber(totalKwh)} ইউনিট মূল ক্যালকুলেটরে দেখুন</span>
+                    <span>
+                      {isBangla
+                        ? `এই ${formatNumber(totalKwh)} ইউনিট মূল ক্যালকুলেটরে দেখুন`
+                        : `Apply ${formatNumber(totalKwh)} kWh to Calculator`}
+                    </span>
                     <ArrowUpRight className="size-3.5" />
                   </>
                 )}
@@ -344,12 +491,17 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
             {/* Top Consumer Quick Chips */}
             {breakdownList.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-primary/15 text-[11px] text-muted-foreground">
-                <span className="font-semibold text-foreground">প্রধান ব্যবহারকারী:</span>
-                {breakdownList.slice(0, 4).map(({ item, kwh, count }) => (
-                  <span key={item.id} className="bg-background/80 px-2 py-0.5 rounded-md border font-mono">
-                    {item.nameBangla.split(" ")[0]} ({toBanglaNumber(count)}টি): {toBanglaNumber(Math.round(kwh))} kWh
-                  </span>
-                ))}
+                <span className="font-semibold text-foreground">{isBangla ? "প্রধান ব্যবহারকারী:" : "Top contributors:"}</span>
+                {breakdownList.slice(0, 4).map(({ item, kwh, count }) => {
+                  const displayName = isBangla
+                    ? item.nameBangla.split(" ")[0]
+                    : APPLIANCE_EN[item.id]?.name.split(" ")[0] || item.nameBangla.split(" ")[0]
+                  return (
+                    <span key={item.id} className="bg-background/80 px-2 py-0.5 rounded-md border font-mono">
+                      {displayName} ({formatNumber(count)}): {formatNumber(Math.round(kwh))} kWh
+                    </span>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -358,17 +510,19 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                যন্ত্রপাতির তালিকা (সংখ্যা বাড়াতে বা কমাতে + / - চাপুন):
+                {isBangla
+                  ? "যন্ত্রপাতির তালিকা (সংখ্যা বাড়াতে বা কমাতে + / - চাপুন):"
+                  : "Appliances List (Tap + / - to adjust quantity):"}
               </span>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
               {[
-                { id: "all", label: "সব যন্ত্রপাতি" },
-                { id: "cooling_heating", label: "❄️ শীতলীকরণ ও গরম" },
-                { id: "kitchen", label: "🍳 রান্নাঘর ও খাবার" },
-                { id: "entertainment_tech", label: "💻 বিনোদন ও টেক" },
-                { id: "daily_utility", label: "🔌 নিত্য ইউটিলিটি" },
+                { id: "all", label: isBangla ? "সব যন্ত্রপাতি" : "All Appliances" },
+                { id: "cooling_heating", label: isBangla ? "❄️ শীতলীকরণ ও গরম" : "❄️ Cooling & Heating" },
+                { id: "kitchen", label: isBangla ? "🍳 রান্নাঘর ও খাবার" : "🍳 Kitchen & Dining" },
+                { id: "entertainment_tech", label: isBangla ? "💻 বিনোদন ও টেক" : "💻 Media & Tech" },
+                { id: "daily_utility", label: isBangla ? "🔌 নিত্য ইউটিলিটি" : "🔌 Heavy Utilities" },
               ].map((cat) => (
                 <button
                   key={cat.id}
@@ -391,6 +545,8 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                 const count = counts[item.id] || 0
                 const isSelected = count > 0
                 const itemMonthlyKwh = count > 0 ? calculateMonthlyUnits(item, count) : calculateMonthlyUnits(item, 1)
+                const en = APPLIANCE_EN[item.id]
+                const name = isBangla ? item.nameBangla : en?.name || item.nameBangla
 
                 return (
                   <div
@@ -414,10 +570,10 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                         </span>
                         <div>
                           <h4 className="text-xs font-bold text-foreground leading-snug">
-                            {item.nameBangla}
+                            {name}
                           </h4>
                           <span className="text-[10px] text-muted-foreground font-mono">
-                            {toBanglaNumber(item.defaultWatt)}W • দৈনিক {toBanglaNumber(item.defaultHoursPerDay)}h
+                            {formatNumber(item.defaultWatt)}W • {isBangla ? `দৈনিক ${formatNumber(item.defaultHoursPerDay)}h` : `${formatNumber(item.defaultHoursPerDay)}h / day`}
                           </span>
                         </div>
                       </div>
@@ -429,18 +585,18 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                           onClick={() => updateCount(item.id, -1)}
                           disabled={count === 0}
                           className="size-6 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                          title="সংখ্যা কমান"
+                          title={isBangla ? "সংখ্যা কমান" : "Decrease"}
                         >
                           <Minus className="size-3" />
                         </button>
                         <span className="w-5 text-center font-mono text-xs font-bold">
-                          {toBanglaNumber(count)}
+                          {formatNumber(count)}
                         </span>
                         <button
                           type="button"
                           onClick={() => updateCount(item.id, 1)}
                           className="size-6 flex items-center justify-center rounded-md bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer transition-colors"
-                          title="সংখ্যা বাড়ান"
+                          title={isBangla ? "সংখ্যা বাড়ান" : "Increase"}
                         >
                           <Plus className="size-3" />
                         </button>
@@ -450,10 +606,12 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                     {/* Bottom metrics */}
                     <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[11px]">
                       <span className="text-muted-foreground">
-                        {count > 0 ? `${toBanglaNumber(count)} টির ব্যবহার:` : "প্রতিটিতে মাসিক:"}
+                        {count > 0
+                          ? isBangla ? `${formatNumber(count)} টির ব্যবহার:` : `${formatNumber(count)} items:`
+                          : isBangla ? "প্রতিটিতে মাসিক:" : "Per unit monthly:"}
                       </span>
                       <span className="font-mono font-bold text-primary">
-                        ~{toBanglaNumber(itemMonthlyKwh)} kWh
+                        ~{formatNumber(itemMonthlyKwh)} kWh
                       </span>
                     </div>
                   </div>
@@ -464,7 +622,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
         </CardContent>
       </Card>
 
-      {/* Comprehensive Appliance Energy Guide & Tips (Relatable Examples) */}
+      {/* Comprehensive Appliance Energy Guide & Tips */}
       <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -472,22 +630,28 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
               <Sparkles className="size-4" />
             </span>
             <h3 className="text-base sm:text-lg font-bold">
-              বাসার প্রধান যন্ত্রপাতির বিদ্যুৎ ব্যয় ও সাশ্রয়ী টিপস
+              {isBangla ? "বাসার প্রধান যন্ত্রপাতির বিদ্যুৎ ব্যয় ও সাশ্রয়ী টিপস" : "Home Energy Guide & Efficiency Tips"}
             </h3>
           </div>
           <Badge variant="outline" className="text-xs">
-            {toBanglaNumber(APPLIANCES.length)} টি সাধারণ যন্ত্র
+            {formatNumber(APPLIANCES.length)} {isBangla ? "টি সাধারণ যন্ত্র" : "Appliances"}
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground">
-          দৈনন্দিন জীবনে বহুল ব্যবহৃত যন্ত্রপাতির বিদ্যুৎ টানার হার, মাসিক সম্ভাব্য খরচ এবং বিআইপি ও বিইআরসি নির্দেশিত সাশ্রয়ী উপায়:
+          {isBangla
+            ? "দৈনন্দিন জীবনে বহুল ব্যবহৃত যন্ত্রপাতির বিদ্যুৎ টানার হার, মাসিক সম্ভাব্য খরচ এবং বিআইপি ও বিইআরসি নির্দেশিত সাশ্রয়ী উপায়:"
+            : "Power ratings, monthly consumption estimates, and proven efficiency best practices for modern households:"}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {APPLIANCES.map((app) => {
             const singleKwh = calculateMonthlyUnits(app, 1)
-            // estimate cost at average residential rate ~8 BDT
             const approxCost = Math.round(singleKwh * 7.5)
+            const en = APPLIANCE_EN[app.id]
+            const name = isBangla ? app.nameBangla : en?.name || app.nameBangla
+            const desc = isBangla ? app.descriptionBangla : en?.desc || app.descriptionBangla
+            const tip = isBangla ? app.tipBangla : en?.tip || app.tipBangla
+            const cat = isBangla ? app.categoryBangla : en?.category || app.categoryBangla
 
             return (
               <Card
@@ -500,30 +664,32 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                       {renderIcon(app.iconName, "size-4")}
                     </span>
                     <Badge variant="secondary" className="text-[10px] font-bold">
-                      {app.categoryBangla}
+                      {cat}
                     </Badge>
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-bold text-foreground">{app.nameBangla}</h4>
+                    <h4 className="text-sm font-bold text-foreground">{name}</h4>
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5 font-mono">
-                      <span>{toBanglaNumber(app.defaultWatt)}W লোড</span>
+                      <span>{formatNumber(app.defaultWatt)}W {isBangla ? "লোড" : "load"}</span>
                       <span>•</span>
-                      <span>দৈনিক ~{toBanglaNumber(app.defaultHoursPerDay)} ঘণ্টা</span>
+                      <span>~{formatNumber(app.defaultHoursPerDay)} {isBangla ? "ঘণ্টা/দিন" : "hrs/day"}</span>
                     </div>
                   </div>
 
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    {app.descriptionBangla}
+                    {desc}
                   </p>
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-border/60">
                   {/* Monthly Units & Cost Badge */}
                   <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-muted-foreground">মাসিক ইউনিট ও বিল:</span>
+                    <span className="text-muted-foreground">
+                      {isBangla ? "মাসিক ইউনিট ও বিল:" : "Monthly Units & Cost:"}
+                    </span>
                     <span className="text-primary font-mono font-bold">
-                      ~{toBanglaNumber(singleKwh)} kWh ({formatBDT(approxCost)})
+                      ~{formatNumber(singleKwh)} kWh ({formatBDT(approxCost)})
                     </span>
                   </div>
 
@@ -531,7 +697,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                   <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60 text-[11px] text-muted-foreground flex items-start gap-1.5">
                     <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-foreground">টিপ:</strong> {app.tipBangla}
+                      <strong className="text-foreground">{isBangla ? "টিপ:" : "Tip:"}</strong> {tip}
                     </span>
                   </div>
                 </div>
