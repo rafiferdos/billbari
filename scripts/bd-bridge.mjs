@@ -1,5 +1,8 @@
 import http from "node:http"
 import { spawn } from "node:child_process"
+import fs from "node:fs"
+import path from "node:path"
+import os from "node:os"
 
 const PORT = Number(process.env.BRIDGE_PORT) || 3001
 const TARGET_URL = "https://customer.nesco.gov.bd/pre/panel"
@@ -66,11 +69,60 @@ const server = http.createServer(async (req, res) => {
 
 let tunnelProcess = null
 
+function getCloudflaredBin() {
+  const homeBin = path.join(os.homedir(), ".local", "bin", "cloudflared")
+  if (fs.existsSync(homeBin)) return homeBin
+  return "cloudflared"
+}
+
 function startAutoTunnel() {
-  console.log("🔗 স্বয়ংক্রিয় পাবলিক টানেল সংযোগ তৈরি হচ্ছে...")
+  console.log("🔗 স্বয়ংক্রিয় ক্লাউডফ্লেয়ার টানেল সংযোগ তৈরি হচ্ছে...")
+  const cloudflaredBin = getCloudflaredBin()
+  
+  try {
+    tunnelProcess = spawn(cloudflaredBin, ["tunnel", "--url", `http://localhost:${PORT}`])
+
+    let captured = false
+
+    const handleOutput = (data) => {
+      const text = data.toString()
+      const match = text.match(/https:\/\/[a-zA-Z0-9.-]+\.trycloudflare\.com/)
+      if (match && !captured) {
+        captured = true
+        console.log("===============================================================")
+        console.log(`🎉 Cloudflare Dhaka টানেল সফলভাবে চালু হয়েছে!`)
+        console.log(`🌐 লাইভ ব্রিজ URL: ${match[0]}`)
+        console.log(`👉 Vercel ড্যাশবোর্ডে Environment Variables-এ দিন:`)
+        console.log(`   NESCO_PROXY_URL = ${match[0]}`)
+        console.log(`⚡ ব্যাস! Vercel সরাসরি এই ব্রিজের মাধ্যমে নেসকো লাইভ ডেটা আনবে (কোনো 502/403 এরর ছাড়া)!`)
+        console.log("===============================================================")
+      }
+    }
+
+    tunnelProcess.stdout.on("data", handleOutput)
+    tunnelProcess.stderr.on("data", handleOutput)
+
+    tunnelProcess.on("error", () => {
+      console.log("⚠️ cloudflared চালু হতে সমস্যা হয়েছে, SSH টানেল চেষ্টা করা হচ্ছে...")
+      startSshTunnel()
+    })
+
+    tunnelProcess.on("close", (code) => {
+      if (code !== 0 && !captured) {
+        startSshTunnel()
+      }
+    })
+  } catch {
+    startSshTunnel()
+  }
+}
+
+function startSshTunnel() {
+  console.log("🔗 SSH টানেল সংযোগ তৈরি হচ্ছে...")
   tunnelProcess = spawn("ssh", [
     "-o", "StrictHostKeyChecking=no",
-    "-o", "ServerAliveInterval=30",
+    "-o", "ServerAliveInterval=15",
+    "-o", "ServerAliveCountMax=3",
     "-R", `80:localhost:${PORT}`,
     "nokey@localhost.run",
   ])
@@ -83,19 +135,11 @@ function startAutoTunnel() {
     if (match && !captured) {
       captured = true
       console.log("===============================================================")
-      console.log(`🎉 পাবলিক টানেল সফলভাবে চালু হয়েছে!`)
+      console.log(`🎉 SSH টানেল চালু হয়েছে!`)
       console.log(`🌐 লাইভ ব্রিজ URL: ${match[0]}`)
       console.log(`👉 Vercel ড্যাশবোর্ডে Environment Variables-এ দিন:`)
       console.log(`   NESCO_PROXY_URL = ${match[0]}`)
-      console.log(`⚡ ব্যাস! Vercel সরাসরি এই ব্রিজের মাধ্যমে নেসকো লাইভ ডেটা আনবে (কোনো 403 এরর ছাড়া)!`)
       console.log("===============================================================")
-    }
-  })
-
-  tunnelProcess.on("close", (code) => {
-    if (code !== 0) {
-      console.log(`⚠️ টানেল সংযোগ বিচ্ছিন্ন হয়েছে, ৫ সেকেন্ড পর পুনরায় চেষ্টা করা হচ্ছে...`)
-      setTimeout(startAutoTunnel, 5000)
     }
   })
 }
