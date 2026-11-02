@@ -23,7 +23,7 @@ import type { SnapshotRecord } from "./snapshot-server"
 import { deleteSnapshotFn } from "./snapshot-server"
 import { snapshotsCollection } from "../db/client-db"
 import { useLanguage } from "@/features/i18n/language-context"
-import { Trash2, TrendingDown, TrendingUp, AlertCircle, Camera } from "lucide-react"
+import { Trash2, TrendingDown, TrendingUp, AlertCircle, Camera, Zap, Sparkles } from "lucide-react"
 
 interface SnapshotHistoryProps {
   snapshots: SnapshotRecord[]
@@ -230,29 +230,46 @@ export function SnapshotHistory({
                         ~{formatBDT(item.dailyEstimatedCost)}/{isBangla ? "দিন" : "day"}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={item.sourceType === "nesco_live" ? "default" : "secondary"}
-                          className="text-[10px] font-normal"
-                        >
-                          {item.sourceType === "nesco_live"
-                            ? (isBangla ? "নেসকো লাইভ" : "NESCO Live")
-                            : item.sourceType === "sample_demo"
-                            ? (isBangla ? "ডেমো রেফারেন্স" : "Demo Reference")
-                            : (isBangla ? "ম্যানুয়াল রিডিং" : "Manual Pulse")}
-                        </Badge>
+                        {item.sourceType === "automated_daily_cron" ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 font-semibold gap-1 inline-flex items-center"
+                          >
+                            <Zap className="size-2.5 fill-current" />
+                            <span>{isBangla ? "অটো মিডনাইট সিঙ্ক" : "Midnight Sync"}</span>
+                          </Badge>
+                        ) : item.sourceType === "nesco_live" ? (
+                          <Badge variant="default" className="text-[10px] font-normal">
+                            {isBangla ? "নেসকো লাইভ" : "NESCO Live"}
+                          </Badge>
+                        ) : item.sourceType === "sample_demo" ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-semibold gap-1 inline-flex items-center"
+                          >
+                            <Sparkles className="size-2.5" />
+                            <span>{isBangla ? "প্রো প্রিভিউ ডেমো" : "Pro Preview"}</span>
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px] font-normal">
+                            {isBangla ? "ম্যানুয়াল এন্ট্রি" : "Manual Log"}
+                          </Badge>
+                        )}
                       </TableCell>
-                      <TableCell className="text-muted-foreground max-w-[180px] truncate">
+                      <TableCell className="text-muted-foreground max-w-[200px] truncate" title={item.notes}>
                         {item.notes || "-"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-7 text-muted-foreground hover:text-destructive cursor-pointer"
-                          onClick={() => setDeleteId(item.id)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
+                        {!item.id.startsWith("sample_") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-muted-foreground hover:text-destructive cursor-pointer"
+                            onClick={() => setDeleteId(item.id)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -12,7 +12,7 @@ export interface ClientSnapshot extends Record<string, unknown> {
   readingKwh: number
   dailyEstimatedCost: number
   monthlyEstimatedCost: number
-  sourceType: "nesco_live" | "manual_reading" | "sample_demo"
+  sourceType: "nesco_live" | "manual_reading" | "sample_demo" | "automated_daily_cron"
   notes?: string
   createdAt: string
 }

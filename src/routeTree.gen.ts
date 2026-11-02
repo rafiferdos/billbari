@@ -14,6 +14,7 @@ import { Route as HistoryRouteImport } from './routes/history'
 import { Route as SnapshotsRouteImport } from './routes/snapshots'
 import { Route as TariffsRouteImport } from './routes/tariffs'
 import { Route as ApiAuthGoogleRouteImport } from './routes/api/auth/google'
+import { Route as ApiCronDailyPulseRouteImport } from './routes/api/cron/daily-pulse'
 import { Route as ApiAuthCallbackGoogleRouteImport } from './routes/api/auth/callback/google'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const ApiAuthGoogleRoute = ApiAuthGoogleRouteImport.update({
   path: '/api/auth/google',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronDailyPulseRoute = ApiCronDailyPulseRouteImport.update({
+  id: '/api/cron/daily-pulse',
+  path: '/api/cron/daily-pulse',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthCallbackGoogleRoute = ApiAuthCallbackGoogleRouteImport.update({
   id: '/api/auth/callback/google',
   path: '/api/auth/callback/google',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/snapshots': typeof SnapshotsRoute
   '/tariffs': typeof TariffsRoute
   '/api/auth/google': typeof ApiAuthGoogleRoute
+  '/api/cron/daily-pulse': typeof ApiCronDailyPulseRoute
   '/api/auth/callback/google': typeof ApiAuthCallbackGoogleRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/snapshots': typeof SnapshotsRoute
   '/tariffs': typeof TariffsRoute
   '/api/auth/google': typeof ApiAuthGoogleRoute
+  '/api/cron/daily-pulse': typeof ApiCronDailyPulseRoute
   '/api/auth/callback/google': typeof ApiAuthCallbackGoogleRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/snapshots': typeof SnapshotsRoute
   '/tariffs': typeof TariffsRoute
   '/api/auth/google': typeof ApiAuthGoogleRoute
+  '/api/cron/daily-pulse': typeof ApiCronDailyPulseRoute
   '/api/auth/callback/google': typeof ApiAuthCallbackGoogleRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/snapshots'
     | '/tariffs'
     | '/api/auth/google'
+    | '/api/cron/daily-pulse'
     | '/api/auth/callback/google'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/snapshots'
     | '/tariffs'
     | '/api/auth/google'
+    | '/api/cron/daily-pulse'
     | '/api/auth/callback/google'
   id:
     | '__root__'
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/snapshots'
     | '/tariffs'
     | '/api/auth/google'
+    | '/api/cron/daily-pulse'
     | '/api/auth/callback/google'
   fileRoutesById: FileRoutesById
 }
@@ -105,6 +117,7 @@ export interface RootRouteChildren {
   SnapshotsRoute: typeof SnapshotsRoute
   TariffsRoute: typeof TariffsRoute
   ApiAuthGoogleRoute: typeof ApiAuthGoogleRoute
+  ApiCronDailyPulseRoute: typeof ApiCronDailyPulseRoute
   ApiAuthCallbackGoogleRoute: typeof ApiAuthCallbackGoogleRoute
 }
 
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthGoogleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/daily-pulse': {
+      id: '/api/cron/daily-pulse'
+      path: '/api/cron/daily-pulse'
+      fullPath: '/api/cron/daily-pulse'
+      preLoaderRoute: typeof ApiCronDailyPulseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/callback/google': {
       id: '/api/auth/callback/google'
       path: '/api/auth/callback/google'
@@ -161,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   SnapshotsRoute: SnapshotsRoute,
   TariffsRoute: TariffsRoute,
   ApiAuthGoogleRoute: ApiAuthGoogleRoute,
+  ApiCronDailyPulseRoute: ApiCronDailyPulseRoute,
   ApiAuthCallbackGoogleRoute: ApiAuthCallbackGoogleRoute,
 }
 export const routeTree = rootRouteImport

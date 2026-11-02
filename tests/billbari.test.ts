@@ -7,6 +7,7 @@ import { getDatabase } from "../src/features/db/server-db"
 import { PAYMENT_PLANS } from "../src/features/payments/types"
 import { APPLIANCES, HOUSEHOLD_PRESETS, calculateMonthlyUnits } from "../src/features/tariffs/appliance-data"
 import { BILL_SAVING_TIPS } from "../src/features/tariffs/bill-saving-advice"
+import { SAMPLE_PRO_SNAPSHOTS } from "../src/features/snapshots/sample-snapshots"
 
 describe("Bangla & Currency Formatting Utilities", () => {
   it("converts english numerals to natural Bangla numerals", () => {
@@ -360,6 +361,19 @@ describe("Bill Saving Strategies & Bilingual Telemetry", () => {
       expect(insight.titleEnglish).toBeTruthy()
       expect(insight.description).toBeTruthy()
       expect(insight.descriptionEnglish).toBeTruthy()
+    }
+  })
+
+  it("provides realistic 14-day automated midnight pulse sample data for free users", () => {
+    expect(SAMPLE_PRO_SNAPSHOTS.length).toBeGreaterThanOrEqual(14)
+    expect(SAMPLE_PRO_SNAPSHOTS[0].sourceType).toBe("automated_daily_cron")
+    expect(SAMPLE_PRO_SNAPSHOTS[0].meterNumber).toBe("36023363")
+    expect(SAMPLE_PRO_SNAPSHOTS[0].balance).toBeGreaterThan(0)
+    expect(SAMPLE_PRO_SNAPSHOTS[0].dailyEstimatedCost).toBeGreaterThan(0)
+
+    // Verify balances decrease sequentially over time as electricity is consumed
+    for (let i = 0; i < SAMPLE_PRO_SNAPSHOTS.length - 1; i++) {
+      expect(SAMPLE_PRO_SNAPSHOTS[i].balance).toBeLessThan(SAMPLE_PRO_SNAPSHOTS[i + 1].balance)
     }
   })
 })

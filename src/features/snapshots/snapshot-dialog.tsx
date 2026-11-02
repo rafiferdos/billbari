@@ -25,7 +25,7 @@ interface SnapshotDialogProps {
   currentBalance?: number
   dailyEstimatedCost?: number
   monthlyEstimatedCost?: number
-  sourceType?: "nesco_live" | "manual_reading" | "sample_demo"
+  sourceType?: "nesco_live" | "manual_reading" | "sample_demo" | "automated_daily_cron"
   onSaved?: (snapshot: SnapshotRecord) => void
 }
 
