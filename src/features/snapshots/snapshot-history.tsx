@@ -125,7 +125,7 @@ export function SnapshotHistory({
                 )}
               </span>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h4 className="font-bold text-sm sm:text-base">
                     {isBangla ? "প্রতিদিনের আসল খরচের হিসাব (Daily Burn)" : "Actual Daily Burn Rate"}
                   </h4>
@@ -167,7 +167,7 @@ export function SnapshotHistory({
               </div>
             </div>
 
-            <div className="text-right shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
+            <div className="text-left sm:text-right shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
               <span className="text-[11px] text-muted-foreground block">
                 {isBangla ? "বাস্তব দৈনিক ক্ষয়:" : "Actual Daily Burn:"}
               </span>

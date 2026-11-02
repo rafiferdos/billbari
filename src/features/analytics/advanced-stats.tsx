@@ -77,7 +77,7 @@ export function AdvancedStats({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Card 1: Recharge Intelligence */}
         <Card className="rounded-2xl border shadow-xs overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex items-center justify-between">
+          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CreditCard className="size-4 text-primary" />
               <h4 className="font-bold text-xs sm:text-sm text-foreground">
@@ -88,7 +88,7 @@ export function AdvancedStats({
               {formatNumber(rechargeStats.totalCount)} {isBangla ? "টি রিচার্জ" : "recharges"}
             </Badge>
           </div>
-          <CardContent className="p-5 space-y-3.5 text-xs">
+          <CardContent className="p-4 sm:p-5 space-y-3.5 text-xs">
             <div className="grid grid-cols-2 gap-3 pb-3 border-b border-border/60">
               <div className="space-y-1">
                 <span className="text-[11px] text-muted-foreground block">
@@ -119,15 +119,15 @@ export function AdvancedStats({
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 text-muted-foreground">
                 <span>{isBangla ? "সর্বোচ্চ একক রিচার্জ:" : "Largest Single Recharge:"}</span>
                 <span className="font-semibold text-foreground">{formatBDT(rechargeStats.maxAmountBdt)}</span>
               </div>
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 text-muted-foreground">
                 <span>{isBangla ? "সর্বনিম্ন রিচার্জ:" : "Minimum Single Recharge:"}</span>
                 <span className="font-semibold text-foreground">{formatBDT(rechargeStats.minAmountBdt)}</span>
               </div>
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 text-muted-foreground">
                 <span>{isBangla ? "রিচার্জের প্রধান মাধ্যম:" : "Primary Recharge Channel:"}</span>
                 <span className="font-semibold text-foreground">{rechargeStats.favoriteVia}</span>
               </div>
@@ -137,7 +137,7 @@ export function AdvancedStats({
 
         {/* Card 2: True Cost Efficiency */}
         <Card className="rounded-2xl border shadow-xs overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex items-center justify-between">
+          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Coins className="size-4 text-chart-2" />
               <h4 className="font-bold text-xs sm:text-sm text-foreground">
@@ -148,7 +148,7 @@ export function AdvancedStats({
               {isBangla ? "১% রিবেট সংযুক্ত" : "1% Rebate Active"}
             </Badge>
           </div>
-          <CardContent className="p-5 space-y-3.5 text-xs">
+          <CardContent className="p-4 sm:p-5 space-y-3.5 text-xs">
             <div className="grid grid-cols-2 gap-3 pb-3 border-b border-border/60">
               <div className="space-y-1">
                 <span className="text-[11px] text-muted-foreground block">
@@ -175,13 +175,13 @@ export function AdvancedStats({
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 text-muted-foreground">
                 <span>{isBangla ? "মাসিক ফিক্সড ওভারহেড:" : "Monthly Fixed Overhead:"}</span>
                 <span className="font-semibold text-foreground">
                   {formatBDT(costEfficiency.fixedOverheadPerMonthBdt)}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 text-muted-foreground">
                 <span>{isBangla ? "নেট বিদ্যুৎ শক্তি দর:" : "Pure Energy Cost:"}</span>
                 <span className="font-semibold text-foreground">
                   {formatBDT(costEfficiency.netCostWithoutOverheadPerKwh)}/kWh
@@ -197,7 +197,7 @@ export function AdvancedStats({
             seasonal numbers underneath a blurred overlay. */}
         {!isUnlocked ? (
           <Card className="rounded-2xl border border-amber-500/30 shadow-xs overflow-hidden">
-            <CardContent className="p-5 space-y-3 text-xs">
+            <CardContent className="p-4 sm:p-5 space-y-3 text-xs">
               <div className="flex items-center gap-2">
                 <CalendarClock className="size-4 text-primary" />
                 <h4 className="font-bold text-xs sm:text-sm text-foreground">
@@ -223,7 +223,7 @@ export function AdvancedStats({
           </Card>
         ) : (
         <Card className="rounded-2xl border shadow-xs overflow-hidden relative">
-          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex items-center justify-between">
+          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CalendarClock className="size-4 text-primary" />
               <h4 className="font-bold text-xs sm:text-sm text-foreground">
@@ -235,9 +235,9 @@ export function AdvancedStats({
             </Badge>
           </div>
 
-          <CardContent className="p-5 space-y-3.5 text-xs">
+          <CardContent className="p-4 sm:p-5 space-y-3.5 text-xs">
             <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] text-muted-foreground">
                   {isBangla ? "ব্যালেন্স শেষ হওয়ার সম্ভাব্য তারিখ:" : "Projected Exhaustion Date:"}
                 </span>
@@ -245,7 +245,7 @@ export function AdvancedStats({
                   {formattedDepletionDate}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[11px]">
+              <div className="flex items-center justify-between gap-2 text-[11px]">
                 <span className="text-muted-foreground">{isBangla ? "অবশিষ্ট সময়সীমা:" : "Estimated Runway:"}</span>
                 <span className="font-bold text-primary font-mono">
                   ~{formatNumber(runway.estimatedDaysRemaining)} {isBangla ? "দিন" : "days"} ({formatNumber(hoursRemaining)} {isBangla ? "ঘণ্টা" : "hrs"})
@@ -279,7 +279,7 @@ export function AdvancedStats({
 
         {/* Card 4: Slab Dynamics & Eco Footprint */}
         <Card className="rounded-2xl border shadow-xs overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex items-center justify-between">
+          <div className="px-5 py-3.5 border-b border-border/70 bg-muted/30 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Layers className="size-4 text-emerald-600 dark:text-emerald-400" />
               <h4 className="font-bold text-xs sm:text-sm text-foreground">
@@ -290,9 +290,9 @@ export function AdvancedStats({
               {isBangla ? "গ্রিন অ্যানালিটিক্স" : "Eco Telemetry"}
             </Badge>
           </div>
-          <CardContent className="p-5 space-y-3.5 text-xs">
+          <CardContent className="p-4 sm:p-5 space-y-3.5 text-xs">
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground flex items-center gap-1">
                   <TrendingUp className="size-3.5 text-primary" />
                   <span>{isBangla ? "বর্তমান ট্যারিফ ধাপ:" : "Active Tariff Tier:"}</span>
@@ -303,7 +303,7 @@ export function AdvancedStats({
               </div>
 
               {slabStats.unitsRemainingInSlab !== null && slabStats.nextSlabRate && (
-                <div className="flex items-center justify-between p-2 rounded-xl bg-muted/50 border border-border/50">
+                <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-muted/50 border border-border/50">
                   <span className="text-[11px] text-muted-foreground">
                     {isBangla ? "পরবর্তী ধাপে যেতে বাকি:" : "Units to Next Tier:"}
                   </span>
@@ -317,7 +317,7 @@ export function AdvancedStats({
               )}
 
               {/* Eco footprint */}
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center justify-between gap-2 pt-1">
                 <span className="text-muted-foreground flex items-center gap-1">
                   <Leaf className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>{isBangla ? "পরিবেশগত প্রভাব (CO₂):" : "Carbon Footprint (CO₂):"}</span>
@@ -327,7 +327,7 @@ export function AdvancedStats({
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
                 <span>{isBangla ? "কার্বন সমতায় বছরে প্রয়োজনীয় গাছ:" : "Trees required to offset:"}</span>
                 <Badge variant="outline" className="text-[11px] font-semibold border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
                   ~{formatNumber(eco.treesNeeded)} {isBangla ? "টি গাছ" : "trees"}
