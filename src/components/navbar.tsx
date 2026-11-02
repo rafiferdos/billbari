@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "./theme-toggle"
 import { LanguageToggle } from "./language-toggle"
+import { ColorThemeToggle } from "./color-theme-toggle"
 import { Zap, LogOut, Camera, History, Calculator, LayoutDashboard, ChevronDown, Crown } from "lucide-react"
 
 export function Navbar() {
@@ -28,17 +29,17 @@ export function Navbar() {
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         {/* Brand */}
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">
-            <Zap className="size-5 fill-current" />
+        <Link to="/" className="flex items-center gap-2 group shrink-0">
+          <div className="size-8 sm:size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 shrink-0">
+            <Zap className="size-4 sm:size-5 fill-current" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-foreground">
+              <span className="font-extrabold text-lg sm:text-2xl tracking-tight text-foreground">
                 {t.brand.name}
               </span>
             </div>
-            <span className="text-[10px] text-muted-foreground block -mt-1 font-medium">
+            <span className="text-[10px] text-muted-foreground hidden sm:block -mt-1 font-medium">
               {t.brand.tagline}
             </span>
           </div>
@@ -119,6 +120,9 @@ export function Navbar() {
 
           {/* Apple-style Language Toggle */}
           <LanguageToggle />
+
+          {/* Shadcn Color Theme Switcher */}
+          <ColorThemeToggle />
 
           {/* Dark / Light Mode Toggle */}
           <ThemeToggle />

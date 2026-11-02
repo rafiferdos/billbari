@@ -282,7 +282,7 @@ export function SnapshotHistory({
 
       {/* Confirmation Dialog for Deletion */}
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <DialogContent className="sm:max-w-xs">
+        <DialogContent className="sm:max-w-xs w-[calc(100vw-2rem)]">
           <DialogHeader>
             <div className="flex items-center gap-2 text-destructive mb-1">
               <AlertCircle className="size-4" />

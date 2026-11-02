@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Slider } from "@/components/ui/slider"
 import { calculateNescoBill, NESCO_LTA_SLABS, LIFELINE_RATE } from "@/lib/tariff-constants"
 import { Calculator, SlidersHorizontal, ArrowDown } from "lucide-react"
 import { ApplianceSimulator } from "@/features/tariffs/appliance-simulator"
@@ -87,15 +89,26 @@ function TariffsPage() {
                   kWh
                 </span>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="800"
-                step="5"
-                value={unitsInput}
-                onChange={(e) => setUnitsInput(parseInt(e.target.value, 10))}
-                className="w-full accent-primary mt-2 cursor-pointer"
-              />
+              <div className="pt-2 pb-1 space-y-1">
+                <Slider
+                  min={0}
+                  max={800}
+                  step={5}
+                  value={unitsInput}
+                  onValueChange={(val) => {
+                    const nextVal = typeof val === "number" ? val : Array.isArray(val) ? val[0] : 0
+                    setUnitsInput(nextVal)
+                  }}
+                  aria-label={isBangla ? "মাসিক বিদ্যুৎ ব্যবহার স্লাইডার" : "Monthly energy usage slider"}
+                />
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+                  <span>0 kWh</span>
+                  <span>200</span>
+                  <span>400</span>
+                  <span>600</span>
+                  <span>800+</span>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1">
@@ -117,28 +130,24 @@ function TariffsPage() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">{t.customer.phase}</Label>
                 <div className="flex gap-1.5">
-                  <button
+                  <Button
                     type="button"
+                    variant={isSinglePhase ? "default" : "outline"}
+                    size="sm"
                     onClick={() => setIsSinglePhase(true)}
-                    className={`flex-1 py-1.5 text-xs rounded-lg border font-medium cursor-pointer transition-colors ${
-                      isSinglePhase
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background border-border text-foreground hover:bg-muted"
-                    }`}
+                    className="flex-1 h-9 text-xs font-semibold"
                   >
                     1-Phase
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant={!isSinglePhase ? "default" : "outline"}
+                    size="sm"
                     onClick={() => setIsSinglePhase(false)}
-                    className={`flex-1 py-1.5 text-xs rounded-lg border font-medium cursor-pointer transition-colors ${
-                      !isSinglePhase
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background border-border text-foreground hover:bg-muted"
-                    }`}
+                    className="flex-1 h-9 text-xs font-semibold"
                   >
                     3-Phase
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -178,81 +187,83 @@ function TariffsPage() {
             </CardHeader>
 
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-xs">
-                    <TableHead>{isBangla ? "ট্যারিফ ধাপ" : "Tariff Slab"}</TableHead>
-                    <TableHead>{isBangla ? "ব্যবহার ইউনিট" : "Units (kWh)"}</TableHead>
-                    <TableHead>{isBangla ? "প্রতি ইউনিট রেট" : "Rate per kWh"}</TableHead>
-                    <TableHead className="text-right">{isBangla ? "মোট অর্থ (৳)" : "Amount (৳)"}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {breakdown.slabBreakdown.map((item, idx) => (
-                    <TableRow key={idx} className="text-xs">
-                      <TableCell className="font-medium text-foreground">
-                        {isBangla ? item.nameBangla : item.nameEnglish}
+              <div className="overflow-x-auto w-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="text-xs">
+                      <TableHead>{isBangla ? "ট্যারিফ ধাপ" : "Tariff Slab"}</TableHead>
+                      <TableHead>{isBangla ? "ব্যবহার ইউনিট" : "Units (kWh)"}</TableHead>
+                      <TableHead>{isBangla ? "প্রতি ইউনিট রেট" : "Rate per kWh"}</TableHead>
+                      <TableHead className="text-right">{isBangla ? "মোট অর্থ (৳)" : "Amount (৳)"}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {breakdown.slabBreakdown.map((item, idx) => (
+                      <TableRow key={idx} className="text-xs">
+                        <TableCell className="font-medium text-foreground">
+                          {isBangla ? item.nameBangla : item.nameEnglish}
+                        </TableCell>
+                        <TableCell className="font-semibold text-primary">
+                          {formatNumber(item.unitsInSlab)} kWh
+                        </TableCell>
+                        <TableCell>{formatBDT(item.rate)}</TableCell>
+                        <TableCell className="text-right font-bold">
+                          {formatBDT(item.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+
+                    {/* Summary Rows */}
+                    <TableRow className="text-xs bg-muted/30">
+                      <TableCell colSpan={3} className="text-muted-foreground font-medium">
+                        {t.tariffs.summaryEnergyCost}:
                       </TableCell>
-                      <TableCell className="font-semibold text-primary">
-                        {formatNumber(item.unitsInSlab)} kWh
-                      </TableCell>
-                      <TableCell>{formatBDT(item.rate)}</TableCell>
                       <TableCell className="text-right font-bold">
-                        {formatBDT(item.amount)}
+                        {formatBDT(breakdown.energyCharge)}
                       </TableCell>
                     </TableRow>
-                  ))}
 
-                  {/* Summary Rows */}
-                  <TableRow className="text-xs bg-muted/30">
-                    <TableCell colSpan={3} className="text-muted-foreground font-medium">
-                      {t.tariffs.summaryEnergyCost}:
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatBDT(breakdown.energyCharge)}
-                    </TableCell>
-                  </TableRow>
+                    <TableRow className="text-xs bg-muted/30">
+                      <TableCell colSpan={3} className="text-muted-foreground">
+                        {t.slab.demandCharge} ({formatNumber(loadKw)} kW × ৳42):
+                      </TableCell>
+                      <TableCell className="text-right">{formatBDT(breakdown.demandCharge)}</TableCell>
+                    </TableRow>
 
-                  <TableRow className="text-xs bg-muted/30">
-                    <TableCell colSpan={3} className="text-muted-foreground">
-                      {t.slab.demandCharge} ({formatNumber(loadKw)} kW × ৳42):
-                    </TableCell>
-                    <TableCell className="text-right">{formatBDT(breakdown.demandCharge)}</TableCell>
-                  </TableRow>
+                    <TableRow className="text-xs bg-muted/30">
+                      <TableCell colSpan={3} className="text-muted-foreground">
+                        {t.slab.meterRent} ({isSinglePhase ? (isBangla ? "সিঙ্গেল ফেজ" : "Single Phase") : (isBangla ? "থ্রি ফেজ" : "3-Phase")}):
+                      </TableCell>
+                      <TableCell className="text-right">{formatBDT(breakdown.meterRent)}</TableCell>
+                    </TableRow>
 
-                  <TableRow className="text-xs bg-muted/30">
-                    <TableCell colSpan={3} className="text-muted-foreground">
-                      {t.slab.meterRent} ({isSinglePhase ? (isBangla ? "সিঙ্গেল ফেজ" : "Single Phase") : (isBangla ? "থ্রি ফেজ" : "3-Phase")}):
-                    </TableCell>
-                    <TableCell className="text-right">{formatBDT(breakdown.meterRent)}</TableCell>
-                  </TableRow>
+                    <TableRow className="text-xs bg-muted/30">
+                      <TableCell colSpan={3} className="text-muted-foreground">
+                        {t.slab.vat}:
+                      </TableCell>
+                      <TableCell className="text-right">{formatBDT(breakdown.vatAmount)}</TableCell>
+                    </TableRow>
 
-                  <TableRow className="text-xs bg-muted/30">
-                    <TableCell colSpan={3} className="text-muted-foreground">
-                      {t.slab.vat}:
-                    </TableCell>
-                    <TableCell className="text-right">{formatBDT(breakdown.vatAmount)}</TableCell>
-                  </TableRow>
+                    <TableRow className="text-xs bg-muted/30 text-emerald-600 dark:text-emerald-400">
+                      <TableCell colSpan={3} className="font-medium">
+                        {t.slab.rebate}:
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        -{formatBDT(breakdown.rebateAmount)}
+                      </TableCell>
+                    </TableRow>
 
-                  <TableRow className="text-xs bg-muted/30 text-emerald-600 dark:text-emerald-400">
-                    <TableCell colSpan={3} className="font-medium">
-                      {t.slab.rebate}:
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      -{formatBDT(breakdown.rebateAmount)}
-                    </TableCell>
-                  </TableRow>
-
-                  <TableRow className="text-sm bg-primary/5 font-extrabold border-t-2 border-primary/20">
-                    <TableCell colSpan={3} className="text-foreground">
-                      {t.tariffs.summaryNetBill}:
-                    </TableCell>
-                    <TableCell className="text-right text-primary text-base">
-                      {formatBDT(breakdown.totalBill)}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+                    <TableRow className="text-sm bg-primary/5 font-extrabold border-t-2 border-primary/20">
+                      <TableCell colSpan={3} className="text-foreground">
+                        {t.tariffs.summaryNetBill}:
+                      </TableCell>
+                      <TableCell className="text-right text-primary text-base">
+                        {formatBDT(breakdown.totalBill)}
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -270,48 +281,50 @@ function TariffsPage() {
         </CardHeader>
 
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="text-xs">
-                <TableHead>{isBangla ? "ধাপ ক্রম" : "#"}</TableHead>
-                <TableHead>{isBangla ? "ইউনিট সীমা" : "Consumption Range"}</TableHead>
-                <TableHead>{isBangla ? "প্রতি ইউনিট রেট (৳)" : "Rate / kWh"}</TableHead>
-                <TableHead>{isBangla ? "মন্তব্য" : "Notes"}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow className="text-xs">
-                <TableCell className="font-semibold">{t.slab.lifelineTier}</TableCell>
-                <TableCell>{isBangla ? "০ - ৫০ ইউনিট" : "0 - 50 kWh"}</TableCell>
-                <TableCell className="font-bold text-emerald-600 dark:text-emerald-400">
-                  {formatBDT(LIFELINE_RATE)}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {isBangla
-                    ? "শুধুমাত্র মোট মাসিক ব্যবহার ৫০ ইউনিটের মধ্যে সীমাবদ্ধ থাকলে প্রযোজ্য"
-                    : "Exclusive subsidized lifeline rate for low-consumption households"}
-                </TableCell>
-              </TableRow>
-              {NESCO_LTA_SLABS.map((s) => (
-                <TableRow key={s.step} className="text-xs">
-                  <TableCell className="font-semibold">
-                    {isBangla ? `ধাপ ${formatNumber(s.step)}` : `Tier ${formatNumber(s.step)}`}
-                  </TableCell>
-                  <TableCell>
-                    {formatNumber(s.minUnits)} - {s.maxUnits ? `${formatNumber(s.maxUnits)} kWh` : (isBangla ? "ঊর্ধ্বে" : "above")}
-                  </TableCell>
-                  <TableCell className="font-bold text-foreground">
-                    {formatBDT(s.ratePerUnit)}
+          <div className="overflow-x-auto w-full">
+            <Table>
+              <TableHeader>
+                <TableRow className="text-xs">
+                  <TableHead>{isBangla ? "ধাপ ক্রম" : "#"}</TableHead>
+                  <TableHead>{isBangla ? "ইউনিট সীমা" : "Consumption Range"}</TableHead>
+                  <TableHead>{isBangla ? "প্রতি ইউনিট রেট (৳)" : "Rate / kWh"}</TableHead>
+                  <TableHead>{isBangla ? "মন্তব্য" : "Notes"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="text-xs">
+                  <TableCell className="font-semibold">{t.slab.lifelineTier}</TableCell>
+                  <TableCell>{isBangla ? "০ - ৫০ ইউনিট" : "0 - 50 kWh"}</TableCell>
+                  <TableCell className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatBDT(LIFELINE_RATE)}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {s.step >= 5
-                      ? isBangla ? "উচ্চতর ধাপ (সতর্কতা কাম্য)" : "High consumption bracket"
-                      : isBangla ? "সাধারণ আবাসিক রেট" : "Standard residential bracket"}
+                    {isBangla
+                      ? "শুধুমাত্র মোট মাসিক ব্যবহার ৫০ ইউনিটের মধ্যে সীমাবদ্ধ থাকলে প্রযোজ্য"
+                      : "Exclusive subsidized lifeline rate for low-consumption households"}
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                {NESCO_LTA_SLABS.map((s) => (
+                  <TableRow key={s.step} className="text-xs">
+                    <TableCell className="font-semibold">
+                      {isBangla ? `ধাপ ${formatNumber(s.step)}` : `Tier ${formatNumber(s.step)}`}
+                    </TableCell>
+                    <TableCell>
+                      {formatNumber(s.minUnits)} - {s.maxUnits ? `${formatNumber(s.maxUnits)} kWh` : (isBangla ? "ঊর্ধ্বে" : "above")}
+                    </TableCell>
+                    <TableCell className="font-bold text-foreground">
+                      {formatBDT(s.ratePerUnit)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {s.step >= 5
+                        ? isBangla ? "উচ্চতর ধাপ (সতর্কতা কাম্য)" : "High consumption bracket"
+                        : isBangla ? "সাধারণ আবাসিক রেট" : "Standard residential bracket"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

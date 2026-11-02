@@ -11,12 +11,17 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarPicker } from "@/components/ui/calendar"
+import { format, parseISO } from "date-fns"
+import { bn, enUS } from "date-fns/locale"
+import { cn } from "cn"
 import { toast } from "sonner"
 import { saveSnapshotFn, type SnapshotRecord } from "./snapshot-server"
 import { snapshotsCollection } from "../db/client-db"
 import { useAuth } from "../auth/auth-context"
 import { useLanguage } from "@/features/i18n/language-context"
-import { Camera, Calendar, Hash, Banknote, Gauge, FileText, CheckCircle2 } from "lucide-react"
+import { Camera, Calendar as CalendarIcon, Hash, Banknote, Gauge, FileText, CheckCircle2 } from "lucide-react"
 
 interface SnapshotDialogProps {
   open: boolean
@@ -43,6 +48,7 @@ export function SnapshotDialog({
   const { t, isBangla, formatBDT, formatNumber } = useLanguage()
 
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0])
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [balance, setBalance] = useState<string>(() => String(currentBalance || ""))
   const [readingKwh, setReadingKwh] = useState<string>("")
   const [notes, setNotes] = useState<string>("")
@@ -114,7 +120,7 @@ export function SnapshotDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-left">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -151,20 +157,43 @@ export function SnapshotDialog({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5 pt-1">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="snap-date" className="text-xs flex items-center gap-1.5">
-                <Calendar className="size-3 text-muted-foreground" />
+              <Label htmlFor="snap-date-trigger" className="text-xs flex items-center gap-1.5">
+                <CalendarIcon className="size-3 text-muted-foreground" />
                 <span>{isBangla ? "তারিখ" : "Date"}</span>
               </Label>
-              <Input
-                id="snap-date"
-                type="date"
-                required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="h-9 text-xs"
-              />
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger
+                  id="snap-date-trigger"
+                  type="button"
+                  className={cn(
+                    "flex w-full items-center justify-start rounded-md border border-input bg-transparent px-3 text-left font-normal text-xs h-9 shadow-xs hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 size-3.5 text-muted-foreground shrink-0" />
+                  <span className="truncate">
+                    {date ? (
+                      format(parseISO(date), "PPP", { locale: isBangla ? bn : enUS })
+                    ) : (
+                      <span>{isBangla ? "তারিখ নির্বাচন করুন" : "Pick a date"}</span>
+                    )}
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                  <CalendarPicker
+                    mode="single"
+                    selected={date ? parseISO(date) : undefined}
+                    onSelect={(selectedDay) => {
+                      if (selectedDay) {
+                        setDate(format(selectedDay, "yyyy-MM-dd"))
+                        setIsCalendarOpen(false)
+                      }
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-1.5">
@@ -185,7 +214,7 @@ export function SnapshotDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="snap-reading" className="text-xs flex items-center gap-1.5">
                 <Gauge className="size-3 text-muted-foreground" />

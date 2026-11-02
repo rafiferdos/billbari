@@ -90,7 +90,7 @@ export function AuthDialog() {
 
   return (
     <Dialog open={isAuthModalOpen} onOpenChange={(open) => !open && closeAuthModal()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-left">
           <div className="flex items-center gap-2 mb-1">
             <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">

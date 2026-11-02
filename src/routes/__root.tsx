@@ -5,6 +5,7 @@ import { TanStackDevtools } from "@tanstack/react-devtools"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { DbProvider } from "@tanstack/react-db"
 import { ThemeProvider } from "next-themes"
+import { ColorThemeProvider } from "@/features/theme/color-theme-context"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { Navbar } from "@/components/navbar"
@@ -74,28 +75,30 @@ function RootComponent() {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <QueryClientProvider client={queryClient}>
-        <DbProvider client={dbClient}>
-          <TooltipProvider>
-            <LanguageProvider>
-              <AuthProvider>
-                <MeterProvider>
-                  <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
-                    <Navbar />
-                    <main className="flex-1">
-                      <Outlet />
-                    </main>
-                    <Footer />
-                    <AuthDialog />
-                    <PricingDialog />
-                    <Toaster position="top-right" />
-                  </div>
-                </MeterProvider>
-              </AuthProvider>
-            </LanguageProvider>
-          </TooltipProvider>
-        </DbProvider>
-      </QueryClientProvider>
+      <ColorThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <DbProvider client={dbClient}>
+            <TooltipProvider>
+              <LanguageProvider>
+                <AuthProvider>
+                  <MeterProvider>
+                    <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
+                      <Navbar />
+                      <main className="flex-1">
+                        <Outlet />
+                      </main>
+                      <Footer />
+                      <AuthDialog />
+                      <PricingDialog />
+                      <Toaster position="top-right" />
+                    </div>
+                  </MeterProvider>
+                </AuthProvider>
+              </LanguageProvider>
+            </TooltipProvider>
+          </DbProvider>
+        </QueryClientProvider>
+      </ColorThemeProvider>
     </ThemeProvider>
   )
 }
@@ -105,6 +108,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html lang="bn" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var t = localStorage.getItem('billbari_color_theme') || 'emerald';
+                  document.documentElement.setAttribute('data-color-theme', t);
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         {children}
