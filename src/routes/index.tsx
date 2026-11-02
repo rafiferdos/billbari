@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
+import { SourceBanner, SourceBadge } from "@/features/nesco/source-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatCard } from "@/features/analytics/stat-card"
 import { AdvancedStats } from "@/features/analytics/advanced-stats"
@@ -41,7 +41,6 @@ import {
   CreditCard,
   BarChart3,
   X,
-  Clock,
 } from "lucide-react"
 
 export const Route = createFileRoute("/")({
@@ -358,44 +357,12 @@ function DashboardPage() {
       {/* Main Content when Meter Data is Loaded */}
       {!isLoading && nescoData && analytics && (
         <>
-          {/* Data Source Status Banner */}
-          {nescoData.statusMessage && (
-            <Alert
-              className={
-                nescoData.dataSource === "nesco_live"
-                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-200"
-                  : nescoData.dataSource === "cached_real"
-                  ? "bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-200"
-                  : "bg-muted/70 border-border"
-              }
-            >
-              <div className="flex items-center gap-2">
-                {nescoData.dataSource === "nesco_live" ? (
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-                ) : nescoData.dataSource === "cached_real" ? (
-                  <Clock className="size-4 text-amber-600 dark:text-amber-400" />
-                ) : (
-                  <Info className="size-4 text-primary" />
-                )}
-                <AlertTitle className="text-xs font-bold mb-0">
-                  {nescoData.dataSource === "nesco_live"
-                    ? t.status.liveSuccessTitle
-                    : nescoData.dataSource === "cached_real"
-                    ? t.status.cachedTitle
-                    : t.status.demoTitle}
-                </AlertTitle>
-              </div>
-              <AlertDescription className="text-xs mt-1 text-muted-foreground">
-                {isBangla
-                  ? nescoData.statusMessage
-                  : nescoData.dataSource === "nesco_live"
-                  ? "Live telemetry retrieved from official NESCO server."
-                  : nescoData.dataSource === "cached_real"
-                  ? "Displaying previously verified session data."
-                  : "Displaying sample reference metrics."}
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Data Source Status Banner: Badge + fetched time + stale warning.
+              Sample mode gets its own violet treatment, never live styling. */}
+          <SourceBanner
+            data={nescoData}
+            onRefresh={() => fetchMeter(nescoData.customerInfo.meterNumber, { force: true })}
+          />
 
           {/* Customer / Meter Details Card */}
           <Card className="rounded-2xl border shadow-xs overflow-hidden">
@@ -409,6 +376,7 @@ function DashboardPage() {
                     <Badge variant="secondary" className="text-xs font-medium">
                       {nescoData.customerInfo.tariff}
                     </Badge>
+                    <SourceBadge dataSource={nescoData.dataSource} fetchedAt={nescoData.fetchedAt} />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1 font-mono">

@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner"
 import { useMeter } from "@/features/meter/meter-context"
 import { useLanguage } from "@/features/i18n/language-context"
+import { SourceBanner } from "@/features/nesco/source-badge"
 import type { RechargeRecord } from "@/features/nesco/types"
 import { formatMonthBangla } from "@/lib/bangla"
 import { History, Copy, Search, Check, Receipt, ShieldCheck } from "lucide-react"
@@ -139,7 +140,11 @@ function HistoryPage() {
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             {data
-              ? isBangla
+              ? data.dataSource === "sample_demo"
+                ? isBangla
+                  ? "নমুনা রেফারেন্স ডেটা — আসল মিটার স্টেটমেন্ট নয়"
+                  : "Sample reference data — not a real meter statement"
+                : isBangla
                 ? `নেসকো প্রি-পেইড গ্রাহক নং ${formatNumber(data.customerInfo.customerNumber)} (${data.customerInfo.name})-এর অফিসিয়াল স্টেটমেন্ট`
                 : `Official statement for NESCO customer #${formatNumber(data.customerInfo.customerNumber)} (${data.customerInfo.name})`
               : t.history.subtitle}
@@ -202,7 +207,12 @@ function HistoryPage() {
           </form>
         </Card>
       ) : (
-        <Tabs defaultValue="recharges" className="space-y-4">
+        <>
+          <SourceBanner
+            data={data}
+            onRefresh={() => handleFetch(data.customerInfo.meterNumber)}
+          />
+          <Tabs defaultValue="recharges" className="space-y-4">
           <TabsList className="grid grid-cols-2 max-w-xs">
             <TabsTrigger value="recharges" className="text-xs">
               {isBangla
@@ -415,6 +425,7 @@ function HistoryPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        </>
       )}
 
       {/* Token Details Dialog */}
