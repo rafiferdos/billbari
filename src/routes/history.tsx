@@ -5,7 +5,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Form } from "@/components/ui/form"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -72,6 +80,7 @@ function HistoryPage() {
 
   const [meterInput, setMeterInput] = React.useState(activeMeter)
   const [searchFilter, setSearchFilter] = React.useState("")
+  const [periodFilter, setPeriodFilter] = React.useState<"all" | "30" | "90" | "365">("all")
   const [selectedToken, setSelectedToken] = React.useState<RechargeRecord | null>(null)
   const [copiedToken, setCopiedToken] = React.useState(false)
   const lastFetchedMeterRef = React.useRef<string>("")
@@ -112,19 +121,28 @@ function HistoryPage() {
     setTimeout(() => setCopiedToken(false), 2000)
   }
 
-  // Filter recharges by search
+  // Filter recharges by period, then by search. A date that cannot be
+  // parsed is kept, never silently hidden by the period filter.
   const filteredRecharges = React.useMemo(() => {
     if (!data) return []
-    if (!searchFilter.trim()) return data.rechargeHistory
+    let rows = data.rechargeHistory
+    if (periodFilter !== "all") {
+      const cutoff = Date.now() - Number(periodFilter) * 24 * 60 * 60 * 1000
+      rows = rows.filter((r) => {
+        const parsed = Date.parse(r.date)
+        return Number.isNaN(parsed) || parsed >= cutoff
+      })
+    }
+    if (!searchFilter.trim()) return rows
     const q = searchFilter.toLowerCase()
-    return data.rechargeHistory.filter(
+    return rows.filter(
       (r) =>
         r.token.toLowerCase().includes(q) ||
         r.via.toLowerCase().includes(q) ||
         r.date.toLowerCase().includes(q) ||
         String(r.amountBdt).includes(q)
     )
-  }, [data, searchFilter])
+  }, [data, searchFilter, periodFilter])
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 max-w-5xl">
@@ -153,7 +171,7 @@ function HistoryPage() {
 
         {/* Quick Meter Selector */}
         {data && (
-          <form
+          <Form
             onSubmit={(e) => {
               e.preventDefault()
               handleFetch()
@@ -170,7 +188,7 @@ function HistoryPage() {
             <Button type="submit" size="sm" disabled={isLoading} className="h-9 text-xs font-medium">
               {isLoading ? (isBangla ? "লোড..." : "Loading...") : (isBangla ? "খুঁজুন" : "Search")}
             </Button>
-          </form>
+          </Form>
         )}
       </div>
 
@@ -187,7 +205,7 @@ function HistoryPage() {
               {t.history.emptyNotice}
             </p>
           </div>
-          <form
+          <Form
             onSubmit={(e) => {
               e.preventDefault()
               handleFetch()
@@ -204,7 +222,7 @@ function HistoryPage() {
             <Button type="submit" disabled={isLoading} className="h-11 px-6 text-sm font-medium w-full sm:w-auto">
               {isLoading ? t.common.loading : t.hero.searchButton}
             </Button>
-          </form>
+          </Form>
         </Card>
       ) : (
         <>
@@ -241,14 +259,36 @@ function HistoryPage() {
                   </CardDescription>
                 </div>
 
-                <div className="relative w-full sm:w-60">
-                  <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t.history.searchPlaceholder}
-                    value={searchFilter}
-                    onChange={(e) => setSearchFilter(e.target.value)}
-                    className="pl-8 h-9 text-xs"
-                  />
+                <div className="flex flex-col gap-1.5 w-full sm:w-auto sm:items-end">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as typeof periodFilter)}>
+                      <SelectTrigger className="h-9 text-xs w-full sm:w-36 border-input bg-background">
+                        <SelectValue placeholder={isBangla ? "সময়কাল" : "Period"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{isBangla ? "সব সময়" : "All time"}</SelectItem>
+                        <SelectItem value="30">{isBangla ? "গত ৩০ দিন" : "Last 30 days"}</SelectItem>
+                        <SelectItem value="90">{isBangla ? "গত ৯০ দিন" : "Last 90 days"}</SelectItem>
+                        <SelectItem value="365">{isBangla ? "গত ১২ মাস" : "Last 12 months"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="relative w-full sm:w-60">
+                      <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                      <Input
+                        placeholder={t.history.searchPlaceholder}
+                        value={searchFilter}
+                        onChange={(e) => setSearchFilter(e.target.value)}
+                        className="pl-8 h-9 text-xs"
+                      />
+                    </div>
+                  </div>
+                  {data && filteredRecharges.length !== data.rechargeHistory.length && (
+                    <span className="text-[11px] text-muted-foreground">
+                      {isBangla
+                        ? `${formatNumber(filteredRecharges.length)} / ${formatNumber(data.rechargeHistory.length)}টি দেখানো হচ্ছে`
+                        : `Showing ${formatNumber(filteredRecharges.length)} of ${formatNumber(data.rechargeHistory.length)}`}
+                    </span>
+                  )}
                 </div>
               </CardHeader>
 
@@ -299,18 +339,19 @@ function HistoryPage() {
                             <TableCell className="max-w-[140px] py-2.5">
                               <div className="flex items-center gap-1.5">
                                 {r.token ? (
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       copyToClipboard(r.token)
                                     }}
                                     title={isBangla ? "ট্যাপ করে টোকেন কপি করুন" : "Tap to copy token"}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/80 hover:bg-primary/10 hover:text-primary transition-all font-mono text-xs font-semibold border border-border/80 hover:border-primary/40 cursor-pointer text-left shadow-2xs"
+                                    className="h-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/80 hover:bg-primary/10 hover:text-primary transition-all font-mono text-xs font-semibold border border-border/80 hover:border-primary/40 cursor-pointer text-left shadow-2xs"
                                   >
                                     <span>{compactToken(r.token, isBangla)}</span>
                                     <Copy className="size-3 text-muted-foreground group-hover:text-primary shrink-0" />
-                                  </button>
+                                  </Button>
                                 ) : (
                                   <span className="text-[11px] text-muted-foreground px-2 py-0.5 rounded bg-muted/50">
                                     {isBangla ? "সরাসরি সমন্বয়" : "Direct Adjustment"}

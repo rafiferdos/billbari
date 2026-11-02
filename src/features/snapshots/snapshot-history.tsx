@@ -9,6 +9,13 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -40,10 +47,15 @@ export function SnapshotHistory({
 }: SnapshotHistoryProps) {
   const { t, isBangla, formatBDT, formatNumber, formatDate } = useLanguage()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [selectedSnapshot, setSelectedSnapshot] = useState<SnapshotRecord | null>(null)
+  const [sourceFilter, setSourceFilter] = useState<string>("all")
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Filter for this meter
+  // Filter for this meter, then by source for the table only.
+  // Trajectory above stays on the full meter set, not the filtered table.
   const meterSnapshots = snapshots.filter((s) => s.meterNumber === meterNumber)
+  const filteredSnapshots =
+    sourceFilter === "all" ? meterSnapshots : meterSnapshots.filter((s) => s.sourceType === sourceFilter)
 
   // Calculate trajectory if at least 2 snapshots exist
   const trajectory = (() => {
@@ -181,14 +193,28 @@ export function SnapshotHistory({
             </CardDescription>
           </div>
 
-          <Button
-            size="sm"
-            onClick={onTakeSnapshotClick}
-            className="h-8 text-xs font-semibold gap-1.5"
-          >
-            <Camera className="size-3.5" />
-            <span>{t.snapshots.addSnapshotBtn}</span>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="h-8 text-xs w-full sm:w-40 border-input bg-background">
+                <SelectValue placeholder={isBangla ? "উৎস" : "Source"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isBangla ? "সব উৎস" : "All sources"}</SelectItem>
+                <SelectItem value="nesco_live">{isBangla ? "নেসকো লাইভ" : "NESCO Live"}</SelectItem>
+                <SelectItem value="manual_reading">{isBangla ? "ম্যানুয়াল এন্ট্রি" : "Manual Log"}</SelectItem>
+                <SelectItem value="automated_daily_cron">{isBangla ? "অটো মিডনাইট সিঙ্ক" : "Midnight Sync"}</SelectItem>
+                <SelectItem value="sample_demo">{isBangla ? "প্রো প্রিভিউ ডেমো" : "Pro Preview"}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              onClick={onTakeSnapshotClick}
+              className="h-8 text-xs font-semibold gap-1.5"
+            >
+              <Camera className="size-3.5" />
+              <span>{t.snapshots.addSnapshotBtn}</span>
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="p-0">
@@ -215,8 +241,15 @@ export function SnapshotHistory({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {meterSnapshots.map((item) => (
-                    <TableRow key={item.id} className="text-xs hover:bg-muted/40">
+                  {filteredSnapshots.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-24 text-center text-xs text-muted-foreground">
+                        {isBangla ? "এই উৎসের কোনো স্ন্যাপশট নেই।" : "No snapshots for this source."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                  filteredSnapshots.map((item) => (
+                    <TableRow key={item.id} className="text-xs hover:bg-muted/40 cursor-pointer" onClick={() => setSelectedSnapshot(item)}>
                       <TableCell className="font-semibold whitespace-nowrap">
                         {formatDate(item.snapshotDate)}
                       </TableCell>
@@ -265,14 +298,14 @@ export function SnapshotHistory({
                             variant="ghost"
                             size="icon"
                             className="size-7 text-muted-foreground hover:text-destructive cursor-pointer"
-                            onClick={() => setDeleteId(item.id)}
+                            onClick={(e) => { e.stopPropagation(); setDeleteId(item.id) }}
                           >
                             <Trash2 className="size-3.5" />
                           </Button>
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </div>
@@ -318,6 +351,52 @@ export function SnapshotHistory({
               {isDeleting ? (isBangla ? "মুছে ফেলা হচ্ছে..." : "Deleting...") : t.common.delete}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Snapshot detail dialog (read-only; deletion stays in its own dialog) */}
+      <Dialog open={Boolean(selectedSnapshot)} onOpenChange={(open) => !open && setSelectedSnapshot(null)}>
+        <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">
+              {isBangla ? "স্ন্যাপশট বিস্তারিত" : "Snapshot details"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {selectedSnapshot ? formatDate(selectedSnapshot.snapshotDate) : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSnapshot && (
+            <div className="space-y-3 pt-1 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-lg border bg-card">
+                  <span className="text-muted-foreground block text-[11px]">{isBangla ? "ব্যালেন্স" : "Balance"}</span>
+                  <span className="font-bold text-foreground text-sm">{formatBDT(selectedSnapshot.balance)}</span>
+                </div>
+                <div className="p-2.5 rounded-lg border bg-card">
+                  <span className="text-muted-foreground block text-[11px]">{isBangla ? "মিটার রিডিং" : "Reading"}</span>
+                  <span className="font-bold text-foreground text-sm">{selectedSnapshot.readingKwh > 0 ? `${formatNumber(selectedSnapshot.readingKwh)} kWh` : "-"}</span>
+                </div>
+                <div className="p-2.5 rounded-lg border bg-card">
+                  <span className="text-muted-foreground block text-[11px]">{isBangla ? "আনুমানিক দৈনিক খরচ" : "Daily cost"}</span>
+                  <span className="font-bold text-primary text-sm">~{formatBDT(selectedSnapshot.dailyEstimatedCost)}</span>
+                </div>
+                <div className="p-2.5 rounded-lg border bg-card">
+                  <span className="text-muted-foreground block text-[11px]">{isBangla ? "উৎস" : "Source"}</span>
+                  <Badge variant="secondary" className="text-[10px] font-normal mt-0.5">{selectedSnapshot.sourceType}</Badge>
+                </div>
+              </div>
+              {selectedSnapshot.notes && (
+                <div className="p-3 rounded-xl bg-muted/40 border text-xs text-muted-foreground leading-relaxed">
+                  {selectedSnapshot.notes}
+                </div>
+              )}
+              <div className="flex justify-end pt-1">
+                <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setSelectedSnapshot(null)}>
+                  {t.common.cancel}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
