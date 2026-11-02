@@ -1,7 +1,8 @@
 # Phase 8 — Responsiveness review and mobile-first fixes
 
-Status: pushed with this commit. This doc is the senior review, not
-a release note.
+Status: pushed with this commit, plus a navbar correction below
+that is pushed in its own commit. This doc is the senior review,
+not a release note.
 
 Method: static audit of every user route and every shared component
 at 360px first, then sm (640), md (768), lg (1024). No browser run
@@ -143,3 +144,36 @@ full-width block under a border.
   6-digit balance.
 - Run `pnpm typecheck`, `pnpm lint`, and `pnpm build` (not run here:
   dependencies are not installed in this workspace).
+
+
+## Correction — navbar, 2026-11-03 (pushed)
+
+The user reported the navbar looked awful on smaller and medium
+screens after Phase 8. That criticism is correct: the wrap fix
+turned the header into a tall, uneven stack of controls above the
+mobile subnav, which is functional but ugly. Wrapping was the
+wrong tool for a header.
+
+Replacement design, single row at every width:
+
+- Top row is back to a fixed height (`h-14` mobile, `h-16` desktop)
+  with no wrapping. The header no longer grows into a pile.
+- Language toggle becomes a 32px globe icon menu below `sm`
+  (both languages stay one tap away); the full two-pill toggle
+  returns at `sm`, where it fits.
+- Pricing becomes crown-icon-only below `sm` (with aria-label and
+  title); the full "Meter Plus" label returns at `sm`.
+- Guests see only the Login button below `sm`. Register is hidden
+  there, not removed: the auth dialog already has login and
+  register tabs, so Register is one tap inside it, and the button
+  returns at `sm`.
+- Color theme is cosmetic, so it is hidden below `md` and returns
+  at `md`, where the row fits. Theme (dark/light) stays visible
+  at every width.
+
+Width check at 360px, guests: brand ~95 + pricing ~38 + language
+32 + theme 32 + login ~59 + gaps ~24 = about 280px against 328px
+of content width, so the row fits with room to spare. At 768px
+the full set fits with room to spare, and at `lg` the desktop
+nav fits as before. The mobile subnav (four icon links) is
+unchanged; it is the navigation, not part of the pile.

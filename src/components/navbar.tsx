@@ -27,7 +27,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto px-4 sm:px-6 py-2 sm:py-0 sm:h-16 flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-2 gap-y-2">
+      <div className="container mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand */}
         <Link to="/" className="flex items-center gap-2 group shrink-0">
           <div className="size-8 sm:size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 shrink-0">
@@ -86,7 +86,7 @@ export function Navbar() {
         </nav>
 
         {/* User Account, Language Switcher, Theme Toggle & Auth Actions */}
-        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
           {activeMeter && (
             <Link
               to="/"
@@ -110,19 +110,23 @@ export function Navbar() {
               variant="outline"
               size="sm"
               onClick={openPricingModal}
+              aria-label={t.nav.meterPlus}
+              title={t.nav.meterPlus}
               className="h-8 text-xs font-semibold gap-1.5 border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/5 hover:bg-amber-500/10"
             >
               <Crown className="size-3.5 fill-amber-500 text-amber-500" />
               <span className="hidden sm:inline">{t.nav.meterPlus}</span>
-              <span className="sm:hidden">{t.nav.plusShort}</span>
             </Button>
           )}
 
           {/* Apple-style Language Toggle */}
           <LanguageToggle />
 
-          {/* Shadcn Color Theme Switcher */}
-          <ColorThemeToggle />
+          {/* Shadcn Color Theme Switcher: cosmetic, hidden below md
+              so the small-screen row stays a single clean row */}
+          <div className="hidden md:block">
+            <ColorThemeToggle />
+          </div>
 
           {/* Dark / Light Mode Toggle */}
           <ThemeToggle />
@@ -199,7 +203,7 @@ export function Navbar() {
               <Button
                 size="sm"
                 onClick={() => openAuthModal("register")}
-                className="h-8 text-xs font-semibold"
+                className="hidden sm:inline-flex h-8 text-xs font-semibold"
               >
                 {t.nav.register}
               </Button>
