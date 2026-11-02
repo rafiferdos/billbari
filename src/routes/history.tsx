@@ -73,6 +73,7 @@ function HistoryPage() {
   const [searchFilter, setSearchFilter] = React.useState("")
   const [selectedToken, setSelectedToken] = React.useState<RechargeRecord | null>(null)
   const [copiedToken, setCopiedToken] = React.useState(false)
+  const lastFetchedMeterRef = React.useRef<string>("")
 
   // Keep meterInput synchronized with activeMeter
   React.useEffect(() => {
@@ -81,9 +82,10 @@ function HistoryPage() {
     }
   }, [activeMeter])
 
-  // Automatically fetch if activeMeter is set but data not yet loaded
+  // Automatically fetch once if activeMeter is set but data not yet loaded
   React.useEffect(() => {
-    if (activeMeter && !data && !isLoading) {
+    if (activeMeter && !data && !isLoading && lastFetchedMeterRef.current !== activeMeter) {
+      lastFetchedMeterRef.current = activeMeter
       fetchMeter(activeMeter, { silent: true })
     }
   }, [activeMeter, data, isLoading, fetchMeter])

@@ -26,6 +26,13 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
   const [error, setError] = React.useState<string | null>(null)
 
+  // Use refs to keep callback identity stable and prevent infinite re-render loops (React error #185)
+  const activeMeterRef = React.useRef(activeMeter)
+  activeMeterRef.current = activeMeter
+  const activeMeterDataRef = React.useRef(activeMeterData)
+  activeMeterDataRef.current = activeMeterData
+  const hasInitializedRef = React.useRef(false)
+
   // Safe sessionStorage helper (persists only for current session as requested)
   const setActiveMeter = React.useCallback((meter: string) => {
     const clean = meter.replace(/[^0-9]/g, "").trim()
@@ -77,7 +84,7 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
 
   const fetchMeter = React.useCallback(
     async (targetMeter?: string, options?: { silent?: boolean; force?: boolean }): Promise<NescoFetchResult | null> => {
-      const num = (targetMeter || activeMeter).replace(/[^0-9]/g, "").trim()
+      const num = (targetMeter || activeMeterRef.current).replace(/[^0-9]/g, "").trim()
       if (!num || num.length < 8) {
         if (!options?.silent) {
           toast.error("অনুগ্রহ করে ৮ থেকে ১১ ডিজিটের সঠিক মিটার বা গ্রাহক নম্বর দিন।")
@@ -86,8 +93,8 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
       }
 
       // If already loaded and not force, return cached
-      if (!options?.force && activeMeterData && activeMeter === num) {
-        return activeMeterData
+      if (!options?.force && activeMeterDataRef.current && activeMeterRef.current === num) {
+        return activeMeterDataRef.current
       }
 
       setIsLoading(true)
@@ -140,11 +147,14 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false)
       }
     },
-    [activeMeter, activeMeterData]
+    []
   )
 
   // Initialize from URL param or sessionStorage on mount (maintains state across page navigation)
   React.useEffect(() => {
+    if (hasInitializedRef.current) return
+    hasInitializedRef.current = true
+
     if (typeof window === "undefined") return
 
     // Clean up old legacy localStorage persistence
