@@ -126,7 +126,7 @@ export function StatCard({
         </div>
 
         <div className="mt-1">
-          <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+          <div className="text-xl sm:text-3xl font-extrabold tracking-tight text-foreground break-all">
             {value}
           </div>
 

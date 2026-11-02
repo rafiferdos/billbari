@@ -216,7 +216,7 @@ function DashboardPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleFetchMeter()
                 }}
-                className="pl-10 pr-24 h-11 bg-background text-sm rounded-xl font-medium"
+                className="pl-10 pr-16 sm:pr-24 h-11 bg-background text-sm rounded-xl font-medium"
                 maxLength={11}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -241,7 +241,7 @@ function DashboardPage() {
                   title={t.hero.pasteFromClipboard}
                 >
                   <ClipboardPaste className="size-3" />
-                  <span>{t.hero.pasteFromClipboard}</span>
+                  <span className="hidden sm:inline">{t.hero.pasteFromClipboard}</span>
                 </Button>
               </div>
             </div>
@@ -388,14 +388,14 @@ function DashboardPage() {
             <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/80">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
                       {nescoData.customerInfo.name}
                     </h2>
-                    <Badge variant="secondary" className="text-xs font-medium">
+                    <Badge variant="secondary" className="text-xs font-medium shrink-0">
                       {nescoData.customerInfo.tariff}
                     </Badge>
-                    <SourceBadge dataSource={nescoData.dataSource} fetchedAt={nescoData.fetchedAt} />
+                    <SourceBadge dataSource={nescoData.dataSource} fetchedAt={nescoData.fetchedAt} className="shrink-0" />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1 font-mono">
@@ -546,7 +546,7 @@ function DashboardPage() {
           {/* Answer detail in tabs: Overview, Insights, Charts, Saving.
               The KPI cards and customer card above stay always visible. */}
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto!">
               <TabsTrigger value="overview" className="text-xs">
                 {isBangla ? "ওভারভিউ" : "Overview"}
               </TabsTrigger>

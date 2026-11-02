@@ -27,7 +27,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <div className="container mx-auto px-4 sm:px-6 py-2 sm:py-0 sm:h-16 flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-2 gap-y-2">
         {/* Brand */}
         <Link to="/" className="flex items-center gap-2 group shrink-0">
           <div className="size-8 sm:size-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 shrink-0">
@@ -35,7 +35,7 @@ export function Navbar() {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-lg sm:text-2xl tracking-tight text-foreground">
+              <span className="font-extrabold text-base sm:text-2xl tracking-tight text-foreground">
                 {t.brand.name}
               </span>
             </div>
@@ -46,7 +46,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+        <nav className="hidden lg:flex items-center gap-1 text-sm font-medium">
           <Link
             to="/"
             className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors [&.active]:text-foreground [&.active]:bg-muted [&.active]:font-semibold"
@@ -86,7 +86,7 @@ export function Navbar() {
         </nav>
 
         {/* User Account, Language Switcher, Theme Toggle & Auth Actions */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5">
           {activeMeter && (
             <Link
               to="/"
@@ -209,31 +209,31 @@ export function Navbar() {
       </div>
 
       {/* Mobile Subnavigation Bar */}
-      <div className="flex md:hidden items-center justify-around border-t border-border/60 py-2 bg-background/95 text-xs text-muted-foreground">
+      <div className="flex lg:hidden items-center justify-around border-t border-border/60 py-2 bg-background/95 text-xs text-muted-foreground">
         <Link
           to="/"
-          className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
+          className="flex flex-col items-center gap-1 px-2 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <LayoutDashboard className="size-4" />
           <span>{t.nav.dashboard}</span>
         </Link>
         <Link
           to="/history"
-          className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
+          className="flex flex-col items-center gap-1 px-2 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <History className="size-4" />
           <span>{t.nav.history}</span>
         </Link>
         <Link
           to="/snapshots"
-          className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
+          className="flex flex-col items-center gap-1 px-2 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <Camera className="size-4" />
           <span>{t.nav.snapshots}</span>
         </Link>
         <Link
           to="/tariffs"
-          className="flex flex-col items-center gap-1 px-3 py-1 [&.active]:text-primary [&.active]:font-bold"
+          className="flex flex-col items-center gap-1 px-2 py-1 [&.active]:text-primary [&.active]:font-bold"
         >
           <Calculator className="size-4" />
           <span>{t.nav.tariffs}</span>
