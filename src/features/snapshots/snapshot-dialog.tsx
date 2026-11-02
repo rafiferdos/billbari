@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Form } from "@/components/ui/form"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -156,7 +157,7 @@ export function SnapshotDialog({
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5 pt-1">
+        <Form onSubmit={handleSubmit} className="space-y-3.5 pt-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="snap-date-trigger" className="text-xs flex items-center gap-1.5">
@@ -303,7 +304,7 @@ export function SnapshotDialog({
               <span>{isSubmitting ? (isBangla ? "সংরক্ষিত হচ্ছে..." : "Saving...") : t.snapshots.saveBtn}</span>
             </Button>
           </div>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

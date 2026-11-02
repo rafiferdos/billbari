@@ -1,4 +1,5 @@
 import { useLanguage } from "@/features/i18n/language-context"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface LanguageToggleProps {
@@ -17,11 +18,12 @@ export function LanguageToggle({ className }: LanguageToggleProps) {
         className
       )}
     >
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setLanguage("bn")}
         className={cn(
-          "relative z-10 px-2.5 py-1 text-[11px] font-bold rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center",
+          "relative z-10 h-auto px-2.5 py-1 text-[11px] font-bold rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center",
           language === "bn"
             ? "bg-background text-foreground shadow-xs shadow-black/5 dark:shadow-white/5 font-extrabold"
             : "text-muted-foreground hover:text-foreground font-medium"
@@ -30,13 +32,14 @@ export function LanguageToggle({ className }: LanguageToggleProps) {
         title="বাংলা ভাষা নির্বাচন করুন"
       >
         <span>বাংলা</span>
-      </button>
+      </Button>
 
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setLanguage("en")}
         className={cn(
-          "relative z-10 px-2.5 py-1 text-[11px] tracking-tight font-bold rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center",
+          "relative z-10 h-auto px-2.5 py-1 text-[11px] tracking-tight font-bold rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center",
           language === "en"
             ? "bg-background text-foreground shadow-xs shadow-black/5 dark:shadow-white/5 font-extrabold"
             : "text-muted-foreground hover:text-foreground font-medium"
@@ -45,7 +48,7 @@ export function LanguageToggle({ className }: LanguageToggleProps) {
         title="Switch to English"
       >
         <span>EN</span>
-      </button>
+      </Button>
     </div>
   )
 }

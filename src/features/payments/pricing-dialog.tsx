@@ -7,6 +7,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Form } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -262,12 +264,12 @@ export function PricingDialog() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleVerifyPayment} className="space-y-3 pt-1">
+            <Form onSubmit={handleVerifyPayment} className="space-y-3 pt-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-muted-foreground">
+                  <Label className="text-[11px] font-semibold text-muted-foreground">
                     {isBangla ? "বিকাশ Transaction ID (TrxID) *" : "bKash Transaction ID (TrxID) *"}
-                  </label>
+                  </Label>
                   <Input
                     type="text"
                     required
@@ -279,9 +281,9 @@ export function PricingDialog() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-muted-foreground">
+                  <Label className="text-[11px] font-semibold text-muted-foreground">
                     {isBangla ? "প্রেরক বিকাশ মোবাইল নম্বর (ঐচ্ছিক)" : "Sender bKash Number (Optional)"}
-                  </label>
+                  </Label>
                   <Input
                     type="tel"
                     placeholder="01712345678"
@@ -311,7 +313,7 @@ export function PricingDialog() {
                   </>
                 )}
               </Button>
-            </form>
+            </Form>
           )}
         </div>
       </DialogContent>

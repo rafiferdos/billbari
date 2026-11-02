@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useLanguage } from "@/features/i18n/language-context"
@@ -167,18 +168,19 @@ export function BillSavingSection() {
             {/* Category Pills */}
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
               {categories.map((cat) => (
-                <button
+                <Button
                   key={cat.id}
                   type="button"
+                  variant="ghost"
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                  className={`h-auto px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
                     activeCategory === cat.id
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "bg-background border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
                   {isBangla ? cat.labelBangla : cat.labelEnglish}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -278,16 +280,17 @@ export function BillSavingSection() {
                 ? "আপনার সার্চের সাথে মিলে এমন কোনো পরামর্শ পাওয়া যায়নি।"
                 : "No saving tips matched your search query."}
             </p>
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={() => {
                 setSearchQuery("")
                 setActiveCategory("all")
               }}
-              className="text-xs font-semibold text-primary underline cursor-pointer"
+              className="h-auto text-xs font-semibold text-primary underline cursor-pointer"
             >
               {isBangla ? "সব পরামর্শ দেখুন" : "View all strategies"}
-            </button>
+            </Button>
           </div>
         )}
       </div>

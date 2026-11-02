@@ -44,18 +44,19 @@ function TariffsPage() {
           </p>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => {
             const el = document.getElementById("appliance-simulator-section")
             if (el) el.scrollIntoView({ behavior: "smooth" })
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-xs font-semibold text-primary transition-colors cursor-pointer self-start sm:self-auto"
+          className="h-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-xs font-semibold text-primary transition-colors cursor-pointer self-start sm:self-auto"
         >
           <SlidersHorizontal className="size-3.5" />
           <span>{isBangla ? "ঘরের যন্ত্রপাতি দিয়ে ইউনিট মাপুন" : "Simulate Home Appliances"}</span>
           <ArrowDown className="size-3" />
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

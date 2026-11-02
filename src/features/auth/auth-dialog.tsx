@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Form } from "@/components/ui/form"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { LogIn, UserPlus, ShieldCheck, Mail, Lock, User as UserIcon, AlertCircle } from "lucide-react"
 import { useAuth } from "./auth-context"
@@ -164,7 +165,7 @@ export function AuthDialog() {
 
             {/* Login Tab */}
             <TabsContent value="login" className="space-y-3 pt-3">
-              <form onSubmit={handleLogin} className="space-y-3">
+              <Form onSubmit={handleLogin} className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="login-email" className="text-xs font-medium flex items-center gap-1.5">
                     <Mail className="size-3 text-muted-foreground" />
@@ -200,12 +201,12 @@ export function AuthDialog() {
                 <Button type="submit" className="w-full h-9 font-medium mt-2" disabled={isSubmitting}>
                   {isSubmitting ? t.auth.submitting : t.auth.loginBtn}
                 </Button>
-              </form>
+              </Form>
             </TabsContent>
 
             {/* Register Tab */}
             <TabsContent value="register" className="space-y-3 pt-3">
-              <form onSubmit={handleRegister} className="space-y-3">
+              <Form onSubmit={handleRegister} className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="reg-name" className="text-xs font-medium flex items-center gap-1.5">
                     <UserIcon className="size-3 text-muted-foreground" />
@@ -257,7 +258,7 @@ export function AuthDialog() {
                 <Button type="submit" className="w-full h-9 font-medium mt-2" disabled={isSubmitting}>
                   {isSubmitting ? t.auth.submitting : t.auth.registerBtn}
                 </Button>
-              </form>
+              </Form>
             </TabsContent>
           </Tabs>
 

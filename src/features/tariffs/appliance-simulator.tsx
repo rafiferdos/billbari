@@ -374,11 +374,12 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                 const tag = isBangla ? p.tagBangla : en?.tag || p.tagBangla
 
                 return (
-                  <button
+                  <Button
                     key={p.id}
                     type="button"
+                    variant="ghost"
                     onClick={() => applyPreset(p)}
-                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                    className={`h-auto w-full flex-col items-start justify-start p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                       isActive
                         ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30"
                         : "bg-background hover:bg-muted/60 border-border"
@@ -398,7 +399,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                     <div className="text-[10px] text-muted-foreground truncate mt-0.5">
                       {sub}
                     </div>
-                  </button>
+                  </Button>
                 )
               })}
             </div>
@@ -524,18 +525,19 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                 { id: "entertainment_tech", label: isBangla ? "💻 বিনোদন ও টেক" : "💻 Media & Tech" },
                 { id: "daily_utility", label: isBangla ? "🔌 নিত্য ইউটিলিটি" : "🔌 Heavy Utilities" },
               ].map((cat) => (
-                <button
+                <Button
                   key={cat.id}
                   type="button"
+                  variant="ghost"
                   onClick={() => setSelectedCategory(cat.id as ApplianceCategory)}
-                  className={`px-3 py-1.5 text-xs rounded-lg font-medium cursor-pointer transition-colors ${
+                  className={`h-auto px-3 py-1.5 text-xs rounded-lg font-medium cursor-pointer transition-colors ${
                     selectedCategory === cat.id
                       ? "bg-foreground text-background font-bold shadow-xs"
                       : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
                   {cat.label}
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -580,26 +582,28 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
 
                       {/* Stepper Buttons */}
                       <div className="flex items-center gap-1.5 bg-background border rounded-lg p-0.5 shrink-0">
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           onClick={() => updateCount(item.id, -1)}
                           disabled={count === 0}
                           className="size-6 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
                           title={isBangla ? "সংখ্যা কমান" : "Decrease"}
                         >
                           <Minus className="size-3" />
-                        </button>
+                        </Button>
                         <span className="w-5 text-center font-mono text-xs font-bold">
                           {formatNumber(count)}
                         </span>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           onClick={() => updateCount(item.id, 1)}
                           className="size-6 flex items-center justify-center rounded-md bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer transition-colors"
                           title={isBangla ? "সংখ্যা বাড়ান" : "Increase"}
                         >
                           <Plus className="size-3" />
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
