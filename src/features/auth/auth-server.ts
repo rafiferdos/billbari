@@ -351,6 +351,20 @@ export const getSavedMetersFn = createServerFn({ method: "GET" }).handler(async 
   }))
 })
 
+export const setSavedMeterFavoriteFn = createServerFn({ method: "POST" })
+  .validator((d: { meterNumber: string; isFavorite: boolean }) => d)
+  .handler(async ({ data }): Promise<{ success: boolean }> => {
+    const user = await getCurrentUserFn()
+    if (!user) return { success: false }
+
+    const db = await getDatabase()
+    await db.execute({
+      sql: `UPDATE saved_meters SET is_favorite = ?, updated_at = ? WHERE user_id = ? AND meter_number = ?`,
+      args: [data.isFavorite ? 1 : 0, new Date().toISOString(), user.id, data.meterNumber],
+    })
+    return { success: true }
+  })
+
 export const deleteSavedMeterFn = createServerFn({ method: "POST" })
   .validator((d: { meterNumber: string }) => d)
   .handler(async ({ data }): Promise<{ success: boolean }> => {

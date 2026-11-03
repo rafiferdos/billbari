@@ -9,10 +9,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Bookmark, ChevronDown, Zap } from "lucide-react"
+import { Bookmark, ChevronDown, Star, Trash2, Zap } from "lucide-react"
 import { toast } from "sonner"
-import { getSavedMetersFn, type SavedMeter } from "@/features/auth/auth-server"
+import { deleteSavedMeterFn, getSavedMetersFn, setSavedMeterFavoriteFn, type SavedMeter } from "@/features/auth/auth-server"
 import { useAuth } from "@/features/auth/auth-context"
 import { useMeter } from "@/features/meter/meter-context"
 import { useLanguage } from "@/features/i18n/language-context"
@@ -34,12 +33,17 @@ export function SavedMetersMenu({
   const [isOpen, setIsOpen] = React.useState(false)
   const [meters, setMeters] = React.useState<SavedMeter[]>([])
   const [isLoading, setIsLoading] = React.useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = React.useState<string | null>(null)
+  const [busyId, setBusyId] = React.useState<string | null>(null)
 
   const load = React.useCallback(async () => {
     if (!user) return
     setIsLoading(true)
     try {
       const list = await getSavedMetersFn()
+      // Favorites first, then most recently updated. The server orders by
+      // updated_at only, so a favorite would otherwise sink below newer saves.
+      list.sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite) || String(b.updatedAt).localeCompare(String(a.updatedAt)))
       setMeters(list)
     } catch {
       toast.error(isBangla ? "সংরক্ষিত মিটার লোড করা যায়নি।" : "Could not load saved meters.")
@@ -47,6 +51,40 @@ export function SavedMetersMenu({
       setIsLoading(false)
     }
   }, [user, isBangla])
+
+
+  const toggleFavorite = async (meter: SavedMeter) => {
+    const next = !meter.isFavorite
+    setMeters((prev) =>
+      prev.map((m) => (m.id === meter.id ? { ...m, isFavorite: next } : m)).sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite) || String(b.updatedAt).localeCompare(String(a.updatedAt)))
+    )
+    setBusyId(meter.id)
+    try {
+      const res = await setSavedMeterFavoriteFn({ data: { meterNumber: meter.meterNumber, isFavorite: next } })
+      if (!res.success) throw new Error("failed")
+      toast.success(next ? (isBangla ? "প্রিয় মিটার হিসেবে সেট করা হয়েছে।" : "Set as favorite.") : (isBangla ? "প্রিয় থেকে সরানো হয়েছে।" : "Removed from favorites."))
+    } catch {
+      setMeters((prev) => prev.map((m) => (m.id === meter.id ? { ...m, isFavorite: meter.isFavorite } : m)))
+      toast.error(isBangla ? "প্রিয় সেট করা যায়নি।" : "Could not update favorite.")
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const confirmDelete = async (meter: SavedMeter) => {
+    setBusyId(meter.id)
+    try {
+      const res = await deleteSavedMeterFn({ data: { meterNumber: meter.meterNumber } })
+      if (!res.success) throw new Error("failed")
+      setMeters((prev) => prev.filter((m) => m.id !== meter.id))
+      setPendingDeleteId(null)
+      toast.success(isBangla ? "সংরক্ষিত মিটার মুছে ফেলা হয়েছে।" : "Saved meter deleted.")
+    } catch {
+      toast.error(isBangla ? "মিটার মুছতে পারা যায়নি।" : "Could not delete the meter.")
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
@@ -108,25 +146,59 @@ export function SavedMetersMenu({
             </div>
           ) : (
             meters.map((meter) => (
-              <DropdownMenuItem
-                key={meter.id}
-                onClick={() => fetchMeter(meter.meterNumber, { force: true })}
-                className="flex items-center justify-between gap-2"
-              >
-                <span className="flex flex-col min-w-0">
-                  <span className="text-xs font-semibold truncate">
-                    {meter.alias || meter.customerName || formatNumber(meter.meterNumber)}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    {formatNumber(meter.meterNumber)}
-                  </span>
-                </span>
-                {meter.isFavorite && (
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    {isBangla ? "প্রিয়" : "Favorite"}
-                  </Badge>
+              <div key={meter.id} className="flex items-center gap-1 px-1 py-0.5">
+                {pendingDeleteId === meter.id ? (
+                  <div className="flex flex-wrap items-center gap-2 px-2 py-1.5 w-full">
+                    <span className="text-xs font-medium flex-1 min-w-0 truncate">
+                      {isBangla ? "এই মিটার মুছবেন?" : "Delete this meter?"}
+                    </span>
+                    <Button size="sm" variant="destructive" disabled={busyId === meter.id} onClick={() => confirmDelete(meter)} className="h-7 text-xs">
+                      {isBangla ? "মুছুন" : "Delete"}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setPendingDeleteId(null)} className="h-7 text-xs">
+                      {isBangla ? "বাতিল" : "Cancel"}
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        fetchMeter(meter.meterNumber, { force: true })
+                        setIsOpen(false)
+                      }}
+                      className="flex-1 min-w-0 h-auto flex-col items-start gap-0 px-2 py-1.5"
+                    >
+                      <span className="text-xs font-semibold truncate w-full text-left">
+                        {meter.alias || meter.customerName || formatNumber(meter.meterNumber)}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground font-mono">
+                        {formatNumber(meter.meterNumber)}
+                      </span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={busyId === meter.id}
+                      aria-label={meter.isFavorite ? (isBangla ? "প্রিয় থেকে সরান" : "Remove from favorites") : (isBangla ? "প্রিয় হিসেবে সেট করুন" : "Set as favorite")}
+                      title={meter.isFavorite ? (isBangla ? "প্রিয়" : "Favorite") : (isBangla ? "প্রিয় করুন" : "Make favorite")}
+                      onClick={() => toggleFavorite(meter)}
+                      className="size-8 shrink-0"
+                    >
+                      <Star className={meter.isFavorite ? "size-4 fill-amber-400 text-amber-500" : "size-4 text-muted-foreground"} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={isBangla ? "মিটার মুছুন" : "Delete meter"}
+                      onClick={() => setPendingDeleteId(meter.id)}
+                      className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </>
                 )}
-              </DropdownMenuItem>
+              </div>
             ))
           )}
         </DropdownMenuGroup>
