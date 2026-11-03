@@ -102,7 +102,7 @@ export function PricingDialog() {
   return (
     <Dialog open={isPricingModalOpen} onOpenChange={(open) => !open && closePricingModal()}>
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-5 sm:p-6 rounded-3xl">
-        <DialogHeader className="text-left space-y-1.5 pb-2 border-b border-border/60">
+        <DialogHeader className="text-left space-y-1.5 pb-2 border-b border-border/60 pr-10">
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
             <Crown className="size-4 text-amber-500 fill-amber-500" />
             <span>{isBangla ? "বিলবাড়ি মেম্বারশিপ" : "BillBari Membership"}</span>
@@ -198,12 +198,12 @@ export function PricingDialog() {
 
         {/* bKash Payment Instructions */}
         <div className="space-y-3 pt-1">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
               <Smartphone className="size-4 text-[#D12053]" />
               <span>{t.pricing.bkashHeader}</span>
             </div>
-            <Badge variant="outline" className="border-[#D12053]/40 text-[#D12053] text-[11px] font-bold">
+            <Badge variant="outline" className="border-[#D12053]/40 text-[#D12053] text-[11px] font-bold shrink-0">
               Send Money: {formatBDT(amountToPay)}
             </Badge>
           </div>

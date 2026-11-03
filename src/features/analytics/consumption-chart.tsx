@@ -72,7 +72,7 @@ export function ConsumptionChart({ monthlyData, isSampleData }: ConsumptionChart
     <Card className="rounded-2xl border shadow-xs overflow-hidden">
       <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 gap-3">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <CardTitle className="text-base sm:text-lg font-bold">
               {t.charts.consumptionTitle}
             </CardTitle>
@@ -167,7 +167,7 @@ export function ConsumptionChart({ monthlyData, isSampleData }: ConsumptionChart
           </BarChart>
         </ChartContainer>
 
-        <div className="flex items-center justify-center gap-6 pt-3 pb-1 text-xs text-muted-foreground border-t border-border mt-3">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1.5 pt-3 pb-1 text-xs text-muted-foreground border-t border-border mt-3">
           {(metric === "both" || metric === "usage") && (
             <div className="flex items-center gap-2">
               <span className="size-2.5 rounded-full bg-primary" />

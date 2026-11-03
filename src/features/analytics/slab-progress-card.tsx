@@ -21,7 +21,7 @@ export function SlabProgressCard({ billBreakdown, monthlyUnits }: SlabProgressCa
   return (
     <Card className="rounded-2xl border shadow-xs">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
               <Zap className="size-4" />
@@ -30,7 +30,7 @@ export function SlabProgressCard({ billBreakdown, monthlyUnits }: SlabProgressCa
               {isBangla ? "ট্যারিফ ধাপের হিসাব" : "Tariff Slab Progress"}
             </CardTitle>
           </div>
-          <Badge variant="outline" className="text-xs bg-muted/50 border-primary/20 text-primary font-medium">
+          <Badge variant="outline" className="text-xs bg-muted/50 border-primary/20 text-primary font-medium shrink-0">
             {isBangla ? "আনুমানিক হিসাব" : "Estimated"}
           </Badge>
         </div>

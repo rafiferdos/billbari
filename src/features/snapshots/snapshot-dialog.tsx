@@ -122,8 +122,8 @@ export function SnapshotDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="text-left">
-          <div className="flex items-center justify-between">
+        <DialogHeader className="text-left pr-10">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="p-2 rounded-xl bg-primary/10 text-primary">
                 <Camera className="size-4" />

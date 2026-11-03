@@ -60,7 +60,7 @@ export function RechargeTrendChart({ records }: RechargeTrendChartProps) {
     <Card className="rounded-2xl border shadow-xs overflow-hidden">
       <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 gap-2">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <CardTitle className="text-base sm:text-lg font-bold">
               {t.charts.rechargeTrendTitle}
             </CardTitle>
