@@ -26,6 +26,7 @@ export function Navbar() {
   const navigate = useNavigate()
 
   return (
+    <>
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand */}
@@ -212,8 +213,9 @@ export function Navbar() {
         </div>
       </div>
 
+    </header>
       {/* Mobile Subnavigation Bar */}
-      <div className="flex lg:hidden items-center justify-around border-t border-border/60 py-2 bg-background/95 text-xs text-muted-foreground">
+      <div className="flex lg:hidden items-center justify-around border-b border-border/60 py-2 bg-background/95 text-xs text-muted-foreground">
         <Link
           to="/"
           className="flex flex-col items-center gap-1 px-2 py-1 [&.active]:text-primary [&.active]:font-bold"
@@ -243,6 +245,6 @@ export function Navbar() {
           <span>{t.nav.tariffs}</span>
         </Link>
       </div>
-    </header>
+    </>
   )
 }

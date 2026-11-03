@@ -28,7 +28,7 @@ function TariffsPage() {
   }, [unitsInput, loadKw, isSinglePhase])
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 max-w-5xl">
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 max-w-6xl">
       <div id="main-calculator-top" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -172,11 +172,11 @@ function TariffsPage() {
         <div className="lg:col-span-2 space-y-6">
           <Card className="rounded-2xl border shadow-xs overflow-hidden">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle className="text-base font-bold">
                   {isBangla ? "ধাপভিত্তিক ট্যারিফ বিল বিভাজন" : "Tier-by-Tier Bill Breakdown"}
                 </CardTitle>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs shrink-0">
                   {isBangla ? breakdown.activeStep.nameBangla : breakdown.activeStep.nameEnglish}
                 </Badge>
               </div>

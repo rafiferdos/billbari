@@ -145,7 +145,7 @@ function HistoryPage() {
   }, [data, searchFilter, periodFilter])
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 max-w-5xl">
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -472,7 +472,7 @@ function HistoryPage() {
       {/* Token Details Dialog */}
       <Dialog open={Boolean(selectedToken)} onOpenChange={(open) => !open && setSelectedToken(null)}>
         <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader>
+          <DialogHeader className="pr-10">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Receipt className="size-5 text-primary" />
               {isBangla ? "ভেন্ডিং টোকেন ভাউচার" : "Vending Token Voucher"}
