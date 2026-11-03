@@ -75,7 +75,7 @@ export function AlertThresholdDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] rounded-2xl">
-        <DialogHeader>
+        <DialogHeader className="pr-10">
           <DialogTitle className="flex items-center gap-2 text-base font-bold">
             <Bell className="size-4 text-primary" />
             {isBangla ? "কম ব্যালেন্স সতর্কতা" : "Low-balance alert"}

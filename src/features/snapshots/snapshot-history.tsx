@@ -316,7 +316,7 @@ export function SnapshotHistory({
       {/* Confirmation Dialog for Deletion */}
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <DialogContent className="sm:max-w-xs w-[calc(100vw-2rem)]">
-          <DialogHeader>
+          <DialogHeader className="pr-10">
             <div className="flex items-center gap-2 text-destructive mb-1">
               <AlertCircle className="size-4" />
               <DialogTitle className="text-base font-bold">
@@ -357,7 +357,7 @@ export function SnapshotHistory({
       {/* Snapshot detail dialog (read-only; deletion stays in its own dialog) */}
       <Dialog open={Boolean(selectedSnapshot)} onOpenChange={(open) => !open && setSelectedSnapshot(null)}>
         <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] rounded-2xl">
-          <DialogHeader>
+          <DialogHeader className="pr-10">
             <DialogTitle className="text-base font-bold">
               {isBangla ? "স্ন্যাপশট বিস্তারিত" : "Snapshot details"}
             </DialogTitle>

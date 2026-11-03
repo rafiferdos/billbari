@@ -177,3 +177,14 @@ of content width, so the row fits with room to spare. At 768px
 the full set fits with room to spare, and at `lg` the desktop
 nav fits as before. The mobile subnav (four icon links) is
 unchanged; it is the navigation, not part of the pile.
+
+## Correction — small-screen header and dialog polish, 2026-11-03 (pushed)
+
+A follow-up audit found the same no-wrap squeeze pattern in several more places, plus two structural issues. All fixed here:
+
+- Tariffs breakdown header, slab progress header, snapshot dialog header, consumption chart header, and recharge trend header: title and Badge rows now wrap with a gap, and Badges are shrink-0 so they never squash.
+- Consumption chart legend: two long Bangla labels now wrap (gap-x-6, gap-y-1.5) instead of squeezing in one row.
+- Pricing dialog: bKash header plus "Send Money" Badge row now wraps with a gap and a shrink-0 Badge.
+- All seven DialogHeaders in app code (auth, pricing, snapshot, snapshot-history detail and delete, history token, alert-threshold) now carry pr-10, so long titles can no longer run under the absolute close button.
+- Page width unified: history, snapshots, and tariffs moved from max-w-5xl to max-w-6xl, matching home. Content alignment no longer jumps between pages.
+- Sticky header cost: the mobile subnav now sits outside the sticky header, so it scrolls away. Only the 56/64px top row stays pinned, freeing about 50px of small-screen height. Desktop navigation is unchanged, and the subnav itself is unchanged.
