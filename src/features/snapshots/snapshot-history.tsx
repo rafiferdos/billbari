@@ -194,7 +194,7 @@ export function SnapshotHistory({
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v ?? "all")}>
               <SelectTrigger className="h-8 text-xs w-full sm:w-40 border-input bg-background">
                 <SelectValue placeholder={isBangla ? "উৎস" : "Source"} />
               </SelectTrigger>

@@ -28,7 +28,7 @@ const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
         disabled={disabled}
         onValueChange={(val) => {
           if (onValueChange) {
-            onValueChange(val as number | number[])
+            onValueChange(val)
           }
         }}
         className={cn(

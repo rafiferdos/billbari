@@ -111,20 +111,20 @@ export async function getDatabase(): Promise<Client> {
   if (!initPromise) {
     initPromise = (async () => {
       try {
-        await dbInstance!.executeMultiple(SCHEMA_SQL)
+        await dbInstance.executeMultiple(SCHEMA_SQL)
       } catch (err) {
         console.warn("Base schema executeMultiple warning:", err)
       }
 
       // Safe column migrations for existing databases
       try {
-        await dbInstance!.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free'")
+        await dbInstance.execute("ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free'")
       } catch {}
       try {
-        await dbInstance!.execute("ALTER TABLE users ADD COLUMN subscription_expires_at TEXT")
+        await dbInstance.execute("ALTER TABLE users ADD COLUMN subscription_expires_at TEXT")
       } catch {}
       try {
-        await dbInstance!.execute("ALTER TABLE users ADD COLUMN subscription_started_at TEXT")
+        await dbInstance.execute("ALTER TABLE users ADD COLUMN subscription_started_at TEXT")
       } catch {}
     })().catch((err) => {
       console.error("Database schema initialization error:", err)

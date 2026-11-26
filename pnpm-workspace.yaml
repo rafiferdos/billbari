@@ -5,3 +5,6 @@ allowBuilds:
   lightningcss: true
   unrs-resolver: true
   msw: false
+
+# `pnpm build` sets NODE_ENV inline; this makes that syntax work on Windows.
+shellEmulator: true

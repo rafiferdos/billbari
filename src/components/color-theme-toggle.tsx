@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useColorTheme, COLOR_THEMES, type ColorTheme } from "@/features/theme/color-theme-context"
+import { useColorTheme, COLOR_THEMES } from "@/features/theme/color-theme-context"
 import { useLanguage } from "@/features/i18n/language-context"
 import {
   DropdownMenu,
@@ -59,7 +59,7 @@ export function ColorThemeToggle() {
             return (
               <DropdownMenuItem
                 key={theme.id}
-                onClick={() => setColorTheme(theme.id as ColorTheme)}
+                onClick={() => setColorTheme(theme.id)}
                 className="flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-2">
