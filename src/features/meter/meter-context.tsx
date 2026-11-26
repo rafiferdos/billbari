@@ -3,7 +3,7 @@ import { getMeterDataFn } from "@/features/nesco/nesco-server"
 import { type NescoFetchResult } from "@/features/nesco/types"
 import { recordRecentSearch } from "@/features/db/client-db"
 import { useLanguage } from "@/features/i18n/language-context"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/toast"
 
 export interface MeterContextType {
   activeMeter: string

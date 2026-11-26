@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Bookmark, ChevronDown, Star, Trash2, Zap } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/toast"
 import { deleteSavedMeterFn, getSavedMetersFn, setSavedMeterFavoriteFn } from "@/features/auth/auth-server"
 import type { SavedMeter } from "@/features/auth/types"
 import { useAuth } from "@/features/auth/auth-context"

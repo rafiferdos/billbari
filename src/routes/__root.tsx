@@ -11,7 +11,7 @@ import {
 } from "@/features/theme/app-theme-context"
 import { THEME_CSS } from "@/features/theme/build-theme-css"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { Toaster } from "@/components/ui/sonner"
+import { Toaster } from "@/components/ui/toast"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { AuthProvider } from "@/features/auth/auth-context"
@@ -87,6 +87,7 @@ function RootComponent() {
                 <AuthProvider>
                   <MeterProvider>
                     <div className="min-h-screen flex flex-col text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
+                      <Toaster />
                       <Navbar />
                       <main className="flex-1">
                         <Outlet />
@@ -94,7 +95,6 @@ function RootComponent() {
                       <Footer />
                       <AuthDialog />
                       <PricingDialog />
-                      <Toaster position="top-right" />
                     </div>
                   </MeterProvider>
                 </AuthProvider>

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/toast"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"

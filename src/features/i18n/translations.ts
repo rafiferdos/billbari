@@ -277,6 +277,9 @@ export const translations = {
     },
     common: {
       loading: "লোড হচ্ছে...",
+      close: "বন্ধ করুন",
+      increase: "বাড়ান",
+      decrease: "কমান",
       success: "সফল হয়েছে!",
       error: "ত্রুটি দেখা দিয়েছে",
       back: "ফিরে যান",
@@ -567,6 +570,9 @@ export const translations = {
     },
     common: {
       loading: "Loading...",
+      close: "Close",
+      increase: "Increase",
+      decrease: "Decrease",
       success: "Success!",
       error: "An error occurred",
       back: "Back",

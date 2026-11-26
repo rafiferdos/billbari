@@ -4,7 +4,7 @@ import { useLiveQuery } from "@tanstack/react-db"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/toast"
 import { SnapshotHistory } from "@/features/snapshots/snapshot-history"
 import { SnapshotDialog } from "@/features/snapshots/snapshot-dialog"
 import {

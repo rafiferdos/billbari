@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Bell } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/toast"
 import { useLanguage } from "@/features/i18n/language-context"
 
 // Phase 5 retention: a low-balance alert threshold. This is deliberately

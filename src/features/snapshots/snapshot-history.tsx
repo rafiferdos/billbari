@@ -25,7 +25,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/toast"
 import type { SnapshotRecord } from "./snapshot-server"
 import { deleteSnapshotFn } from "./snapshot-server"
 import { snapshotsCollection } from "../db/client-db"

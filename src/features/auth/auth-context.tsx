@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/toast"
 import type { User } from "./types"
 import { getCurrentUserFn, loginFn, registerFn, logoutFn, getGoogleAuthUrlFn } from "./auth-server"
 
