@@ -38,6 +38,13 @@ describe("theme registry", () => {
       "aurora",
     ]))
 
+  it.each(THEME_IDS)("%s has a Bangla family in every font stack", (id) => {
+    const { fontSans, fontHeading, fontNum } = THEMES[id].type
+    for (const stack of [fontSans, fontHeading, fontNum]) {
+      expect(stack).toMatch(/Bengali|Bangla|Baloo Da 2/)
+    }
+  })
+
   it("resolves stored ids", () => {
     expect(resolveThemeId("komol")).toBe("komol")
     expect(resolveThemeId("garbage")).toBe("bidyut")

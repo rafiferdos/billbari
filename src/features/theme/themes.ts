@@ -85,7 +85,7 @@ const FONT = {
   serif: `"Fraunces Variable", "Noto Serif Bengali Variable", Georgia, serif`,
   baloo: `"Baloo Da 2 Variable", system-ui, sans-serif`,
   anek: `"Anek Bangla Variable", "Inter Variable", system-ui, sans-serif`,
-  mono: `"JetBrains Mono Variable", ui-monospace, monospace`,
+  mono: `"JetBrains Mono Variable", "Noto Sans Bengali Variable", ui-monospace, monospace`,
 }
 
 const o = (v: string) => `oklch(${v})`
