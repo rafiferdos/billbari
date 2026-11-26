@@ -314,13 +314,13 @@ it("init script survives blocked storage", () => expect(runInit("THROW")).toEqua
 
 Rules (Tailwind v4 syntax shown). Radius classes like `rounded-lg/xl/2xl` already scale with `--radius`. Leave them unless listed.
 
-- [ ] **button.tsx:** base `rounded-2xl` → `rounded-(--bb-control-radius)`; `border` → `border-(length:--bb-border-w)`; add `shadow-control` to `default`, `outline`, `secondary`, `destructive` variants only. Sizes: `default` → `h-(--bb-control-h)`, `xs` → `h-[calc(var(--bb-control-h-sm)*0.8)]`, `sm` → `h-(--bb-control-h-sm)`, `lg` → `h-(--bb-control-h-lg)`, `icon` → `size-(--bb-control-h)`, `icon-xs` → `size-[calc(var(--bb-control-h-sm)*0.8)]`, `icon-sm` → `size-(--bb-control-h-sm)`, `icon-lg` → `size-(--bb-control-h-lg)`. Keep paddings and gaps.
-- [ ] **input.tsx, select.tsx (`SelectTrigger`), input-group.tsx, toggle.tsx:** fixed `h-*` → `h-(--bb-control-h)` (their `sm` size → `h-(--bb-control-h-sm)`); radius → `rounded-(--bb-control-radius)`; border width → `border-(length:--bb-border-w)`.
-- [ ] **tabs.tsx:** `TabsList` height → `h-(--bb-control-h)`, radius → `rounded-(--bb-control-radius)`; `TabsTrigger` radius → `rounded-[calc(var(--bb-control-radius)*0.8)]`.
-- [ ] **card.tsx (`Card` only):** replace `rounded-[min(var(--radius-4xl),24px)] bg-card … shadow-sm ring-1 ring-foreground/5 … dark:ring-foreground/10 [--card-spacing:--spacing(5)] data-[size=sm]:[--card-spacing:--spacing(4)]` with `surface-card [--card-spacing:var(--bb-card-p)] data-[size=sm]:[--card-spacing:calc(var(--bb-card-p)*0.75)]`. Keep every other class (gap, padding via `--card-spacing`, image rules; image corner radius → `min(calc(var(--radius)*1.4),2rem)`). In `CardHeader`, the corner radius follows the same value.
-- [ ] **dialog.tsx, sheet.tsx (content):** add `border-(length:--bb-border-w) shadow-card`, replacing any fixed `shadow-*`/`ring-*` on the content element.
-- [ ] **badge.tsx:** radius → `rounded-(--bb-control-radius)`.
-- [ ] `pnpm typecheck && pnpm build` → PASS. Commit: `feat(v2-p1): primitives read theme tokens`
+- [x] **button.tsx:** base `rounded-2xl` → `rounded-(--bb-control-radius)`; `border` → `border-(length:--bb-border-w)`; add `shadow-control` to `default`, `outline`, `secondary`, `destructive` variants only. Sizes: `default` → `h-(--bb-control-h)`, `xs` → `h-[calc(var(--bb-control-h-sm)*0.8)]`, `sm` → `h-(--bb-control-h-sm)`, `lg` → `h-(--bb-control-h-lg)`, `icon` → `size-(--bb-control-h)`, `icon-xs` → `size-[calc(var(--bb-control-h-sm)*0.8)]`, `icon-sm` → `size-(--bb-control-h-sm)`, `icon-lg` → `size-(--bb-control-h-lg)`. Keep paddings and gaps.
+- [x] **input.tsx, select.tsx (`SelectTrigger`), input-group.tsx, toggle.tsx:** fixed `h-*` → `h-(--bb-control-h)` (their `sm` size → `h-(--bb-control-h-sm)`); radius → `rounded-(--bb-control-radius)`; border width → `border-(length:--bb-border-w)`.
+- [x] **tabs.tsx:** `TabsList` height → `h-(--bb-control-h)`, radius → `rounded-(--bb-control-radius)`; `TabsTrigger` radius → `rounded-[calc(var(--bb-control-radius)*0.8)]`.
+- [x] **card.tsx (`Card` only):** replace `rounded-[min(var(--radius-4xl),24px)] bg-card … shadow-sm ring-1 ring-foreground/5 … dark:ring-foreground/10 [--card-spacing:--spacing(5)] data-[size=sm]:[--card-spacing:--spacing(4)]` with `surface-card [--card-spacing:var(--bb-card-p)] data-[size=sm]:[--card-spacing:calc(var(--bb-card-p)*0.75)]`. Keep every other class (gap, padding via `--card-spacing`, image rules; image corner radius → `min(calc(var(--radius)*1.4),2rem)`). In `CardHeader`, the corner radius follows the same value.
+- [x] **dialog.tsx, sheet.tsx (content):** add `border-(length:--bb-border-w) shadow-card`, replacing any fixed `shadow-*`/`ring-*` on the content element.
+- [x] **badge.tsx:** radius → `rounded-(--bb-control-radius)`.
+- [x] `pnpm typecheck && pnpm build` → PASS. Commit: `feat(v2-p1): primitives read theme tokens`
 
 ---
 
