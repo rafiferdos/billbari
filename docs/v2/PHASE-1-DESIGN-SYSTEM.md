@@ -387,14 +387,14 @@ export function ThemePreviewTile(props: { theme: ThemeDefinition }): React.JSX.E
 
 **Files:** Create `scripts/check-theme-tokens.mjs`, `scripts/theme-token-baseline.json`; modify `package.json`
 
-- [ ] **Step 1:** The script scans `src/routes`, `src/features`, `src/components` (excluding `src/components/ui`), files `.ts`/`.tsx`, and counts per file:
+- [x] **Step 1:** The script scans `src/routes`, `src/features`, `src/components` (excluding `src/components/ui`), files `.ts`/`.tsx`, and counts per file:
   - palette classes: `/\b(?:bg|text|border|ring|from|to|via|fill|stroke|outline|decoration|divide|placeholder|caret|shadow|accent)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/g`
   - fixed shadows: `/\bshadow-(?:2xs|xs|sm|md|lg|xl|2xl)\b/g`
   - quoted hex colors: `/["'`]#[0-9a-fA-F]{3,8}["'`]/g`
   With `--write-baseline` it writes `{ "<posix relpath>": count }` (only counts > 0). Without it, it fails (exit 1) when a file's count exceeds its baseline (missing = 0), and prints a line per file whose count dropped ("lower the baseline").
-- [ ] **Step 2:** `package.json` scripts: `"check:tokens": "node scripts/check-theme-tokens.mjs"`, and `lint` becomes `eslint && node scripts/check-shadcn-controls.mjs && node scripts/check-theme-tokens.mjs`.
-- [ ] **Step 3:** `node scripts/check-theme-tokens.mjs --write-baseline`, then `pnpm lint` → PASS. Write the total count in `PROGRESS.md` (Phases 3–5 drive it to 0).
-- [ ] **Step 4:** Commit: `chore(v2-p1): theme-token lint with baseline`
+- [x] **Step 2:** `package.json` scripts: `"check:tokens": "node scripts/check-theme-tokens.mjs"`, and `lint` becomes `eslint && node scripts/check-shadcn-controls.mjs && node scripts/check-theme-tokens.mjs`.
+- [x] **Step 3:** `node scripts/check-theme-tokens.mjs --write-baseline`, then `pnpm lint` → PASS. Write the total count in `PROGRESS.md` (Phases 3–5 drive it to 0).
+- [x] **Step 4:** Commit: `chore(v2-p1): theme-token lint with baseline`
 
 ---
 
