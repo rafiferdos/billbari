@@ -371,15 +371,15 @@ export function AppearanceSheet(): React.JSX.Element      // trigger button + Sh
 export function ThemePreviewTile(props: { theme: ThemeDefinition }): React.JSX.Element  // visual only, no interactivity
 ```
 
-- [ ] **Step 1:** Translations (`bn`/`en`) under a new `appearance` key: `title` (চেহারা / Appearance), `open` (চেহারা ও থিম বদলান / Change appearance), `mode` (মোড / Mode), `light` (লাইট / Light), `dark` (ডার্ক / Dark), `system` (সিস্টেম / System), `theme` (থিম / Theme), `layout` labels `bento` (বেন্টো গ্রিড / Bento grid), `stack` (এক কলাম / Single column), `split` (দুই প্যানেল / Two panels), `nav` labels `dock` (নিচে ডক / Bottom dock), `top` (উপরে মেনু / Top menu).
-- [ ] **Step 2:** `ThemePreviewTile`: root `<div data-theme={theme.id} className="bg-background text-foreground font-sans pointer-events-none …">`. It must set `font-sans`/colors itself, because custom properties resolve per element. Inside: a header strip (`background: var(--bb-header-bg)`), one `surface-card` with "৳১,২৪০" in `num font-bold`, a primary pill using `rounded-(--bb-control-radius) bg-primary text-primary-foreground shadow-control`, and a muted line. Height ~7rem. The dark class on `<html>` applies automatically through the `.dark [data-theme]` selector.
-- [ ] **Step 3:** `AppearanceSheet`: trigger `Button variant="ghost" size="icon"` with `Palette` icon and `aria-label={t.appearance.open}`. `Sheet` side = `useMediaQuery("(min-width: 768px)") ? "right" : "bottom"`, bottom sheet `max-h-[85dvh] overflow-y-auto`.
+- [x] **Step 1:** Translations (`bn`/`en`) under a new `appearance` key: `title` (চেহারা / Appearance), `open` (চেহারা ও থিম বদলান / Change appearance), `mode` (মোড / Mode), `light` (লাইট / Light), `dark` (ডার্ক / Dark), `system` (সিস্টেম / System), `theme` (থিম / Theme), `layout` labels `bento` (বেন্টো গ্রিড / Bento grid), `stack` (এক কলাম / Single column), `split` (দুই প্যানেল / Two panels), `nav` labels `dock` (নিচে ডক / Bottom dock), `top` (উপরে মেনু / Top menu).
+- [x] **Step 2:** `ThemePreviewTile`: root `<div data-theme={theme.id} className="bg-background text-foreground font-sans pointer-events-none …">`. It must set `font-sans`/colors itself, because custom properties resolve per element. Inside: a header strip (`background: var(--bb-header-bg)`), one `surface-card` with "৳১,২৪০" in `num font-bold`, a primary pill using `rounded-(--bb-control-radius) bg-primary text-primary-foreground shadow-control`, and a muted line. Height ~7rem. The dark class on `<html>` applies automatically through the `.dark [data-theme]` selector.
+- [x] **Step 3:** `AppearanceSheet`: trigger `Button variant="ghost" size="icon"` with `Palette` icon and `aria-label={t.appearance.open}`. `Sheet` side = `useMediaQuery("(min-width: 768px)") ? "right" : "bottom"`, bottom sheet `max-h-[85dvh] overflow-y-auto`.
   Content:
   - Mode: `ToggleGroup` single-select bound to `next-themes` `useTheme()` (`light`/`dark`/`system`, icons Sun/Moon/Monitor).
   - Theme: `ToggleGroup` single-select, `grid grid-cols-2 gap-3`, value = `themeId`. Each `ToggleGroupItem` is `h-auto p-0 flex-col items-stretch` and contains `ThemePreviewTile`, then the name (`nameBn`/`nameEn` by language), the tagline, and two small `Badge`s for layout and nav.
   - Selecting calls `setThemeId` immediately (no Apply button).
-- [ ] **Step 4:** In `navbar.tsx`, replace `<ColorThemeToggle />` and the dark-mode `<ThemeToggle />` with `<AppearanceSheet />`. Delete the old files and `color-theme-context.tsx`. `grep -rn "color-theme\|ColorTheme\|data-color-theme" src` → no results.
-- [ ] **Step 5:** `pnpm typecheck && pnpm lint && pnpm build` → PASS. Commit: `feat(v2-p1): appearance sheet with 8 themes`
+- [x] **Step 4:** In `navbar.tsx`, replace `<ColorThemeToggle />` and the dark-mode `<ThemeToggle />` with `<AppearanceSheet />`. Delete the old files and `color-theme-context.tsx`. `grep -rn "color-theme\|ColorTheme\|data-color-theme" src` → no results.
+- [x] **Step 5:** `pnpm typecheck && pnpm lint && pnpm build` → PASS. Commit: `feat(v2-p1): appearance sheet with 8 themes`
 
 ---
 

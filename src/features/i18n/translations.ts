@@ -275,6 +275,24 @@ export const translations = {
       copyright: "সর্বস্বত্ব সংরক্ষিত।",
       madeWithLove: "বাংলাদেশে তৈরি",
     },
+    appearance: {
+      title: "চেহারা",
+      open: "চেহারা ও থিম বদলান",
+      mode: "মোড",
+      light: "লাইট",
+      dark: "ডার্ক",
+      system: "সিস্টেম",
+      theme: "থিম",
+      layout: {
+        bento: "বেন্টো গ্রিড",
+        stack: "এক কলাম",
+        split: "দুই প্যানেল",
+      },
+      nav: {
+        dock: "নিচে ডক",
+        top: "উপরে মেনু",
+      },
+    },
     common: {
       loading: "লোড হচ্ছে...",
       close: "বন্ধ করুন",
@@ -567,6 +585,24 @@ export const translations = {
       disclaimer: "Disclaimer: BillBari is an independent third-party consumer analytics tool. It is not affiliated with Northern Electricity Supply Company PLC (NESCO). All trademarks belong to their respective authorities.",
       copyright: "All rights reserved.",
       madeWithLove: "Crafted with care in Bangladesh",
+    },
+    appearance: {
+      title: "Appearance",
+      open: "Change appearance",
+      mode: "Mode",
+      light: "Light",
+      dark: "Dark",
+      system: "System",
+      theme: "Theme",
+      layout: {
+        bento: "Bento grid",
+        stack: "Single column",
+        split: "Two panels",
+      },
+      nav: {
+        dock: "Bottom dock",
+        top: "Top menu",
+      },
     },
     common: {
       loading: "Loading...",

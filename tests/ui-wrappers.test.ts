@@ -4,6 +4,8 @@ import { describe, it, expect } from "vitest"
 import { LanguageProvider } from "../src/features/i18n/language-context"
 import { Meter } from "../src/components/ui/meter"
 import { NumberField } from "../src/components/ui/number-field"
+import { ThemePreviewTile } from "../src/features/theme/theme-preview-tile"
+import { THEMES } from "../src/features/theme/themes"
 
 const render = (node: React.ReactElement) =>
   renderToStaticMarkup(h(LanguageProvider, { children: node }))
@@ -39,5 +41,14 @@ describe("NumberField", () => {
     expect(html).toContain('value="1,500"')
     expect(html).toContain('aria-label="কমান"')
     expect(html).toContain('aria-label="বাড়ান"')
+  })
+})
+
+describe("ThemePreviewTile", () => {
+  it("scopes its own theme and stays out of the accessibility tree", () => {
+    const html = render(h(ThemePreviewTile, { theme: THEMES.komol }))
+    expect(html).toContain('data-theme="komol"')
+    expect(html).toContain('aria-hidden="true"')
+    expect(html).toContain("font-sans")
   })
 })

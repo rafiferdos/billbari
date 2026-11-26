@@ -14,9 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { ThemeToggle } from "./theme-toggle"
+import { AppearanceSheet } from "@/features/theme/appearance-sheet"
 import { LanguageToggle } from "./language-toggle"
-import { ColorThemeToggle } from "./color-theme-toggle"
 import { Zap, LogOut, Camera, History, Calculator, LayoutDashboard, ChevronDown, Crown } from "lucide-react"
 
 export function Navbar() {
@@ -86,7 +85,7 @@ export function Navbar() {
           </Link>
         </nav>
 
-        {/* User Account, Language Switcher, Theme Toggle & Auth Actions */}
+        {/* User Account, Language Switcher, Appearance & Auth Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
           {activeMeter && (
             <Link
@@ -123,14 +122,7 @@ export function Navbar() {
           {/* Apple-style Language Toggle */}
           <LanguageToggle />
 
-          {/* Shadcn Color Theme Switcher: cosmetic, hidden below md
-              so the small-screen row stays a single clean row */}
-          <div className="hidden md:block">
-            <ColorThemeToggle />
-          </div>
-
-          {/* Dark / Light Mode Toggle */}
-          <ThemeToggle />
+          <AppearanceSheet />
 
           {user ? (
             <DropdownMenu>
