@@ -353,7 +353,7 @@ export function Toaster(): React.JSX.Element
 - [x] **Step 3:** Implement `number-field.tsx`. The Group has the same height/radius/border tokens as `input.tsx`. Decrement/Increment are icon buttons (`Minus`/`Plus` from lucide) sized `size-(--bb-control-h)`. The Input is centered with the `num` class.
 - [x] **Step 4:** Implement `toast.tsx`. Use `Toast.createToastManager()` at module scope. `Toaster` = `Toast.Provider` + `Toast.Portal` + `Toast.Viewport` + list from `Toast.useToastManager()`. Each toast is a `surface-card` with icon by type (CheckCircle2/XCircle/Info/AlertTriangle), title, description, and a close button. Viewport position: bottom-center on mobile with `bottom: calc(5rem + env(safe-area-inset-bottom))` under `nav-dock`, `1rem` otherwise; bottom-right on `md+`. Default timeout 4000 ms.
 - [x] **Step 5:** Swap imports `from "sonner"` → `from "@/components/ui/toast"`. Replace the sonner `<Toaster />` in `__root.tsx` with ours. Delete `sonner.tsx` and `pnpm remove sonner`.
-- [ ] **Step 6:** `pnpm typecheck && pnpm lint && pnpm build` → PASS. Manual: run the app and trigger one success and one error toast (for example, an invalid meter number search). Commit: `feat(v2-p1): Base UI meter, number field and toast`
+- [x] **Step 6:** `pnpm typecheck && pnpm lint && pnpm build` → PASS. Manual: run the app and trigger one success and one error toast (for example, an invalid meter number search). Commit: `feat(v2-p1): Base UI meter, number field and toast`
 
 ---
 
@@ -400,11 +400,11 @@ export function ThemePreviewTile(props: { theme: ThemeDefinition }): React.JSX.E
 
 ## Task 9: Visual verification and handoff
 
-- [ ] **Step 1:** If `.claude/launch.json` is missing, create it with one configuration `{ "name": "billbari-dev", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev"], "port": 3000 }`. Start it with the browser preview tool.
-- [ ] **Step 2:** For each of the 8 themes × light/dark (switch via the Appearance sheet), load `/` and `/tariffs` at 360px and 1280px widths. Check: no flash of the default theme on reload; cards, buttons, and inputs follow radius/border/shadow/height; fonts change (Bangla text renders in the Bangla family); `khata` shows ruled lines, `dharalo` shows hard shadows, `aurora` shows glass cards over the gradient; no console errors or hydration warnings.
-- [ ] **Step 3:** Fix what is broken in primitives only. Page-level hardcoded styles are expected to look off until Phases 3–5; list the worst offenders in `PROGRESS.md`.
-- [ ] **Step 4:** `pnpm typecheck && pnpm test && pnpm lint && pnpm build` → all PASS.
-- [ ] **Step 5:** Update `docs/v2/PROGRESS.md` (Phase 1 → done, deviations, token-lint baseline total, anything Phase 2 must know). Commit: `docs(v2-p1): progress`.
+- [x] **Step 1:** If `.claude/launch.json` is missing, create it with one configuration `{ "name": "billbari-dev", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev"], "port": 3000 }`. Start it with the browser preview tool.
+- [x] **Step 2:** For each of the 8 themes × light/dark (switch via the Appearance sheet), load `/` and `/tariffs` at 360px and 1280px widths. Check: no flash of the default theme on reload; cards, buttons, and inputs follow radius/border/shadow/height; fonts change (Bangla text renders in the Bangla family); `khata` shows ruled lines, `dharalo` shows hard shadows, `aurora` shows glass cards over the gradient; no console errors or hydration warnings.
+- [x] **Step 3:** Fix what is broken in primitives only. Page-level hardcoded styles are expected to look off until Phases 3–5; list the worst offenders in `PROGRESS.md`.
+- [x] **Step 4:** `pnpm typecheck && pnpm test && pnpm lint && pnpm build` → all PASS.
+- [x] **Step 5:** Update `docs/v2/PROGRESS.md` (Phase 1 → done, deviations, token-lint baseline total, anything Phase 2 must know). Commit: `docs(v2-p1): progress`.
 
 ## Exit criteria
 
