@@ -243,8 +243,8 @@ contrast = (max(Y1,Y2) + 0.05) / (min(Y1,Y2) + 0.05)
 
 **Files:** Modify `src/styles.css`
 
-- [ ] **Step 1:** `grep -rn "sidebar" src --include=*.tsx` — if no app usage, delete all `--sidebar*` lines.
-- [ ] **Step 2:** Rewrite `src/styles.css`:
+- [x] **Step 1:** `grep -rn "sidebar" src --include=*.tsx` — if no app usage, delete all `--sidebar*` lines.
+- [x] **Step 2:** Rewrite `src/styles.css`:
   - Keep imports; add one `@import "@fontsource-variable/<pkg>";` per font package from Task 1.
   - Keep `@custom-variant dark`. Add:
     `@custom-variant layout-bento (&:where([data-layout="bento"], [data-layout="bento"] *));` and the same for `layout-stack`, `layout-split` (attribute `data-layout`), `nav-dock`, `nav-top` (attribute `data-nav`).
@@ -262,8 +262,8 @@ contrast = (max(Y1,Y2) + 0.05) / (min(Y1,Y2) + 0.05)
     `h1, h2, h3, h4, [data-slot="card-title"], [data-slot="dialog-title"], [data-slot="sheet-title"] { font-family: var(--bb-font-heading); font-weight: var(--bb-heading-weight); letter-spacing: var(--bb-heading-tracking); }`
     `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }`
     Print (used from Phase 3): `@media print { body::before { display: none } body:has([data-print-root]) * { visibility: hidden } [data-print-root], [data-print-root] * { visibility: visible } [data-print-root] { position: absolute; inset: 0 auto auto 0; width: 100% } }`
-- [ ] **Step 3:** `pnpm build` → PASS (Tailwind accepts the variants and utilities).
-- [ ] **Step 4:** Commit: `feat(v2-p1): token-driven stylesheet`
+- [x] **Step 3:** `pnpm build` → PASS (Tailwind accepts the variants and utilities).
+- [x] **Step 4:** Commit: `feat(v2-p1): token-driven stylesheet`
 
 ---
 
