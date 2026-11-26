@@ -348,11 +348,11 @@ export const toast: { success(t: string, o?: ToastOptions): string; error(...): 
 export function Toaster(): React.JSX.Element
 ```
 
-- [ ] **Step 1:** `grep -rn "toast\.\w\+(" src` and list every method and option in use. The wrapper must support all of them. If `toast.promise` or `toast.loading` is used, implement them with the manager's equivalent (`promise`, or `add` + `update`).
-- [ ] **Step 2:** Implement `meter.tsx`. Track `h-2 rounded-full bg-muted`. Indicator color per tone: `bg-primary`, `bg-success`, `bg-warning`, `bg-destructive`. Optional label row with `num` value.
-- [ ] **Step 3:** Implement `number-field.tsx`. The Group has the same height/radius/border tokens as `input.tsx`. Decrement/Increment are icon buttons (`Minus`/`Plus` from lucide) sized `size-(--bb-control-h)`. The Input is centered with the `num` class.
-- [ ] **Step 4:** Implement `toast.tsx`. Use `Toast.createToastManager()` at module scope. `Toaster` = `Toast.Provider` + `Toast.Portal` + `Toast.Viewport` + list from `Toast.useToastManager()`. Each toast is a `surface-card` with icon by type (CheckCircle2/XCircle/Info/AlertTriangle), title, description, and a close button. Viewport position: bottom-center on mobile with `bottom: calc(5rem + env(safe-area-inset-bottom))` under `nav-dock`, `1rem` otherwise; bottom-right on `md+`. Default timeout 4000 ms.
-- [ ] **Step 5:** Swap imports `from "sonner"` → `from "@/components/ui/toast"`. Replace the sonner `<Toaster />` in `__root.tsx` with ours. Delete `sonner.tsx` and `pnpm remove sonner`.
+- [x] **Step 1:** `grep -rn "toast\.\w\+(" src` and list every method and option in use. The wrapper must support all of them. If `toast.promise` or `toast.loading` is used, implement them with the manager's equivalent (`promise`, or `add` + `update`).
+- [x] **Step 2:** Implement `meter.tsx`. Track `h-2 rounded-full bg-muted`. Indicator color per tone: `bg-primary`, `bg-success`, `bg-warning`, `bg-destructive`. Optional label row with `num` value.
+- [x] **Step 3:** Implement `number-field.tsx`. The Group has the same height/radius/border tokens as `input.tsx`. Decrement/Increment are icon buttons (`Minus`/`Plus` from lucide) sized `size-(--bb-control-h)`. The Input is centered with the `num` class.
+- [x] **Step 4:** Implement `toast.tsx`. Use `Toast.createToastManager()` at module scope. `Toaster` = `Toast.Provider` + `Toast.Portal` + `Toast.Viewport` + list from `Toast.useToastManager()`. Each toast is a `surface-card` with icon by type (CheckCircle2/XCircle/Info/AlertTriangle), title, description, and a close button. Viewport position: bottom-center on mobile with `bottom: calc(5rem + env(safe-area-inset-bottom))` under `nav-dock`, `1rem` otherwise; bottom-right on `md+`. Default timeout 4000 ms.
+- [x] **Step 5:** Swap imports `from "sonner"` → `from "@/components/ui/toast"`. Replace the sonner `<Toaster />` in `__root.tsx` with ours. Delete `sonner.tsx` and `pnpm remove sonner`.
 - [ ] **Step 6:** `pnpm typecheck && pnpm lint && pnpm build` → PASS. Manual: run the app and trigger one success and one error toast (for example, an invalid meter number search). Commit: `feat(v2-p1): Base UI meter, number field and toast`
 
 ---
