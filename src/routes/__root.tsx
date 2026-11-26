@@ -5,7 +5,11 @@ import { TanStackDevtools } from "@tanstack/react-devtools"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { DbProvider } from "@tanstack/react-db"
 import { ThemeProvider } from "next-themes"
-import { ColorThemeProvider } from "@/features/theme/color-theme-context"
+import {
+  AppThemeProvider,
+  getThemeInitScript,
+} from "@/features/theme/app-theme-context"
+import { THEME_CSS } from "@/features/theme/build-theme-css"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { Navbar } from "@/components/navbar"
@@ -75,14 +79,14 @@ function RootComponent() {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <ColorThemeProvider>
+      <AppThemeProvider>
         <QueryClientProvider client={queryClient}>
           <DbProvider client={dbClient}>
             <TooltipProvider>
               <LanguageProvider>
                 <AuthProvider>
                   <MeterProvider>
-                    <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
+                    <div className="min-h-screen flex flex-col text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
                       <Navbar />
                       <main className="flex-1">
                         <Outlet />
@@ -98,28 +102,25 @@ function RootComponent() {
             </TooltipProvider>
           </DbProvider>
         </QueryClientProvider>
-      </ColorThemeProvider>
+      </AppThemeProvider>
     </ThemeProvider>
   )
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="bn" className="scroll-smooth" suppressHydrationWarning>
+    <html
+      lang="bn"
+      className="scroll-smooth"
+      data-theme="bidyut"
+      data-layout="bento"
+      data-nav="dock"
+      suppressHydrationWarning
+    >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: getThemeInitScript() }} />
+        <style id="bb-themes" dangerouslySetInnerHTML={{ __html: THEME_CSS }} />
         <HeadContent />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var t = localStorage.getItem('billbari_color_theme') || 'emerald';
-                  document.documentElement.setAttribute('data-color-theme', t);
-                } catch(e) {}
-              })();
-            `,
-          }}
-        />
       </head>
       <body>
         {children}

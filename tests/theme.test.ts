@@ -7,6 +7,7 @@ import {
   resolveThemeId,
 } from "../src/features/theme/themes"
 import { buildThemeCss } from "../src/features/theme/build-theme-css"
+import { getThemeInitScript } from "../src/features/theme/app-theme-context"
 
 const MODES = ["light", "dark"] as const
 const cases = THEME_IDS.flatMap((id) => MODES.map((mode) => [id, mode] as const))
@@ -109,4 +110,38 @@ describe("buildThemeCss", () => {
     expect(css).toContain(`--popover: ${THEMES.aurora.dark.popover};`)
     expect(css).toContain(`--popover: ${THEMES.bidyut.light.card};`)
   })
+})
+
+describe("theme init script", () => {
+  function runInit(stored: string | null) {
+    const dataset: Record<string, string> = {}
+    const doc = { documentElement: { dataset } }
+    const ls = {
+      getItem: () => {
+        if (stored === "THROW") throw new Error("blocked")
+        return stored
+      },
+    }
+    new Function("document", "localStorage", getThemeInitScript())(doc, ls)
+    return dataset
+  }
+
+  it("applies a stored theme", () =>
+    expect(runInit("komol")).toEqual({
+      theme: "komol",
+      layout: "stack",
+      nav: "dock",
+    }))
+  it("falls back on unknown ids", () =>
+    expect(runInit("emerald").theme).toBe("bidyut"))
+  it("falls back on inherited object keys", () =>
+    expect(runInit("toString").theme).toBe("bidyut"))
+  it("applies the default with nothing stored", () =>
+    expect(runInit(null).theme).toBe("bidyut"))
+  it("survives blocked storage", () =>
+    expect(runInit("THROW")).toEqual({
+      theme: "bidyut",
+      layout: "bento",
+      nav: "dock",
+    }))
 })

@@ -283,7 +283,7 @@ export function AppThemeProvider(props: { children: React.ReactNode }): React.JS
 export function useAppTheme(): { themeId: ThemeId; theme: ThemeDefinition; setThemeId: (id: ThemeId) => void }
 ```
 
-- [ ] **Step 1: Failing tests** (run the script against fakes):
+- [x] **Step 1: Failing tests** (run the script against fakes):
 
 ```ts
 function runInit(stored: string | null | "THROW") {
@@ -297,14 +297,14 @@ it("init script applies a stored theme", () => expect(runInit("komol")).toEqual(
 it("init script falls back on unknown ids", () => expect(runInit("emerald").theme).toBe("bidyut"))
 it("init script survives blocked storage", () => expect(runInit("THROW")).toEqual({ theme: "bidyut", layout: "bento", nav: "dock" }))
 ```
-- [ ] **Step 2:** Run → FAIL. **Step 3:** Implement. The script only reads `localStorage.getItem(THEME_STORAGE_KEY)` and writes `document.documentElement.dataset.{theme,layout,nav}`; everything inside `try/catch`, the catch applies the default.
+- [x] **Step 2:** Run → FAIL. **Step 3:** Implement. The script only reads `localStorage.getItem(THEME_STORAGE_KEY)` and writes `document.documentElement.dataset.{theme,layout,nav}`; everything inside `try/catch`, the catch applies the default.
   `AppThemeProvider`: state starts at `DEFAULT_THEME_ID`; on mount read `document.documentElement.dataset.theme` through `resolveThemeId`. `setThemeId` updates state, writes the three dataset values, and writes storage in `try/catch`.
-- [ ] **Step 4:** In `__root.tsx`:
+- [x] **Step 4:** In `__root.tsx`:
   - Replace `ColorThemeProvider` with `AppThemeProvider` (same position in the tree).
   - In `<head>`, before `<HeadContent />`: `<script dangerouslySetInnerHTML={{ __html: getThemeInitScript() }} />` and `<style id="bb-themes" dangerouslySetInnerHTML={{ __html: THEME_CSS }} />`.
   - `<html>` gets SSR defaults `data-theme="bidyut" data-layout="bento" data-nav="dock"` (keep `suppressHydrationWarning`).
   - Remove `bg-background` from the full-page wrapper `div`, because it would hide the `body::before` decoration layer.
-- [ ] **Step 5:** `pnpm test && pnpm typecheck` → PASS. Commit: `feat(v2-p1): app theme provider with pre-paint init`
+- [x] **Step 5:** `pnpm test && pnpm typecheck` → PASS. Commit: `feat(v2-p1): app theme provider with pre-paint init`
 
 ---
 
