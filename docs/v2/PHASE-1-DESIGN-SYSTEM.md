@@ -21,17 +21,17 @@ and pick up the tokens through the primitives.
 
 **Files:** `package.json`, `pnpm-lock.yaml`, new files in `src/components/ui/`
 
-- [ ] **Step 1:** If `node_modules` is missing, run `pnpm install`. Then run `pnpm test` and `pnpm typecheck` to record the baseline (note failures that already exist in `PROGRESS.md`; do not fix unrelated ones).
-- [ ] **Step 2:** Add fonts:
+- [x] **Step 1:** If `node_modules` is missing, run `pnpm install`. Then run `pnpm test` and `pnpm typecheck` to record the baseline (note failures that already exist in `PROGRESS.md`; do not fix unrelated ones).
+- [x] **Step 2:** Add fonts:
   `pnpm add @fontsource-variable/noto-sans-bengali @fontsource-variable/noto-serif-bengali @fontsource-variable/anek-bangla @fontsource-variable/baloo-da-2 @fontsource-variable/space-grotesk @fontsource-variable/jetbrains-mono @fontsource-variable/fraunces`
   If a package does not exist, use the static `@fontsource/<name>` package instead and record the family-name difference.
-- [ ] **Step 3:** Confirm the exact family names: `grep -h "font-family" node_modules/@fontsource-variable/*/index.css | sort -u`. Expected names: `Noto Sans Bengali Variable`, `Noto Serif Bengali Variable`, `Anek Bangla Variable`, `Baloo Da 2 Variable`, `Space Grotesk Variable`, `JetBrains Mono Variable`, `Fraunces Variable`, `Inter Variable`. If any differ, use the real name in Task 2.
-- [ ] **Step 4:** Add shadcn components (style `base-rhea` → Base UI versions):
+- [x] **Step 3:** Confirm the exact family names: `grep -h "font-family" node_modules/@fontsource-variable/*/index.css | sort -u`. Expected names: `Noto Sans Bengali Variable`, `Noto Serif Bengali Variable`, `Anek Bangla Variable`, `Baloo Da 2 Variable`, `Space Grotesk Variable`, `JetBrains Mono Variable`, `Fraunces Variable`, `Inter Variable`. If any differ, use the real name in Task 2.
+- [x] **Step 4:** Add shadcn components (style `base-rhea` → Base UI versions):
   `pnpm exec shadcn add accordion alert-dialog collapsible empty field input-group item kbd pagination scroll-area sheet spinner toggle toggle-group --yes --overwrite`
-- [ ] **Step 5:** Restore our customized existing primitives and stylesheet (the CLI may have overwritten them): `git checkout -- src/components/ui src/styles.css`. New untracked component files stay.
-- [ ] **Step 6:** Check `package.json`: no `@radix-ui/*` and no `vaul`. If one was added, `pnpm remove` it, delete the component that needed it, and wrap the Base UI primitive yourself (master plan 6.3 rule 2).
-- [ ] **Step 7:** `pnpm typecheck`. Expected: PASS (new components compile against our existing button/label/separator). Fix import mismatches in the new files only.
-- [ ] **Step 8:** Commit: `git add -A && git commit -m "chore(v2-p1): fonts and Base UI-backed shadcn components"`
+- [x] **Step 5:** Restore our customized existing primitives and stylesheet (the CLI may have overwritten them): `git checkout -- src/components/ui src/styles.css`. New untracked component files stay.
+- [x] **Step 6:** Check `package.json`: no `@radix-ui/*` and no `vaul`. If one was added, `pnpm remove` it, delete the component that needed it, and wrap the Base UI primitive yourself (master plan 6.3 rule 2).
+- [x] **Step 7:** `pnpm typecheck`. Expected: PASS (new components compile against our existing button/label/separator). Fix import mismatches in the new files only.
+- [x] **Step 8:** Commit: `git add -A && git commit -m "chore(v2-p1): fonts and Base UI-backed shadcn components"`
 
 ---
 
@@ -170,7 +170,7 @@ Names and taglines:
 
 ### Steps
 
-- [ ] **Step 1: Write failing tests** in `tests/theme.test.ts`:
+- [x] **Step 1: Write failing tests** in `tests/theme.test.ts`:
 
 ```ts
 describe("contrast math", () => {
@@ -213,8 +213,8 @@ describe("buildThemeCss", () => {
 })
 ```
 
-- [ ] **Step 2:** `pnpm test tests/theme.test.ts` → FAIL (modules missing).
-- [ ] **Step 3: Implement `contrast.ts`.** Algorithm (OKLCH → linear sRGB → WCAG luminance), not determined by the signature:
+- [x] **Step 2:** `pnpm test tests/theme.test.ts` → FAIL (modules missing).
+- [x] **Step 3: Implement `contrast.ts`.** Algorithm (OKLCH → linear sRGB → WCAG luminance), not determined by the signature:
 
 ```
 a = c·cos(h°), b = c·sin(h°)
@@ -228,14 +228,14 @@ alpha < 1 with `under`: Y = alpha·Y + (1 − alpha)·relativeLuminance(under)
 contrast = (max(Y1,Y2) + 0.05) / (min(Y1,Y2) + 0.05)
 ```
   `parseOklch` accepts `oklch(L C H)` and `oklch(L C H / A)` where A is a number or a percentage. Anything else returns `null`; `relativeLuminance` throws on `null` (a typo in a token must fail the test).
-- [ ] **Step 4: Implement `themes.ts`** with the values above (store full `oklch(...)` strings). `THEME_META` is derived from `THEMES`.
-- [ ] **Step 5: Implement `build-theme-css.ts`.** For each theme emit:
+- [x] **Step 4: Implement `themes.ts`** with the values above (store full `oklch(...)` strings). `THEME_META` is derived from `THEMES`.
+- [x] **Step 5: Implement `build-theme-css.ts`.** For each theme emit:
   - `[data-theme="id"]` (default theme also `:root:not([data-theme])`): `color-scheme: light`, `--radius`, `--bb-border-w`, `--bb-control-radius`, `--bb-card-backdrop`, `--bb-header-backdrop`, `--bb-font-sans`, `--bb-font-heading`, `--bb-font-num`, `--bb-heading-weight`, `--bb-heading-tracking`, `--bb-container`, `--bb-page-px`, `--bb-section-gap`, `--bb-grid-gap`, `--bb-card-p`, `--bb-control-h`, `--bb-control-h-sm`, `--bb-control-h-lg`, `--bb-header-h`, then light mode color tokens.
   - `.dark[data-theme="id"], .dark [data-theme="id"]` (default theme also `:root.dark:not([data-theme])`): `color-scheme: dark` + dark mode color tokens.
   - `@media (pointer: coarse) { [data-theme="id"] { --bb-control-h: max(2.5rem, <controlH>); --bb-control-h-sm: max(2.25rem, <controlHSm>); --bb-control-h-lg: max(2.75rem, <controlHLg>) } }`
   - Mode color tokens emitted: `--background --foreground --card --card-foreground(=foreground) --popover(=popover ?? card) --popover-foreground(=foreground) --primary --primary-foreground --secondary(=muted) --secondary-foreground(=foreground) --muted --muted-foreground --accent --accent-foreground --destructive --success --warning (BASE_MODE_TOKENS) --border --input(=border) --ring(=primary) --chart-1(=primary) --chart-2..5(=charts) --bb-page-bg --bb-card-shadow --bb-control-shadow --bb-header-bg --bb-header-fg(=headerFg ?? foreground)`.
-- [ ] **Step 6:** `pnpm test tests/theme.test.ts` → PASS. If a contrast case fails, adjust only the failing token's lightness (L) by the smallest step that passes, and record the change in `PROGRESS.md`.
-- [ ] **Step 7:** Commit: `feat(v2-p1): theme registry, contrast checks, css builder`
+- [x] **Step 6:** `pnpm test tests/theme.test.ts` → PASS. If a contrast case fails, adjust only the failing token's lightness (L) by the smallest step that passes, and record the change in `PROGRESS.md`.
+- [x] **Step 7:** Commit: `feat(v2-p1): theme registry, contrast checks, css builder`
 
 ---
 
