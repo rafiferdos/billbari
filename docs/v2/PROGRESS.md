@@ -5,7 +5,7 @@ Never paste personal data (meter numbers, names, tokens) here.
 
 | Phase | Status | Commit range | Date |
 | --- | --- | --- | --- |
-| 1 — Design system | done | `6b51297..HEAD` of the phase 1 commits | 2026-11-27 |
+| 1 — Design system | done | `6b51297..845599b` plus a final docs commit | 2026-11-27 |
 | 2 — Data & entitlements | not started | | |
 | 3 — Shell & home | not started | | |
 | 4 — Records & tools | not started | | |
@@ -37,7 +37,7 @@ Still present, not fixed: vitest prints one `ReferenceError: module is not defin
 **Deviations from the plan:**
 - Baseline fixes: `shellEmulator: true` in `pnpm-workspace.yaml`; two type errors;
   ESLint ignores tool/build folders; `no-unnecessary-condition` lowered to warn (the
-  hits are guards on DB rows and scraped HTML). 76–78 lint warnings remain.
+  hits are guards on DB rows and scraped HTML). 78 lint warnings remain.
 - Adding dependencies re-resolved the `latest` TanStack packages to newer patch/minor
   versions (`@tanstack/eslint-config` 0.4.0 → 0.5.0 among them).
 - `shadcn add` also created `textarea.tsx` (needed by `input-group`).
@@ -51,14 +51,18 @@ Still present, not fixed: vitest prints one `ReferenceError: module is not defin
 - `<Toaster />` mounts before the navbar so it is listening before page effects run.
 - Added Noto Sans Bengali to the mono number font stack.
 - No theme color needed adjusting: all 16 theme-modes passed contrast as written.
+- The old `billbari_color_theme` choice is not migrated; returning users start on
+  `bidyut`.
+- The branch review was a self-review, not a fresh-context reviewer.
 
 **Numbers:** 80 tests. Token-lint baseline: **257** across 20 files.
 
 **Checked in the browser:** all 8 themes × light/dark on `/` and `/tariffs`: no
 horizontal scroll at 360 and 1280; radius, border width, control height, fonts, page
 decoration and glass blur follow the theme; touch devices clamp control heights;
-choice survives reload with no console or hydration errors; error and success toasts
-appear. Flash-on-load is covered by the init-script tests and script order, not by a
+choice survives reload and in-app navigation with no console or hydration errors; error
+and success toasts appear, and a toast over an open dialog can be dismissed without
+closing the dialog. Flash-on-load is covered by the init-script tests and script order, not by a
 frame capture.
 
 **Page-level styles that still mask the theme (Phases 3–5):**
