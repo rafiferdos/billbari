@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { useLanguage } from "@/features/i18n/language-context"
 import { useMeter } from "@/features/meter/meter-context"
+import { maskMeter } from "@/features/meter/meter-input"
 import { SavedMetersMenu } from "@/features/meter/saved-meters-menu"
 import { useSaveMeter } from "@/features/meter/use-save-meter"
 import { AppearanceSheet } from "@/features/theme/appearance-sheet"
@@ -28,7 +29,7 @@ function MeterChip() {
         <Button variant="outline" size="sm" title={t.nav.activeMeterTitle} className="num gap-1 px-2">
           <Zap className="hidden text-primary sm:block" />
           <span className="sr-only">{t.nav.meterBadge}</span>
-          <span>••••{formatNumber(activeMeter.slice(-4))}</span>
+          <span>{formatNumber(maskMeter(activeMeter))}</span>
         </Button>
       }
     />

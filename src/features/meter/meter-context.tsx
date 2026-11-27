@@ -4,12 +4,15 @@ import { type NescoFetchResult } from "@/features/nesco/types"
 import { recordRecentSearch } from "@/features/db/client-db"
 import { useLanguage } from "@/features/i18n/language-context"
 import { toast } from "@/components/ui/toast"
+import { normalizeMeterInput } from "./meter-input"
 
 export interface MeterContextType {
   activeMeter: string
   activeMeterData: NescoFetchResult | null
   isLoading: boolean
   error: string | null
+  /** The number behind `error`; it never became the active meter, so Retry needs it. */
+  failedMeter: string
   setActiveMeter: (meter: string) => void
   setMeterData: (data: NescoFetchResult | null) => void
   fetchMeter: (targetMeter?: string, options?: { silent?: boolean; force?: boolean }) => Promise<NescoFetchResult | null>
@@ -30,6 +33,7 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
   const [activeMeterData, setActiveMeterData] = React.useState<NescoFetchResult | null>(null)
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [failedMeter, setFailedMeter] = React.useState<string>("")
 
   // Use refs to keep callback identity stable and prevent infinite re-render loops (React error #185)
   const activeMeterRef = React.useRef(activeMeter)
@@ -76,6 +80,7 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
     setActiveMeterState("")
     setActiveMeterData(null)
     setError(null)
+    setFailedMeter("")
     if (typeof window !== "undefined") {
       try {
         sessionStorage.removeItem(SESSION_METER_KEY)
@@ -89,7 +94,7 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
 
   const fetchMeter = React.useCallback(
     async (targetMeter?: string, options?: { silent?: boolean; force?: boolean }): Promise<NescoFetchResult | null> => {
-      const num = (targetMeter || activeMeterRef.current).replace(/[^0-9]/g, "").trim()
+      const num = normalizeMeterInput(targetMeter || activeMeterRef.current).digits
       if (!num || num.length < 8) {
         if (!options?.silent) {
           toast.error(
@@ -108,6 +113,7 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
 
       setIsLoading(true)
       setError(null)
+      setFailedMeter("")
 
       try {
         const result = await getMeterDataFn({
@@ -165,6 +171,7 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
           ? "NESCO server gateway unavailable (HTTP 502 Bad Gateway)."
           : "Could not retrieve meter telemetry."
         setError(msg)
+        setFailedMeter(num)
         if (!options?.silent) {
           toast.error(msg)
         }
@@ -236,12 +243,13 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
       activeMeterData,
       isLoading,
       error,
+      failedMeter,
       setActiveMeter,
       setMeterData,
       fetchMeter,
       clearActiveMeter,
     }),
-    [activeMeter, activeMeterData, isLoading, error, setActiveMeter, setMeterData, fetchMeter, clearActiveMeter]
+    [activeMeter, activeMeterData, isLoading, error, failedMeter, setActiveMeter, setMeterData, fetchMeter, clearActiveMeter]
   )
 
   return <MeterContext.Provider value={value}>{children}</MeterContext.Provider>
