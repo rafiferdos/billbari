@@ -1,5 +1,7 @@
 import type { NescoFetchResult } from "../nesco/types"
 import { calculateNescoBill } from "@/lib/tariff-constants"
+import { parseNescoDate, sortMonthlyDesc } from "@/lib/nesco-dates"
+import { estimateDailyKwh } from "./daily-rate"
 import {
   toBanglaNumber,
   formatBDT,
@@ -31,6 +33,7 @@ export interface CalculatedEstimates {
   ratePerUnit: number
   monthOverMonthUnitsPct: number // % change in usage
   monthOverMonthExpensePct: number // % change in recharge
+  dailyKwhSource: "current_month" | "last_complete_month" | null
 }
 
 export interface ExtendedRechargeStats {
@@ -103,6 +106,8 @@ export interface ExtendedSlabStats {
 }
 
 export interface EnergyAnalytics {
+  /** False when no usage data supports a daily rate; runway and projections are then 0. */
+  hasEnoughData: boolean
   actual: {
     currentBalance: number
     lastRechargeAmount: number
@@ -131,43 +136,15 @@ export interface EnergyAnalytics {
   slabStats: ExtendedSlabStats
 }
 
-/**
- * Parses date string in common NESCO formats into JavaScript Date
- */
-function parseRechargeDate(dateStr: string | null | undefined): Date | null {
-  if (!dateStr) return null
-  const direct = new Date(dateStr)
-  if (!isNaN(direct.getTime())) return direct
-
-  // Format DD-MMM-YYYY or DD-MM-YYYY
-  const parts = dateStr.trim().split(/[\s,]+/)
-  const datePart = parts[0]
-  if (datePart) {
-    const sub = datePart.split(/[-/]/)
-    if (sub.length === 3) {
-      const [d, m, y] = sub
-      const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
-      const mIdx = monthNames.indexOf(m.toLowerCase())
-      if (mIdx >= 0) {
-        return new Date(parseInt(y, 10), mIdx, parseInt(d, 10))
-      }
-      const numM = parseInt(m, 10)
-      if (!isNaN(numM)) {
-        return new Date(parseInt(y, 10), numM - 1, parseInt(d, 10))
-      }
-    }
-  }
-  return null
-}
-
 export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics {
   const { customerInfo, rechargeHistory, monthlyUsage } = nescoData
 
   const currentBalance = customerInfo.balance || 0
   const latestRecharge = rechargeHistory[0] || null
 
-  const latestMonth = monthlyUsage[0] || null
-  const prevMonth = monthlyUsage[1] || null
+  const months = sortMonthlyDesc(monthlyUsage)
+  const latestMonth = months.at(0) ?? null
+  const prevMonth = months.at(1) ?? null
 
   const latestMonthUnits = latestMonth ? latestMonth.usageKwh : 0
   const latestMonthExpense = latestMonth ? latestMonth.rechargeBdt : 0
@@ -178,18 +155,22 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   const totalRecordedKwh = monthlyUsage.reduce((acc, m) => acc + m.usageKwh, 0)
   const totalRecordedExpenseBdt = monthlyUsage.reduce((acc, m) => acc + m.rechargeBdt, 0)
 
-  // Base monthly units for forward projection
-  const baseMonthlyUnits = latestMonthUnits > 0 ? latestMonthUnits : 250
-  const avgDailyKwh = Math.round((baseMonthlyUnits / 30) * 100) / 100
+  // Forward projection from real usage only; nothing is assumed when there is none.
+  const dailyRate = estimateDailyKwh(monthlyUsage, new Date())
+  const hasEnoughData = dailyRate !== null
+  const avgDailyKwh = dailyRate?.kwhPerDay ?? 0
+  const projectedMonthlyUnits = Math.round(avgDailyKwh * 30)
 
   const approvedLoad =
     typeof customerInfo.approvedLoadKw === "number"
       ? customerInfo.approvedLoadKw
       : parseFloat(String(customerInfo.approvedLoadKw)) || 2
 
-  const billCalc = calculateNescoBill(baseMonthlyUnits, approvedLoad)
+  const billCalc = calculateNescoBill(projectedMonthlyUnits, approvedLoad)
 
-  const avgDailyCostBdt = Math.round((billCalc.totalBill / 30) * 100) / 100
+  // A zero-unit bill still carries fixed charges, which are not a burn rate.
+  const projectedMonthlyCostBdt = hasEnoughData ? billCalc.totalBill : 0
+  const avgDailyCostBdt = Math.round((projectedMonthlyCostBdt / 30) * 100) / 100
   const estimatedDaysRemaining =
     avgDailyCostBdt > 0 ? Math.max(0, Math.round(currentBalance / avgDailyCostBdt)) : 0
 
@@ -204,8 +185,6 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     monthOverMonthExpensePct = Math.round(((latestMonthExpense - prevMonthExpense) / prevMonthExpense) * 100)
   }
 
-  const projectedMonthlyUnits = Math.round(avgDailyKwh * 30)
-  const projectedMonthlyCostBdt = billCalc.totalBill
   const activeSlab = billCalc.activeStep
 
   // ==========================================
@@ -253,7 +232,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
 
   // Average days between recharges
   const parsedDates = rechargeHistory
-    .map((r) => parseRechargeDate(r.date))
+    .map((r) => parseNescoDate(r.date))
     .filter((d): d is Date => d !== null && !isNaN(d.getTime()))
     .sort((a, b) => b.getTime() - a.getTime())
 
@@ -307,7 +286,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   ) / 100
 
   const estimatedUnitsRemaining =
-    effectiveCostPerKwh > 0
+    hasEnoughData && effectiveCostPerKwh > 0
       ? Math.round((currentBalance / effectiveCostPerKwh) * 10) / 10
       : 0
 
@@ -333,8 +312,8 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   let lowestMonth: ExtendedSeasonalityStats["lowestMonth"] = null
   let seasonalityGapPct = 0
 
-  if (monthlyUsage.length > 0) {
-    const sortedByUsage = [...monthlyUsage].sort((a, b) => b.usageKwh - a.usageKwh)
+  if (months.length > 0) {
+    const sortedByUsage = [...months].sort((a, b) => b.usageKwh - a.usageKwh)
     const high = sortedByUsage[0]
     const low = sortedByUsage[sortedByUsage.length - 1]
 
@@ -360,9 +339,9 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   }
 
   const averageMonthlyKwh =
-    monthlyUsage.length > 0 ? Math.round(totalRecordedKwh / monthlyUsage.length) : baseMonthlyUnits
+    months.length > 0 ? Math.round(totalRecordedKwh / months.length) : 0
   const averageMonthlyExpenseBdt =
-    monthlyUsage.length > 0 ? Math.round(totalRecordedExpenseBdt / monthlyUsage.length) : billCalc.totalBill
+    months.length > 0 ? Math.round(totalRecordedExpenseBdt / months.length) : 0
 
   const seasonality: ExtendedSeasonalityStats = {
     highestMonth,
@@ -383,12 +362,13 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     day: "numeric",
     year: "numeric",
   })
-  const urgencyLevel: ExtendedRunwayStats["urgencyLevel"] =
-    estimatedDaysRemaining <= 5 ? "critical" : estimatedDaysRemaining <= 10 ? "warning" : "healthy"
+  const urgencyLevel: ExtendedRunwayStats["urgencyLevel"] = !hasEnoughData
+    ? "healthy"
+    : estimatedDaysRemaining <= 5 ? "critical" : estimatedDaysRemaining <= 10 ? "warning" : "healthy"
 
   const runway: ExtendedRunwayStats = {
     estimatedDaysRemaining,
-    depletionDate,
+    depletionDate: hasEnoughData ? depletionDate : "-",
     urgencyLevel,
     unitsRemaining: estimatedUnitsRemaining,
   }
@@ -399,7 +379,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   // Bangladesh national grid factor: ~0.67 kg CO2 / kWh
   const carbonKg = Math.round(totalRecordedKwh * 0.67 * 10) / 10
   const annualizedKwh = (latestMonthUnits || averageMonthlyKwh) * 12
-  const treesNeeded = Math.max(1, Math.ceil((annualizedKwh * 0.67) / 22))
+  const treesNeeded = Math.ceil((annualizedKwh * 0.67) / 22)
 
   const eco: ExtendedEcoStats = {
     carbonKg,
@@ -414,8 +394,8 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   let nextSlabRate: number | null = null
   let slabJumpCostDelta: number | null = null
 
-  if (activeSlab.maxUnits !== null) {
-    unitsRemainingInSlab = Math.max(0, Math.round(activeSlab.maxUnits - baseMonthlyUnits))
+  if (hasEnoughData && activeSlab.maxUnits !== null) {
+    unitsRemainingInSlab = Math.max(0, Math.round(activeSlab.maxUnits - projectedMonthlyUnits))
     nextSlabStep = activeSlab.step + 1
 
     // Step rates
@@ -450,7 +430,9 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   const insights: ConsumptionInsight[] = []
 
   // 1. Balance Runway & Depletion Date Insight
-  if (estimatedDaysRemaining <= 5) {
+  if (!hasEnoughData) {
+    // no runway claim without a daily rate
+  } else if (estimatedDaysRemaining <= 5) {
     insights.push({
       id: "balance-critical",
       title: "জরুরি রিচার্জ প্রয়োজন!",
@@ -504,17 +486,19 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   }
 
   // 3. True Cost Efficiency Insight
-  insights.push({
-    id: "effective-rate",
-    title: "প্রকৃত গড় ইউনিট দর",
-    titleEnglish: "All-Inclusive Unit Rate",
-    description: `মিটার ভাড়া (৳৪০), ডিমান্ড চার্জ (৳${toBanglaNumber(billCalc.demandCharge)}) ও ৫% ভ্যাট অন্তর্ভুক্ত করার পর আপনার প্রতি ইউনিটের প্রকৃত মোট ব্যয় পড়ছে প্রায় ${formatBDT(effectiveCostPerKwh)}।`,
-    descriptionEnglish: `Factoring in meter rent (৳40), demand charge (৳${billCalc.demandCharge}), and 5% VAT, your true cost per kWh is approximately ${formatBDT(effectiveCostPerKwh)}.`,
-    type: "info",
-    metric: `${formatBDT(effectiveCostPerKwh)} / kWh`,
-    metricEnglish: `${formatBDT(effectiveCostPerKwh)} / kWh`,
-    isCalculatedEstimate: true,
-  })
+  if (effectiveCostPerKwh > 0) {
+    insights.push({
+      id: "effective-rate",
+      title: "প্রকৃত গড় ইউনিট দর",
+      titleEnglish: "All-Inclusive Unit Rate",
+      description: `মিটার ভাড়া (৳৪০), ডিমান্ড চার্জ (৳${toBanglaNumber(billCalc.demandCharge)}) ও ৫% ভ্যাট অন্তর্ভুক্ত করার পর আপনার প্রতি ইউনিটের প্রকৃত মোট ব্যয় পড়ছে প্রায় ${formatBDT(effectiveCostPerKwh)}।`,
+      descriptionEnglish: `Factoring in meter rent (৳40), demand charge (৳${billCalc.demandCharge}), and 5% VAT, your true cost per kWh is approximately ${formatBDT(effectiveCostPerKwh)}.`,
+      type: "info",
+      metric: `${formatBDT(effectiveCostPerKwh)} / kWh`,
+      metricEnglish: `${formatBDT(effectiveCostPerKwh)} / kWh`,
+      isCalculatedEstimate: true,
+    })
+  }
 
   // 4. Tariff Slab Step Jump Warning
   if (unitsRemainingInSlab !== null && unitsRemainingInSlab <= 40 && nextSlabRate) {
@@ -529,7 +513,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
       metricEnglish: `${unitsRemainingInSlab} kWh to next tier`,
       isCalculatedEstimate: true,
     })
-  } else if (activeSlab.step === 4) {
+  } else if (hasEnoughData && activeSlab.step === 4) {
     insights.push({
       id: "slab-jump-4-to-5",
       title: "ট্যারিফ ধাপ ৪-এ সর্বোচ্চ সতর্কতা",
@@ -671,6 +655,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   })
 
   return {
+    hasEnoughData,
     actual: {
       currentBalance,
       lastRechargeAmount,
@@ -698,6 +683,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
       ratePerUnit: activeSlab.ratePerUnit,
       monthOverMonthUnitsPct,
       monthOverMonthExpensePct,
+      dailyKwhSource: dailyRate?.source ?? null,
     },
     insights,
     billBreakdown: billCalc,

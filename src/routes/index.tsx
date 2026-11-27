@@ -500,8 +500,8 @@ function DashboardPage() {
             {/* Estimated Days Remaining */}
             <StatCard
               title={t.stats.runwayDays}
-              value={`~${formatNumber(analytics.estimates.estimatedDaysRemaining)} ${t.stats.runwayDaysUnit}`}
-              subvalue={t.stats.runwayDaysSub}
+              value={analytics.hasEnoughData ? `~${formatNumber(analytics.estimates.estimatedDaysRemaining)} ${t.stats.runwayDaysUnit}` : "—"}
+              subvalue={analytics.hasEnoughData ? t.stats.runwayDaysSub : t.stats.notEnoughData}
               icon={<Hourglass className="size-5" />}
               isEstimate
               requiresAuth={!user}
@@ -509,7 +509,9 @@ function DashboardPage() {
               onLoginClick={() => openAuthModal("login")}
               onUpgradeClick={() => openPricingModal()}
               trend={
-                analytics.estimates.estimatedDaysRemaining < 7
+                !analytics.hasEnoughData
+                  ? undefined
+                  : analytics.estimates.estimatedDaysRemaining < 7
                   ? { value: isBangla ? "জরুরি" : "Urgent", isPositive: false, label: isBangla ? "রিচার্জ প্রয়োজন" : "Recharge Soon" }
                   : { value: isBangla ? "ভালো অবস্থা" : "Healthy", isPositive: true, label: isBangla ? "পর্যাপ্ত ব্যালেন্স" : "Sufficient Credit" }
               }
@@ -518,8 +520,12 @@ function DashboardPage() {
             {/* Estimated Daily Cost */}
             <StatCard
               title={t.stats.avgDailyCost}
-              value={`${formatBDT(analytics.estimates.avgDailyCostBdt)}/${t.stats.days}`}
-              subvalue={`${isBangla ? "গড় ব্যবহার:" : "Avg usage:"} ~${formatNumber(analytics.estimates.avgDailyKwh)} kWh/${t.stats.days}`}
+              value={analytics.hasEnoughData ? `${formatBDT(analytics.estimates.avgDailyCostBdt)}/${t.stats.days}` : "—"}
+              subvalue={
+                analytics.hasEnoughData
+                  ? `${isBangla ? "গড় ব্যবহার:" : "Avg usage:"} ~${formatNumber(analytics.estimates.avgDailyKwh)} kWh/${t.stats.days}`
+                  : t.stats.notEnoughData
+              }
               icon={<Gauge className="size-5" />}
               isEstimate
               requiresAuth={!user}
@@ -632,10 +638,12 @@ function DashboardPage() {
             </div>
 
             <div className="space-y-6">
-              <SlabProgressCard
-                billBreakdown={analytics.billBreakdown}
-                monthlyUnits={analytics.actual.latestMonthUnits || 250}
-              />
+              {analytics.hasEnoughData && (
+                <SlabProgressCard
+                  billBreakdown={analytics.billBreakdown}
+                  monthlyUnits={analytics.billBreakdown.units}
+                />
+              )}
 
               {/* Quick Navigation Card */}
               <Card className="rounded-2xl border p-5 shadow-xs bg-linear-to-br from-card to-muted/40 space-y-4">

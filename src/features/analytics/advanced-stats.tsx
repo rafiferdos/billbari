@@ -31,7 +31,7 @@ export function AdvancedStats({
   onLoginClick,
   onUpgradeClick,
 }: AdvancedStatsProps) {
-  const { isBangla, formatBDT, formatNumber, formatDateWithDay } = useLanguage()
+  const { t, isBangla, formatBDT, formatNumber, formatDateWithDay } = useLanguage()
   const { rechargeStats, costEfficiency, seasonality, runway, eco, slabStats } = analytics
   const isUnlocked = isAuthenticated && isPremium
 
@@ -236,22 +236,26 @@ export function AdvancedStats({
           </div>
 
           <CardContent className="p-4 sm:p-5 space-y-3.5 text-xs">
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] text-muted-foreground">
-                  {isBangla ? "ব্যালেন্স শেষ হওয়ার সম্ভাব্য তারিখ:" : "Projected Exhaustion Date:"}
-                </span>
-                <span className="font-extrabold text-foreground font-mono">
-                  {formattedDepletionDate}
-                </span>
+            {analytics.hasEnoughData ? (
+              <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-muted-foreground">
+                    {isBangla ? "ব্যালেন্স শেষ হওয়ার সম্ভাব্য তারিখ:" : "Projected Exhaustion Date:"}
+                  </span>
+                  <span className="font-extrabold text-foreground font-mono">
+                    {formattedDepletionDate}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="text-muted-foreground">{isBangla ? "অবশিষ্ট সময়সীমা:" : "Estimated Runway:"}</span>
+                  <span className="font-bold text-primary font-mono">
+                    ~{formatNumber(runway.estimatedDaysRemaining)} {isBangla ? "দিন" : "days"} ({formatNumber(hoursRemaining)} {isBangla ? "ঘণ্টা" : "hrs"})
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between gap-2 text-[11px]">
-                <span className="text-muted-foreground">{isBangla ? "অবশিষ্ট সময়সীমা:" : "Estimated Runway:"}</span>
-                <span className="font-bold text-primary font-mono">
-                  ~{formatNumber(runway.estimatedDaysRemaining)} {isBangla ? "দিন" : "days"} ({formatNumber(hoursRemaining)} {isBangla ? "ঘণ্টা" : "hrs"})
-                </span>
-              </div>
-            </div>
+            ) : (
+              <p className="p-3 rounded-xl bg-muted/50 text-muted-foreground">{t.stats.notEnoughData}</p>
+            )}
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="p-2.5 rounded-xl border border-border/60 bg-muted/20 space-y-1">
@@ -292,15 +296,17 @@ export function AdvancedStats({
           </div>
           <CardContent className="p-4 sm:p-5 space-y-3.5 text-xs">
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <TrendingUp className="size-3.5 text-primary" />
-                  <span>{isBangla ? "বর্তমান ট্যারিফ ধাপ:" : "Active Tariff Tier:"}</span>
-                </span>
-                <span className="font-semibold text-foreground">
-                  {isBangla ? `ধাপ ${formatNumber(slabStats.activeSlabStep)}` : `Tier ${formatNumber(slabStats.activeSlabStep)}`} ({formatBDT(slabStats.ratePerUnit)}/kWh)
-                </span>
-              </div>
+              {analytics.hasEnoughData && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <TrendingUp className="size-3.5 text-primary" />
+                    <span>{isBangla ? "বর্তমান ট্যারিফ ধাপ:" : "Active Tariff Tier:"}</span>
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {isBangla ? `ধাপ ${formatNumber(slabStats.activeSlabStep)}` : `Tier ${formatNumber(slabStats.activeSlabStep)}`} ({formatBDT(slabStats.ratePerUnit)}/kWh)
+                  </span>
+                </div>
+              )}
 
               {slabStats.unitsRemainingInSlab !== null && slabStats.nextSlabRate && (
                 <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-muted/50 border border-border/50">
