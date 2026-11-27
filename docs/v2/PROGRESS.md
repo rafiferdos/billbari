@@ -6,7 +6,7 @@ Never paste personal data (meter numbers, names, tokens) here.
 | Phase | Status | Commit range | Date |
 | --- | --- | --- | --- |
 | 1 — Design system | done | `6b51297..845599b` plus a final docs commit | 2026-11-27 |
-| 2 — Data & entitlements | not started | | |
+| 2 — Data & entitlements | done | `80f6142..4c4a803` plus a docs commit | 2026-11-27 |
 | 3 — Shell & home | not started | | |
 | 4 — Records & tools | not started | | |
 | 5 — Pro & polish | not started | | |
@@ -83,4 +83,70 @@ frame capture.
   Phase 2 should serve sample data for it without calling the portal. The response
   was not inspected or recorded.
 - `useAppTheme().theme.chart` holds per-theme chart settings; nothing reads it yet.
+
+---
+
+## Phase 2 — Data & entitlements (done 2026-11-27)
+
+**Fixtures:** captured and redacted (`tests/fixtures/nesco/`). All three download
+kinds (certificate, recharge, monthly) returned `application/pdf` and are enabled.
+`#arrear_notice_div` was **absent** on the captured account, so the arrear notice is
+tested on hand-written HTML only.
+
+`#con_info_div` labels, in order: গ্রাহকের নাম · পিতা/স্বামীর নাম · ঠিকানা · মোবাইল ·
+সংশ্লিষ্ট বিদ্যুৎ অফিস · ফিডারের নাম · কনজ্যুমার নম্বর · মিটার নম্বর ·
+অনুমোদিত লোড (কি.ও) · অনুমোদিত ট্যারিফ · মিটারের ধরণ · মিটার স্ট্যাটাস ·
+মিটার স্থাপনের তারিখ · মিনিমাম রিচার্জের পরিমাণ (টাকা) ·
+অবশিষ্ট ব্যালেন্স (টাকা)(সময়ঃ … )
+
+**Deviations from the plan:**
+- Parser: each input sits in the label's next sibling, several pairs per row, so
+  that is tried before the parent. The balance time is embedded in the balance
+  label. `কনজ্যুমার নম্বর` added as a customer-number keyword.
+- One vend can carry several tokens (NESCO joins them with `,<br>`);
+  `record.token` is then `"t1, t2, t3"`.
+- Capture script also redacts office, feeder, mobile and install date, and strips
+  scripts and comments.
+- Built-in sample numbers are served from sample data without calling the portal,
+  and the PDF proxy answers 404 for them.
+- The PDF proxy answers non-Bangla (network, timeout) errors with the generic
+  Bangla PDF message.
+- Rebates are summed as absolute values (NESCO reports them negative).
+  `estimateDailyKwh` ignores a current month with 0 kWh.
+- Home's slab card also had a `|| 250` fallback; it now uses projected units and
+  is hidden without data.
+- Added `vitest.config.ts` (no app plugins, so server functions are testable; blanks
+  `TURSO_*`). Server tests use an in-memory database.
+- A meter/customer number that belongs to a real household was hard-coded in the
+  translation hint, sample snapshots and tests; replaced with `12345678`. It remains
+  in git history.
+- The branch review was a self-review, not a fresh-context reviewer.
+- Task 6 manual browser check not done: the dev server uses a remote database, so
+  no test accounts were created. `tests/server-gates.test.ts` covers the gates.
+
+**Numbers:** 144 tests. Lint 0 errors, 69 warnings. Token-lint total 257. No
+existing `billbari.test.ts` analytics expectation changed. Browser: sample and one
+live meter render on `/` with no console errors.
+
+**Open problems (found, not fixed):**
+- `/api/cron/daily-pulse` runs for a request with **no** secret (only a wrong one is
+  rejected), and its `errors[]` contains meter numbers.
+- Before the `vitest.config.ts` fix, `pnpm test` wrote test users, snapshots and
+  payments to whatever `TURSO_DATABASE_URL` pointed at. Those rows were not removed.
+- `login`/`register` return a user without `isPremium`, so Pro users look free
+  until a reload.
+- Month-over-month and seasonality in `generateAnalytics` still include the partial
+  current month (`computeFreeStats` does not).
+- `parseNescoDate` reads an all-numeric `DD-MM-YYYY` as month-first when the day is
+  12 or less (NESCO sends month names, so live data is unaffected).
+
+**For the next phase:**
+- Use `computeFreeStats`, `computeDeductionTotals`, `nescoDownloadHref` and
+  `ProGate`; none of the pages use them yet.
+- `ProGate` shows the locked state while the user is still loading; consider a
+  skeleton.
+- `getSnapshotsFn` returns `[]` for non-Pro viewers, so the tracking UI must lock
+  with `ProGate` rather than read an error.
+- Hide runway numbers when `analytics.hasEnoughData` is false. The snapshot dialog
+  still shows ৳0 per day in that case.
 

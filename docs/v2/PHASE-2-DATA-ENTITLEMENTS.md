@@ -21,8 +21,8 @@ mapping as fallback. Stats and entitlements are pure modules with unit tests.
 
 **Files:** Create `scripts/capture-nesco-fixture.mjs`, `tests/fixtures/nesco/` (`recharge.html`, `monthly.html`, `downloads.json`); modify `.gitignore` (add `tests/fixtures/nesco/*.raw.html`)
 
-- [ ] **Step 1: Ask the user** in chat: "Phase 2 needs one real meter number to capture NESCO's HTML as a test fixture. Only a redacted copy is committed (name, address, phone, meter/customer numbers and tokens replaced). Please send a meter number you own, or say 'skip'." If they skip, go to Step 5.
-- [ ] **Step 2: Write the script.** Usage `node scripts/capture-nesco-fixture.mjs <meterNo>`. Portal URL = `process.env.NESCO_PROXY_URL || process.env.NESCO_PORTAL_URL || "https://customer.nesco.gov.bd/pre/panel"`. Steps:
+- [x] **Step 1: Ask the user** in chat: "Phase 2 needs one real meter number to capture NESCO's HTML as a test fixture. Only a redacted copy is committed (name, address, phone, meter/customer numbers and tokens replaced). Please send a meter number you own, or say 'skip'." If they skip, go to Step 5.
+- [x] **Step 2: Write the script.** Usage `node scripts/capture-nesco-fixture.mjs <meterNo>`. Portal URL = `process.env.NESCO_PROXY_URL || process.env.NESCO_PORTAL_URL || "https://customer.nesco.gov.bd/pre/panel"`. Steps:
   - GET the panel and read cookies + CSRF (same headers as `nesco-service.ts`).
   - POST `submit=রিচার্জ হিস্ট্রি` and `submit=মাসিক ব্যবহার`, and save the raw HTML to `recharge.raw.html` / `monthly.raw.html`.
   - POST each download value (`সার্টিফিকেট ডাউনলোড করুন`, `রিচার্জ হিস্ট্রি ডাউনলোড করুন`, `মাসিক ব্যবহার ডাউনলোড করুন`) and record `{ kind, status, contentType, bytes }` in `downloads.json`. Never save PDF bodies.
@@ -32,9 +32,9 @@ mapping as fallback. Stats and entitlements are pure modules with unit tests.
     - every 16–20 digit token (with or without dashes) → a fake token of the same format, numbered `0000-0000-0000-0000-0001`, `…0002`, etc.;
     - `data-customername` → `REDACTED`.
   - Print the label list of `#con_info_div` (labels only).
-- [ ] **Step 3:** Run it with the user's meter. Verify the redaction: `grep -c "<their meter>" tests/fixtures/nesco/*.html` → 0 (do not paste the number into the commit or `PROGRESS.md`). Open both files and confirm no name, address, or phone remains.
-- [ ] **Step 4:** Note in `PROGRESS.md`: the label list, which download kinds returned `application/pdf`, and whether `#arrear_notice_div` was present/visible.
-- [ ] **Step 5:** Commit (redacted files, script, `.gitignore` only): `test(v2-p2): redacted NESCO fixtures and capture script`. If skipped: commit the script only, and note "fixtures skipped" in `PROGRESS.md`.
+- [x] **Step 3:** Run it with the user's meter. Verify the redaction: `grep -c "<their meter>" tests/fixtures/nesco/*.html` → 0 (do not paste the number into the commit or `PROGRESS.md`). Open both files and confirm no name, address, or phone remains.
+- [x] **Step 4:** Note in `PROGRESS.md`: the label list, which download kinds returned `application/pdf`, and whether `#arrear_notice_div` was present/visible.
+- [x] **Step 5:** Commit (redacted files, script, `.gitignore` only): `test(v2-p2): redacted NESCO fixtures and capture script`. If skipped: commit the script only, and note "fixtures skipped" in `PROGRESS.md`.
 
 ---
 
@@ -71,7 +71,7 @@ export function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[]
 export function parseConsumptionTable($: cheerio.CheerioAPI): MonthlyConsumptionRecord[]
 ```
 
-- [ ] **Step 1: Failing tests** (`tests/nesco-parser.test.ts`). Inline HTML builders always run. Fixture tests use `describe.skipIf(!existsSync(fixturePath))`.
+- [x] **Step 1: Failing tests** (`tests/nesco-parser.test.ts`). Inline HTML builders always run. Fixture tests use `describe.skipIf(!existsSync(fixturePath))`.
 
 ```ts
 const info = (rows: [string, string][], extra = "") =>
@@ -101,8 +101,8 @@ describe.skipIf(!hasFixtures)("real fixtures", () => {
   it("parses customer fields, recharges and months", () => { /* fields.length > 5; rechargeHistory.length > 0 with 20-digit tokens; monthlyUsage.length > 0, every usageKwh ≥ 0 */ })
 })
 ```
-- [ ] **Step 2:** Run → FAIL.
-- [ ] **Step 3: Implement.**
+- [x] **Step 2:** Run → FAIL.
+- [x] **Step 3: Implement.**
   - `toNum`: `fromBanglaNumber` (from `@/lib/bangla`), then strip `[^0-9.-]`, then `parseFloat`, with `|| 0`. Replace every `parseFloat(x?.replace(/[^0-9.-]/g, "") || "0") || 0` in `nesco-service.ts` with `toNum(x)`.
   - Move `getPortalUrl`, the browser headers, the CSRF/cookie logic, and the POST headers into `nesco-session.ts`. `fetchNescoData` calls `openNescoSession()` and `postNescoForm()` twice in parallel. Its behavior and error messages stay unchanged.
   - `parseCustomerInfo`: collect `{label, value}` pairs from `#con_info_div label` (fall back to the whole document if the div is absent). The value is the first `input` that is the next sibling, else the first `input` in the label's parent, else the `#<for>` input. Skip pairs whose label is empty. Map keys by label keyword (case-insensitive, first match wins; check `balanceUpdatedAt` before `balance`):
@@ -123,7 +123,7 @@ describe.skipIf(!hasFixtures)("real fixtures", () => {
     Any key still missing falls back to today's positional value (`inputList[n]`), then to today's defaults. `tariff` default stays `"LT-A (Domestic)"`. `arrearNotice`: `#arrear_notice_div` text (whitespace collapsed, trimmed) unless its `style` contains `display:none`/`display: none` or the text is empty → `null`.
   - `parseRechargeTable`: per row, if `a.consumerRechargeData` exists, read `data-token` (preferred over cell text), `data-order`, `data-seq`, `data-purchaseamount`, `data-totalamount`, `data-debtamount`, `data-paidamount`, `data-salename`, `data-purchasedate`, `data-purchaseenergy` into `receipt` (strings; omit empty).
   - `sample-data.ts`: give each sample `fields` (built from its info, Bangla labels), `arrearNotice: null`, `balanceUpdatedAt: null`.
-- [ ] **Step 4:** `pnpm test && pnpm typecheck` → PASS (fix compile errors where `CustomerInfo` is constructed). Commit: `feat(v2-p2): label-based NESCO parser with shared session`
+- [x] **Step 4:** `pnpm test && pnpm typecheck` → PASS (fix compile errors where `CustomerInfo` is constructed). Commit: `feat(v2-p2): label-based NESCO parser with shared session`
 
 ---
 
@@ -145,16 +145,16 @@ export function buildDownloadFilename(kind: NescoDownloadKind, meter: string): s
 export function nescoDownloadHref(kind: NescoDownloadKind, meter: string): string     // "/api/nesco/download?kind=…&meter=…"
 ```
 
-- [ ] **Step 1: Failing tests:** `parseDownloadQuery({kind:"certificate", meter:"১২৩৪৫৬৭৮"})` → `{ok:true, meter:"12345678"}`; unknown kind → `ok:false`; a kind not in `NESCO_DOWNLOAD_KINDS` → `ok:false`; meter `"1234"` → `ok:false`; meter `"123456789012"` → `ok:false`. `isPdfContentType("application/pdf; charset=binary")` → true; `"text/html"` → false; `null` → false. `buildDownloadFilename("monthly","12345678")` → `"billbari-monthly-12345678.pdf"`.
-- [ ] **Step 2:** Run → FAIL. **Step 3:** Implement `downloads.ts`.
-- [ ] **Step 4: Route** (copy the `createFileRoute(...)({ server: { handlers: { GET } } })` shape from `src/routes/api/cron/daily-pulse.ts`). Flow:
+- [x] **Step 1: Failing tests:** `parseDownloadQuery({kind:"certificate", meter:"১২৩৪৫৬৭৮"})` → `{ok:true, meter:"12345678"}`; unknown kind → `ok:false`; a kind not in `NESCO_DOWNLOAD_KINDS` → `ok:false`; meter `"1234"` → `ok:false`; meter `"123456789012"` → `ok:false`. `isPdfContentType("application/pdf; charset=binary")` → true; `"text/html"` → false; `null` → false. `buildDownloadFilename("monthly","12345678")` → `"billbari-monthly-12345678.pdf"`.
+- [x] **Step 2:** Run → FAIL. **Step 3:** Implement `downloads.ts`.
+- [x] **Step 4: Route** (copy the `createFileRoute(...)({ server: { handlers: { GET } } })` shape from `src/routes/api/cron/daily-pulse.ts`). Flow:
   - Call `parseDownloadQuery` with the URL search params; on `ok:false` return 400 JSON `{ error }`.
   - `openNescoSession()`, then `postNescoForm(session, meter, NESCO_SUBMIT[kind → certificate | rechargePdf | monthlyPdf])`.
   - If `!res.ok` or `!isPdfContentType(...)`, return 502 JSON `{ error: "নেসকো পোর্টাল এই মুহূর্তে PDF দিচ্ছে না। একটু পরে আবার চেষ্টা করুন।" }`.
   - Otherwise return `new Response(res.body, { headers: { "Content-Type": "application/pdf", "Content-Disposition": \`attachment; filename="${buildDownloadFilename(kind, meter)}"\`, "Cache-Control": "no-store" } })`.
   - Catch session errors → 502 with the error message.
-- [ ] **Step 5:** `pnpm generate-routes && pnpm typecheck` → PASS. If the user gave a meter in Task 1, run `pnpm dev` and download `/api/nesco/download?kind=certificate&meter=<it>`; the file opens as a PDF. Don't commit the PDF.
-- [ ] **Step 6:** Commit: `feat(v2-p2): NESCO PDF download proxy`
+- [x] **Step 5:** `pnpm generate-routes && pnpm typecheck` → PASS. If the user gave a meter in Task 1, run `pnpm dev` and download `/api/nesco/download?kind=certificate&meter=<it>`; the file opens as a PDF. Don't commit the PDF.
+- [x] **Step 6:** Commit: `feat(v2-p2): NESCO PDF download proxy`
 
 ---
 
@@ -197,7 +197,7 @@ export function computeDeductionTotals(records: RechargeRecord[]): DeductionTota
 ```
 `load` = `approvedLoadKw` as number (`toNum(String(...))`), default 2 when ≤ 0.
 
-- [ ] **Step 1: Failing tests** with `now = new Date(2026, 10, 27)` (27 Nov 2026) and rows (newest last on purpose, to prove sorting): `Sep 2026 250 kWh ৳2000 rebate 20`, `Oct 2026 300 kWh ৳2500 rebate 25`, `Nov 2026 120 kWh ৳1000 rebate 10`.
+- [x] **Step 1: Failing tests** with `now = new Date(2026, 10, 27)` (27 Nov 2026) and rows (newest last on purpose, to prove sorting): `Sep 2026 250 kWh ৳2000 rebate 20`, `Oct 2026 300 kWh ৳2500 rebate 25`, `Nov 2026 120 kWh ৳1000 rebate 10`.
 
 ```ts
 expect(s.latestMonth).toMatchObject({ year: 2026, monthIndex: 10, usageKwh: 120, isCurrentMonth: true })
@@ -220,16 +220,16 @@ expect(monthIndex("November")).toBe(10); expect(monthIndex("নভেম্ব�
 // deductions
 expect(computeDeductionTotals([{ amountBdt: 1000, netEnergyBdt: 900, rent: 40, vat: 45, … } as RechargeRecord]).gross).toBe(1000)
 ```
-- [ ] **Step 2:** Run → FAIL. **Step 3:** Implement.
+- [x] **Step 2:** Run → FAIL. **Step 3:** Implement.
   - `estimateDailyKwh` rule: newest row is the current calendar month and `now.getDate() ≥ 5` → `usageKwh / now.getDate()` (2 decimals). Otherwise use the newest non-current row with `usageKwh > 0` → `usageKwh / daysInMonth(that month)`. Else `null`.
-- [ ] **Step 4: Fix `generateAnalytics`** (existing logic bugs):
+- [x] **Step 4: Fix `generateAnalytics`** (existing logic bugs):
   - (a) Use `sortMonthlyDesc(monthlyUsage)` instead of trusting array order.
   - (b) Replace the invented `250`-unit fallback and the `latestMonthUnits / 30` daily rate with `estimateDailyKwh(…, new Date())`.
   - (c) Add `hasEnoughData: boolean` to `EnergyAnalytics` (`true` when the daily estimate is not null) and `dailyKwhSource: "current_month" | "last_complete_month" | null` to `CalculatedEstimates`.
   - (d) When `hasEnoughData` is false: `avgDailyKwh`, `avgDailyCostBdt`, `estimatedDaysRemaining`, projections and runway numbers are `0`, and `runway.urgencyLevel` is `"healthy"`.
   - (e) Import `parseNescoDate` from `@/lib/nesco-dates` and delete the local copy.
   - UI that shows runway must hide values when `!hasEnoughData`. Today that is `AdvancedStats` and the runway `StatCard` in `src/routes/index.tsx`: show the text `t.stats.notEnoughData` (add the key: "হিসাবের জন্য যথেষ্ট তথ্য নেই" / "Not enough data to estimate").
-- [ ] **Step 5:** `pnpm test`. If existing `tests/billbari.test.ts` expectations for `generateAnalytics` change because of (a)–(d), update them to the new correct values and list each one in `PROGRESS.md`. → PASS. Commit: `feat(v2-p2): free stats and honest daily-rate analytics`
+- [x] **Step 5:** `pnpm test`. If existing `tests/billbari.test.ts` expectations for `generateAnalytics` change because of (a)–(d), update them to the new correct values and list each one in `PROGRESS.md`. → PASS. Commit: `feat(v2-p2): free stats and honest daily-rate analytics`
 
 ---
 
@@ -290,8 +290,8 @@ Tiers and `nescoParity` exactly as master plan section 3. Copy:
 | rechargePlanner | রিচার্জ প্ল্যানার | Recharge planner | কত টাকা রিচার্জ করলে কয়দিন চলবে | How much to recharge for N days |
 | savingPlan | সাশ্রয় পরিকল্পনা | Saving plan | বিল কমানোর পরামর্শ | Ways to cut your bill |
 
-- [ ] **Step 1: Failing tests:** every `nescoParity` feature has tier `free`; `canUse("runway", null)` false; `canUse("runway", { isPremium: true })` true; `canUse("balance", null)` true; every FEATURES entry has non-empty Bangla and English copy; `canSaveAnotherMeter({isPremium:false, savedCount:1, alreadySaved:false})` false; same with `alreadySaved:true` → true; `{isPremium:true, savedCount:50, alreadySaved:false}` → true.
-- [ ] **Step 2–4:** FAIL → implement → PASS. Commit: `feat(v2-p2): entitlement matrix`
+- [x] **Step 1: Failing tests:** every `nescoParity` feature has tier `free`; `canUse("runway", null)` false; `canUse("runway", { isPremium: true })` true; `canUse("balance", null)` true; every FEATURES entry has non-empty Bangla and English copy; `canSaveAnotherMeter({isPremium:false, savedCount:1, alreadySaved:false})` false; same with `alreadySaved:true` → true; `{isPremium:true, savedCount:50, alreadySaved:false}` → true.
+- [x] **Step 2–4:** FAIL → implement → PASS. Commit: `feat(v2-p2): entitlement matrix`
 
 ---
 
@@ -299,11 +299,11 @@ Tiers and `nescoParity` exactly as master plan section 3. Copy:
 
 **Files:** Modify `src/features/auth/auth-server.ts`, `src/features/snapshots/snapshot-server.ts`
 
-- [ ] **Step 1:** In `auth-server.ts` add
+- [x] **Step 1:** In `auth-server.ts` add
   `export async function getProUserOrError(): Promise<{ user: User } | { error: string }>` (no user → `"এই ফিচার ব্যবহার করতে লগইন করুন।"`; `!user.isPremium` → `"এই ফিচারটি প্রো প্ল্যানে পাওয়া যায়।"`).
-- [ ] **Step 2:** `saveSnapshotFn`, `getSnapshotsFn`, `syncAutomatedDailyPulseFn`: replace the login-only check with `getProUserOrError()`. Keep each function's existing return shape and error path. `deleteSnapshotFn` stays login-only (users may always delete their own data).
-- [ ] **Step 3:** `saveMeterFn`: after the login check, read `COUNT(*)` of the user's saved meters and whether this meter is already saved. If `!canSaveAnotherMeter(...)`, return `{ success: false, error: "ফ্রি প্ল্যানে ১টি মিটার সংরক্ষণ করা যায়। আরও মিটারের জন্য প্রো নিন।" }`. `getSavedMetersFn` keeps returning everything (no data hidden).
-- [ ] **Step 4:** `triggerGlobalMidnightCronFn`: change the users query to `WHERE subscription_tier = 'lifetime' OR (subscription_tier = 'detective_monthly' AND subscription_expires_at > ?)` with `new Date().toISOString()` (today it ignores expiry).
+- [x] **Step 2:** `saveSnapshotFn`, `getSnapshotsFn`, `syncAutomatedDailyPulseFn`: replace the login-only check with `getProUserOrError()`. Keep each function's existing return shape and error path. `deleteSnapshotFn` stays login-only (users may always delete their own data).
+- [x] **Step 3:** `saveMeterFn`: after the login check, read `COUNT(*)` of the user's saved meters and whether this meter is already saved. If `!canSaveAnotherMeter(...)`, return `{ success: false, error: "ফ্রি প্ল্যানে ১টি মিটার সংরক্ষণ করা যায়। আরও মিটারের জন্য প্রো নিন।" }`. `getSavedMetersFn` keeps returning everything (no data hidden).
+- [x] **Step 4:** `triggerGlobalMidnightCronFn`: change the users query to `WHERE subscription_tier = 'lifetime' OR (subscription_tier = 'detective_monthly' AND subscription_expires_at > ?)` with `new Date().toISOString()` (today it ignores expiry).
 - [ ] **Step 5:** `pnpm typecheck && pnpm test` → PASS. Manual with `pnpm dev`: a signed-in free user saving a 2nd meter sees the toast error; snapshots page for a free user gets the error, not data. Commit: `feat(v2-p2): enforce Pro on the server`
 
 ---
@@ -318,21 +318,21 @@ export function useEntitlement(feature: FeatureId): { allowed: boolean; reason: 
 export function ProGate(props: { feature: FeatureId; children: React.ReactNode; variant?: "card" | "inline" | "section"; className?: string }): React.JSX.Element
 ```
 
-- [ ] **Step 1:** Translations under `pro`: `badge` (প্রো / Pro), `signIn` (লগইন করুন / Sign in), `upgrade` (প্রো নিন — ৳২০/মাস থেকে / Get Pro — from ৳20/month), `lockedTitle` (প্রো ফিচার / Pro feature).
-- [ ] **Step 2:** Implement. `allowed` → render `children` only.
+- [x] **Step 1:** Translations under `pro`: `badge` (প্রো / Pro), `signIn` (লগইন করুন / Sign in), `upgrade` (প্রো নিন — ৳২০/মাস থেকে / Get Pro — from ৳20/month), `lockedTitle` (প্রো ফিচার / Pro feature).
+- [x] **Step 2:** Implement. `allowed` → render `children` only.
   Locked (never render `children`, not even hidden):
   - `card`: `Card` with `Lock` icon, `Badge` (pro.badge), feature name and description from `FEATURES` (language-aware), one `Button`. The button is `pro.signIn` → `openAuthModal("login")` when signed out, else `pro.upgrade` → `openPricingModal()`.
   - `inline`: a single `Button variant="outline" size="sm"` with `Lock` icon + feature name and the same action.
   - `section`: shadcn `Empty` (icon `Sparkles`, title, description, same action). It is used for whole sections/pages.
-- [ ] **Step 3:** `pnpm typecheck && pnpm lint` → PASS. Commit: `feat(v2-p2): ProGate`
+- [x] **Step 3:** `pnpm typecheck && pnpm lint` → PASS. Commit: `feat(v2-p2): ProGate`
 
 ---
 
 ## Task 8: Verify and hand off
 
-- [ ] `pnpm typecheck && pnpm test && pnpm lint && pnpm build` → all PASS.
-- [ ] `pnpm dev`: search a real meter (or the sample) → home still renders, balance correct, no console errors.
-- [ ] Update `docs/v2/PROGRESS.md`: Phase 2 done; fixture status; enabled download kinds; changed test expectations; anything Phase 3 must know. Commit `docs(v2-p2): progress`.
+- [x] `pnpm typecheck && pnpm test && pnpm lint && pnpm build` → all PASS.
+- [x] `pnpm dev`: search a real meter (or the sample) → home still renders, balance correct, no console errors.
+- [x] Update `docs/v2/PROGRESS.md`: Phase 2 done; fixture status; enabled download kinds; changed test expectations; anything Phase 3 must know. Commit `docs(v2-p2): progress`.
 
 ## Exit criteria
 
