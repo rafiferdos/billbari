@@ -17,6 +17,7 @@ import { Route as SnapshotsRouteImport } from './routes/snapshots'
 import { Route as TariffsRouteImport } from './routes/tariffs'
 import { Route as ApiAuthGoogleRouteImport } from './routes/api/auth/google'
 import { Route as ApiCronDailyPulseRouteImport } from './routes/api/cron/daily-pulse'
+import { Route as ApiNescoBridgeRouteImport } from './routes/api/nesco/bridge'
 import { Route as ApiNescoDownloadRouteImport } from './routes/api/nesco/download'
 import { Route as ApiAuthCallbackGoogleRouteImport } from './routes/api/auth/callback/google'
 
@@ -60,6 +61,11 @@ const ApiCronDailyPulseRoute = ApiCronDailyPulseRouteImport.update({
   path: '/api/cron/daily-pulse',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiNescoBridgeRoute = ApiNescoBridgeRouteImport.update({
+  id: '/api/nesco/bridge',
+  path: '/api/nesco/bridge',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiNescoDownloadRoute = ApiNescoDownloadRouteImport.update({
   id: '/api/nesco/download',
   path: '/api/nesco/download',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/tariffs': typeof TariffsRoute
   '/api/auth/google': typeof ApiAuthGoogleRoute
   '/api/cron/daily-pulse': typeof ApiCronDailyPulseRoute
+  '/api/nesco/bridge': typeof ApiNescoBridgeRoute
   '/api/nesco/download': typeof ApiNescoDownloadRoute
   '/api/auth/callback/google': typeof ApiAuthCallbackGoogleRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/tariffs': typeof TariffsRoute
   '/api/auth/google': typeof ApiAuthGoogleRoute
   '/api/cron/daily-pulse': typeof ApiCronDailyPulseRoute
+  '/api/nesco/bridge': typeof ApiNescoBridgeRoute
   '/api/nesco/download': typeof ApiNescoDownloadRoute
   '/api/auth/callback/google': typeof ApiAuthCallbackGoogleRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/tariffs': typeof TariffsRoute
   '/api/auth/google': typeof ApiAuthGoogleRoute
   '/api/cron/daily-pulse': typeof ApiCronDailyPulseRoute
+  '/api/nesco/bridge': typeof ApiNescoBridgeRoute
   '/api/nesco/download': typeof ApiNescoDownloadRoute
   '/api/auth/callback/google': typeof ApiAuthCallbackGoogleRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/tariffs'
     | '/api/auth/google'
     | '/api/cron/daily-pulse'
+    | '/api/nesco/bridge'
     | '/api/nesco/download'
     | '/api/auth/callback/google'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/tariffs'
     | '/api/auth/google'
     | '/api/cron/daily-pulse'
+    | '/api/nesco/bridge'
     | '/api/nesco/download'
     | '/api/auth/callback/google'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/tariffs'
     | '/api/auth/google'
     | '/api/cron/daily-pulse'
+    | '/api/nesco/bridge'
     | '/api/nesco/download'
     | '/api/auth/callback/google'
   fileRoutesById: FileRoutesById
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   TariffsRoute: typeof TariffsRoute
   ApiAuthGoogleRoute: typeof ApiAuthGoogleRoute
   ApiCronDailyPulseRoute: typeof ApiCronDailyPulseRoute
+  ApiNescoBridgeRoute: typeof ApiNescoBridgeRoute
   ApiNescoDownloadRoute: typeof ApiNescoDownloadRoute
   ApiAuthCallbackGoogleRoute: typeof ApiAuthCallbackGoogleRoute
 }
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronDailyPulseRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/nesco/bridge': {
+      id: '/api/nesco/bridge'
+      path: '/api/nesco/bridge'
+      fullPath: '/api/nesco/bridge'
+      preLoaderRoute: typeof ApiNescoBridgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/nesco/download': {
       id: '/api/nesco/download'
       path: '/api/nesco/download'
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   TariffsRoute: TariffsRoute,
   ApiAuthGoogleRoute: ApiAuthGoogleRoute,
   ApiCronDailyPulseRoute: ApiCronDailyPulseRoute,
+  ApiNescoBridgeRoute: ApiNescoBridgeRoute,
   ApiNescoDownloadRoute: ApiNescoDownloadRoute,
   ApiAuthCallbackGoogleRoute: ApiAuthCallbackGoogleRoute,
 }

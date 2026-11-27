@@ -156,12 +156,13 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
         const rawMsg = err instanceof Error ? err.message : t.meterLoad.failed
         const msg = isBangla
           ? rawMsg
-          : rawMsg.includes("403")
-            ? t.meterLoad.blocked
-            : rawMsg.includes("502")
-              ? t.meterLoad.gateway
-              : rawMsg.includes("network:")
-                ? t.meterLoad.unreachable
+          : // first: a connection code such as BRIDGE_502 also contains an HTTP number
+            rawMsg.includes("network:")
+            ? t.meterLoad.unreachable
+            : rawMsg.includes("403")
+              ? t.meterLoad.blocked
+              : rawMsg.includes("502")
+                ? t.meterLoad.gateway
                 : t.meterLoad.failed
         setError(msg)
         setFailedMeter(num)

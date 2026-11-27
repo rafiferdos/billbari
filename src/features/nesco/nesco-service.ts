@@ -357,8 +357,7 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
       errorMsg = `নেসকো সার্ভারের সাথে সংযোগ করা যায়নি (network: ${code})। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।`
     }
     // Never log the meter number: it identifies a customer.
-    const route = process.env.NESCO_PROXY_URL ? "proxy" : "direct"
-    console.warn(`[NESCO live fetch failed, ${route}]:`, errorMsg)
+    console.warn("[NESCO live fetch failed]:", errorMsg)
     throw new Error(errorMsg)
   }
 }

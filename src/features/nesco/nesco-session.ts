@@ -1,3 +1,5 @@
+import { bridgeFetch, getBridge } from "./bridge"
+
 const DEFAULT_PORTAL_URL = "https://customer.nesco.gov.bd/pre/panel"
 const TIMEOUT_MS = 25000 // 25 seconds headroom for NESCO and tunnel response
 const BROWSER_HEADERS = {
@@ -29,14 +31,19 @@ export interface NescoSession {
 }
 
 export function getPortalUrl(): string {
-  const custom = process.env.NESCO_PROXY_URL || process.env.NESCO_PORTAL_URL
-  return custom?.trim() || DEFAULT_PORTAL_URL
+  return process.env.NESCO_PORTAL_URL?.trim() || DEFAULT_PORTAL_URL
+}
+
+async function send(url: string, init: Parameters<typeof bridgeFetch>[1]): Promise<Response> {
+  // Vercel is outside Bangladesh, where NESCO answers 403, so it goes through the bridge PC.
+  const bridge = process.env.VERCEL || process.env.NESCO_USE_BRIDGE ? await getBridge() : null
+  return bridge ? bridgeFetch(bridge, init) : fetch(url, init)
 }
 
 /** GET the panel to obtain session cookies and the CSRF token. */
 export async function openNescoSession(): Promise<NescoSession> {
   const portalUrl = getPortalUrl()
-  const res = await fetch(portalUrl, {
+  const res = await send(portalUrl, {
     headers: { ...BROWSER_HEADERS, "Cache-Control": "no-cache", "Pragma": "no-cache", "Sec-Fetch-Site": "none" },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   })
@@ -63,7 +70,7 @@ export async function openNescoSession(): Promise<NescoSession> {
 }
 
 export async function postNescoForm(s: NescoSession, custNo: string, submit: string): Promise<Response> {
-  return fetch(s.portalUrl, {
+  return send(s.portalUrl, {
     method: "POST",
     headers: {
       ...BROWSER_HEADERS,

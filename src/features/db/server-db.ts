@@ -78,6 +78,13 @@ CREATE TABLE IF NOT EXISTS payments (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS nesco_bridge (
+  id INTEGER PRIMARY KEY,
+  url TEXT NOT NULL,
+  key TEXT NOT NULL,
+  seen_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_saved_meters_user ON saved_meters(user_id);
 CREATE INDEX IF NOT EXISTS idx_snapshots_user_meter ON snapshots(user_id, meter_number);

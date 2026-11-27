@@ -1,166 +1,187 @@
-import http from "node:http"
+// Runs on a PC in Bangladesh. NESCO answers 403 to servers abroad, so the deployed app sends its NESCO requests here.
+// No accounts or settings: it opens an SSH tunnel and tells the app the current address, signed with a key
+// that never leaves this PC (data/bridge-key.pem). `--public-key` prints the half that goes in the app.
 import { spawn } from "node:child_process"
+import { createPrivateKey, createPublicKey, generateKeyPairSync, randomBytes, sign } from "node:crypto"
 import fs from "node:fs"
+import http from "node:http"
 import path from "node:path"
-import os from "node:os"
+import readline from "node:readline"
+import { fileURLToPath } from "node:url"
+import { MAX_SKEW_MS, seal, unseal } from "../src/features/nesco/bridge-crypto.ts"
 
 const PORT = Number(process.env.BRIDGE_PORT) || 3001
+const APP_URL = process.env.BILLBARI_APP_URL || "https://billbari.vercel.app"
 const TARGET_URL = "https://customer.nesco.gov.bd/pre/panel"
+const DATA_DIR = path.join(import.meta.dirname, "..", "data")
+const KEY_FILE = path.join(DATA_DIR, "bridge-key.pem")
+const LOG_FILE = path.join(DATA_DIR, "bridge.log")
+const MAX_REQUEST_BYTES = 64 * 1024
+const CHECK_EVERY_MS = 2 * 60_000
+// fetch() has already decompressed the body, so these no longer describe it.
+const STALE_HEADERS = ["content-encoding", "content-length", "transfer-encoding"]
 
-const server = http.createServer(async (req, res) => {
-  // Set CORS headers so it can be queried from any domain
-  res.setHeader("Access-Control-Allow-Origin", "*")
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-  res.setHeader("Access-Control-Allow-Headers", "*")
+export function createBridgeServer(key, send = fetch) {
+  return http.createServer(async (req, res) => {
+    if (req.method === "GET" && req.url === "/health") return res.end("billbari-bridge")
 
-  if (req.method === "OPTIONS") {
-    res.writeHead(200)
-    res.end()
-    return
-  }
-
-  const clientIp = req.socket.remoteAddress || "unknown"
-  console.log(`[Bridge ${new Date().toLocaleTimeString()}] ${req.method} request received from ${clientIp}`)
-
-  try {
-    const chunks = []
-    for await (const chunk of req) {
-      chunks.push(chunk)
-    }
-    const bodyBuffer = Buffer.concat(chunks)
-
-    const headers = {
-      "User-Agent": req.headers["user-agent"] || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      "Accept": req.headers["accept"] || "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Origin": "https://customer.nesco.gov.bd",
-      "Referer": TARGET_URL,
-    }
-
-    if (req.headers["cookie"]) {
-      headers["Cookie"] = req.headers["cookie"]
-    }
-    if (req.headers["content-type"]) {
-      headers["Content-Type"] = req.headers["content-type"]
-    }
-
-    const fetchRes = await fetch(TARGET_URL, {
-      method: req.method,
-      headers,
-      body: req.method === "POST" ? bodyBuffer : undefined,
-    })
-
-    const setCookies = fetchRes.headers.getSetCookie?.() || []
-    if (setCookies.length > 0) {
-      res.setHeader("set-cookie", setCookies)
-    }
-    res.setHeader("Content-Type", fetchRes.headers.get("content-type") || "text/html; charset=UTF-8")
-    res.writeHead(fetchRes.status)
-
-    const resBuffer = await fetchRes.arrayBuffer()
-    res.end(Buffer.from(resBuffer))
-    console.log(`[Bridge ${new Date().toLocaleTimeString()}] Forwarded -> NESCO Status ${fetchRes.status}`)
-  } catch (err) {
-    console.error(`[Bridge Error]:`, err)
-    res.writeHead(502, { "Content-Type": "application/json" })
-    res.end(JSON.stringify({ error: "Failed to forward request to NESCO portal", detail: String(err) }))
-  }
-})
-
-let tunnelProcess = null
-
-function getCloudflaredBin() {
-  const homeBin = path.join(os.homedir(), ".local", "bin", "cloudflared")
-  if (fs.existsSync(homeBin)) return homeBin
-  return "cloudflared"
-}
-
-function startAutoTunnel() {
-  console.log("🔗 স্বয়ংক্রিয় ক্লাউডফ্লেয়ার টানেল সংযোগ তৈরি হচ্ছে...")
-  const cloudflaredBin = getCloudflaredBin()
-  
-  try {
-    tunnelProcess = spawn(cloudflaredBin, ["tunnel", "--url", `http://localhost:${PORT}`])
-
-    let captured = false
-
-    const handleOutput = (data) => {
-      const text = data.toString()
-      const match = text.match(/https:\/\/[a-zA-Z0-9.-]+\.trycloudflare\.com/)
-      if (match && !captured) {
-        captured = true
-        console.log("===============================================================")
-        console.log(`🎉 Cloudflare Dhaka টানেল সফলভাবে চালু হয়েছে!`)
-        console.log(`🌐 লাইভ ব্রিজ URL: ${match[0]}`)
-        console.log(`👉 Vercel ড্যাশবোর্ডে Environment Variables-এ দিন:`)
-        console.log(`   NESCO_PROXY_URL = ${match[0]}`)
-        console.log(`⚡ ব্যাস! Vercel সরাসরি এই ব্রিজের মাধ্যমে নেসকো লাইভ ডেটা আনবে (কোনো 502/403 এরর ছাড়া)!`)
-        console.log("===============================================================")
+    let job
+    try {
+      const chunks = []
+      let size = 0
+      for await (const chunk of req) {
+        size += chunk.length
+        if (size > MAX_REQUEST_BYTES) throw new Error("too large")
+        chunks.push(chunk)
       }
+      job = unseal(key, Buffer.concat(chunks))
+      if (Math.abs(Date.now() - job.at) > MAX_SKEW_MS) throw new Error("expired")
+    } catch {
+      return res.writeHead(404).end()
     }
 
-    tunnelProcess.stdout.on("data", handleOutput)
-    tunnelProcess.stderr.on("data", handleOutput)
-
-    tunnelProcess.on("error", () => {
-      console.log("⚠️ cloudflared চালু হতে সমস্যা হয়েছে, SSH টানেল চেষ্টা করা হচ্ছে...")
-      startSshTunnel()
-    })
-
-    tunnelProcess.on("close", (code) => {
-      if (code !== 0 && !captured) {
-        startSshTunnel()
+    let reply
+    try {
+      // The target is fixed: whatever a request says, this PC only ever talks to NESCO's panel.
+      const post = job.method === "POST"
+      const upstream = await send(TARGET_URL, {
+        method: post ? "POST" : "GET",
+        headers: job.headers,
+        body: post ? job.body : undefined,
+        signal: AbortSignal.timeout(20_000),
+      })
+      reply = {
+        id: job.id,
+        status: upstream.status,
+        headers: [...upstream.headers].filter(([name]) => !STALE_HEADERS.includes(name)),
+        body: Buffer.from(await upstream.arrayBuffer()).toString("base64"),
       }
-    })
-  } catch {
-    startSshTunnel()
-  }
-}
-
-function startSshTunnel() {
-  console.log("🔗 SSH টানেল সংযোগ তৈরি হচ্ছে...")
-  tunnelProcess = spawn("ssh", [
-    "-o", "StrictHostKeyChecking=no",
-    "-o", "ServerAliveInterval=15",
-    "-o", "ServerAliveCountMax=3",
-    "-R", `80:localhost:${PORT}`,
-    "nokey@localhost.run",
-  ])
-
-  let captured = false
-
-  tunnelProcess.stdout.on("data", (data) => {
-    const text = data.toString()
-    const match = text.match(/https:\/\/[a-zA-Z0-9.-]+\.(?:lhr\.life|localhost\.run)/)
-    if (match && !captured) {
-      captured = true
-      console.log("===============================================================")
-      console.log(`🎉 SSH টানেল চালু হয়েছে!`)
-      console.log(`🌐 লাইভ ব্রিজ URL: ${match[0]}`)
-      console.log(`👉 Vercel ড্যাশবোর্ডে Environment Variables-এ দিন:`)
-      console.log(`   NESCO_PROXY_URL = ${match[0]}`)
-      console.log("===============================================================")
+    } catch (err) {
+      reply = { id: job.id, error: err.cause?.code ?? err.name }
     }
+    res.end(seal(key, reply))
   })
 }
 
-server.listen(PORT, () => {
-  console.log("===============================================================")
-  console.log(`⚡ বিলবাড়ি (BillBari) বাংলাদেশ প্রক্সি ব্রিজ সফলভাবে চালু হয়েছে!`)
-  console.log(`👉 লোকাল পোর্ট: http://localhost:${PORT}`)
-  console.log(`🎯 টার্গেট: ${TARGET_URL}`)
-  console.log("===============================================================")
+function loadPrivateKey() {
+  if (!fs.existsSync(KEY_FILE)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true })
+    const { privateKey } = generateKeyPairSync("ed25519")
+    fs.writeFileSync(KEY_FILE, privateKey.export({ type: "pkcs8", format: "pem" }), { mode: 0o600 })
+  }
+  return createPrivateKey(fs.readFileSync(KEY_FILE))
+}
 
-  // Automatically launch SSH tunnel
-  startAutoTunnel()
-})
+// The autostart task runs without a window, so the log file is the only record. Never log requests.
+function log(message) {
+  const line = `${new Date().toISOString()} ${message}\n`
+  process.stdout.write(line)
+  fs.appendFileSync(LOG_FILE, line)
+}
 
-process.on("SIGINT", () => {
-  if (tunnelProcess) tunnelProcess.kill()
-  process.exit()
-})
+function main() {
+  const privateKey = loadPrivateKey()
+  if (process.argv.includes("--public-key")) {
+    process.stdout.write(createPublicKey(privateKey).export({ type: "spki", format: "pem" }))
+    return
+  }
 
-process.on("SIGTERM", () => {
-  if (tunnelProcess) tunnelProcess.kill()
-  process.exit()
-})
+  const key = randomBytes(32)
+  let url = ""
+  let ssh
+  let failures = 0
+  let lastStatus = ""
+
+  async function register() {
+    const body = JSON.stringify({ url, key: key.toString("base64"), at: Date.now() })
+    let status
+    try {
+      const res = await fetch(`${APP_URL}/api/nesco/bridge`, {
+        method: "POST",
+        headers: { "x-bridge-signature": sign(null, Buffer.from(body), privateKey).toString("base64") },
+        body,
+        signal: AbortSignal.timeout(20_000),
+      })
+      status = res.status === 204 ? "registered with the app" : `app refused registration (HTTP ${res.status})`
+    } catch (err) {
+      status = `could not reach the app (${err.cause?.code ?? err.name})`
+    }
+    if (status !== lastStatus) log(status)
+    lastStatus = status
+  }
+
+  function openTunnel() {
+    url = ""
+    failures = 0
+    ssh = spawn(
+      "ssh",
+      [
+        "-o", "StrictHostKeyChecking=accept-new",
+        "-o", "PubkeyAuthentication=no",
+        "-o", "ServerAliveInterval=15",
+        "-o", "ServerAliveCountMax=3",
+        "-o", "ExitOnForwardFailure=yes",
+        "-R", `80:127.0.0.1:${PORT}`,
+        "nokey@localhost.run",
+        "--", "--output", "json",
+      ],
+      { stdio: ["ignore", "pipe", "ignore"], windowsHide: true },
+    )
+    // The free tunnel rotates its address now and then; every new one is registered at once.
+    readline.createInterface({ input: ssh.stdout }).on("line", (line) => {
+      let address
+      try {
+        address = JSON.parse(line).data?.address
+      } catch {
+        return
+      }
+      if (!address?.endsWith(".lhr.life") || url === `https://${address}`) return
+      url = `https://${address}`
+      failures = 0
+      log("tunnel open")
+      lastStatus = ""
+      register()
+    })
+    ssh.on("error", (err) => log(`ssh did not start (${err.code})`))
+    ssh.on("close", () => {
+      log("tunnel closed, reopening")
+      setTimeout(openTunnel, 10_000)
+    })
+  }
+
+  async function check() {
+    const healthy =
+      url !== "" &&
+      (await fetch(`${url}/health`, { signal: AbortSignal.timeout(20_000) })
+        .then(async (res) => (await res.text()) === "billbari-bridge")
+        .catch(() => false))
+    if (healthy) {
+      failures = 0
+      await register()
+    } else if (++failures >= 2) {
+      failures = 0
+      log("tunnel not answering")
+      ssh.kill()
+    }
+  }
+
+  const server = createBridgeServer(key)
+  // A second copy (for example the autostart task) simply leaves the first one running.
+  server.on("error", (err) => {
+    log(`bridge not started (${err.code})`)
+    process.exit(err.code === "EADDRINUSE" ? 0 : 1)
+  })
+  server.listen(PORT, "127.0.0.1", () => {
+    log(`bridge listening on port ${PORT}`)
+    openTunnel()
+    setInterval(check, CHECK_EVERY_MS)
+  })
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.on(signal, () => {
+      ssh?.kill()
+      process.exit()
+    })
+  }
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main()
