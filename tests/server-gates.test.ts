@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { getDatabase } from "../src/features/db/server-db"
 import { getSavedMetersFn, saveMeterFn } from "../src/features/auth/auth-server"
 import {
@@ -8,6 +8,7 @@ import {
   syncAutomatedDailyPulseFn,
   triggerGlobalMidnightCronFn,
 } from "../src/features/snapshots/snapshot-server"
+import { Route as cronRoute } from "../src/routes/api/cron/daily-pulse"
 
 const session = vi.hoisted(() => {
   process.env.TURSO_DATABASE_URL = ":memory:" // never touch a real database
@@ -106,9 +107,42 @@ describe("signed out", () => {
 })
 
 describe("midnight cron", () => {
-  it("processes only unexpired subscribers", async () => {
-    // free and lapsed have 1 saved meter each (sample-free numbers), monthly and lifetime have 2 sample meters each
-    const result = await triggerGlobalMidnightCronFn({ data: {} })
-    expect(result).toMatchObject({ processedMeters: 4, snapshotsCreated: 4, errors: [] })
+  afterEach(() => vi.unstubAllEnvs())
+
+  const snapshots = () => count("SELECT COUNT(*) AS n FROM snapshots")
+  const call = (method: "GET" | "POST", query = "", headers?: Record<string, string>) =>
+    (cronRoute.options.server!.handlers as Record<string, (c: { request: Request }) => Promise<Response>>)[method]({
+      request: new Request(`http://localhost/api/cron/daily-pulse${query}`, { method, headers }),
+    })
+
+  it.each([
+    ["no secret configured, none sent", "", undefined],
+    ["no secret configured, one sent", "", "anything"],
+    ["none sent", "s3cret", undefined],
+    ["empty one sent", "s3cret", ""],
+    ["wrong one sent", "s3cret", "guess"],
+  ])("does nothing: %s", async (_, configured, sent) => {
+    vi.stubEnv("CRON_SECRET", configured)
+    const before = await snapshots()
+    expect(await triggerGlobalMidnightCronFn({ data: { secret: sent } })).toEqual({
+      success: false, processedMeters: 0, snapshotsCreated: 0, errors: ["Unauthorized cron token"],
+    })
+    expect(await snapshots()).toBe(before)
+  })
+
+  it.each(["GET", "POST"] as const)("answers 401 to %s without the secret", async (method) => {
+    vi.stubEnv("CRON_SECRET", "s3cret")
+    expect((await call(method)).status).toBe(401)
+  })
+
+  it.each([
+    ["bearer header", "", { authorization: "Bearer s3cret" }],
+    ["query string", "?secret=s3cret", undefined],
+  ])("accepts the secret as a %s and processes only unexpired subscribers", async (_, query, headers) => {
+    vi.stubEnv("CRON_SECRET", "s3cret")
+    const res = await call("GET", query, headers)
+    expect(res.status).toBe(200)
+    // monthly and lifetime have 2 saved sample meters each; free and lapsed are skipped
+    expect(await res.json()).toMatchObject({ processedMeters: 4, snapshotsCreated: 4, errors: [] })
   })
 })

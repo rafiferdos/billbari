@@ -11,7 +11,8 @@ export const Route = createFileRoute("/api/cron/daily-pulse")({
         try {
           const result = await triggerGlobalMidnightCronFn({ data: { secret } })
           return new Response(JSON.stringify(result), {
-            status: 200,
+            // the only unsuccessful result is a rejected secret
+            status: result.success ? 200 : 401,
             headers: { "Content-Type": "application/json" },
           })
         } catch (err) {
@@ -29,7 +30,8 @@ export const Route = createFileRoute("/api/cron/daily-pulse")({
         try {
           const result = await triggerGlobalMidnightCronFn({ data: { secret } })
           return new Response(JSON.stringify(result), {
-            status: 200,
+            // the only unsuccessful result is a rejected secret
+            status: result.success ? 200 : 401,
             headers: { "Content-Type": "application/json" },
           })
         } catch (err) {

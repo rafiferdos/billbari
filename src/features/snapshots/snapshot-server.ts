@@ -300,7 +300,8 @@ export const triggerGlobalMidnightCronFn = createServerFn({ method: "POST" })
     errors: string[]
   }> => {
     const cronSecret = process.env.CRON_SECRET
-    if (cronSecret && data?.secret && data.secret !== cronSecret) {
+    // fails closed: without a configured secret nobody may run this
+    if (!cronSecret || data?.secret !== cronSecret) {
       return { success: false, processedMeters: 0, snapshotsCreated: 0, errors: ["Unauthorized cron token"] }
     }
 

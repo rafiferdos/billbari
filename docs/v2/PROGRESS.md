@@ -129,8 +129,9 @@ existing `billbari.test.ts` analytics expectation changed. Browser: sample and o
 live meter render on `/` with no console errors.
 
 **Open problems (found, not fixed):**
-- `/api/cron/daily-pulse` runs for a request with **no** secret (only a wrong one is
-  rejected), and its `errors[]` contains meter numbers.
+- Fixed after the phase: `/api/cron/daily-pulse` ran for a request with no secret.
+  It now answers 401 unless `CRON_SECRET` is configured and sent, so the deployment
+  must set that variable or the nightly run stops.
 - Before the `vitest.config.ts` fix, `pnpm test` wrote test users, snapshots and
   payments to whatever `TURSO_DATABASE_URL` pointed at. Those rows were not removed.
 - `login`/`register` return a user without `isPremium`, so Pro users look free
