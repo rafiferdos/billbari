@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start"
 import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server"
 import crypto from "node:crypto"
 import { getDatabase } from "../db/server-db"
+import { canSaveAnotherMeter } from "../payments/entitlements"
 import type { User, SavedMeter } from "./types"
 
 const SESSION_COOKIE_NAME = "billbari_session"
@@ -109,6 +110,14 @@ export const getCurrentUserFn = createServerFn({ method: "GET" }).handler(async 
     createdAt: String(row.created_at),
   }
 })
+
+/** Gate for server functions that read or write Pro data. */
+export async function getProUserOrError(): Promise<{ user: User } | { error: string }> {
+  const user = await getCurrentUserFn()
+  if (!user) return { error: "এই ফিচার ব্যবহার করতে লগইন করুন।" }
+  if (!user.isPremium) return { error: "এই ফিচারটি প্রো প্ল্যানে পাওয়া যায়।" }
+  return { user }
+}
 
 export const registerFn = createServerFn({ method: "POST" })
   .validator((d: { name: string; email: string; password: string }) => d)
@@ -267,6 +276,21 @@ export const saveMeterFn = createServerFn({ method: "POST" })
     const now = new Date().toISOString()
 
     try {
+      // shortcut: check-then-insert, so parallel requests can exceed the free limit by one or two;
+      // move the condition into the INSERT if that is ever abused.
+      const counts = await db.execute({
+        sql: `SELECT COUNT(*) AS saved, COUNT(CASE WHEN meter_number = ? THEN 1 END) AS already FROM saved_meters WHERE user_id = ?`,
+        args: [meterNumber.trim(), user.id],
+      })
+      const allowed = canSaveAnotherMeter({
+        isPremium: user.isPremium === true,
+        savedCount: Number(counts.rows[0].saved),
+        alreadySaved: Number(counts.rows[0].already) > 0,
+      })
+      if (!allowed) {
+        return { success: false, error: "ফ্রি প্ল্যানে ১টি মিটার সংরক্ষণ করা যায়। আরও মিটারের জন্য প্রো নিন।" }
+      }
+
       await db.execute({
         sql: `
           INSERT INTO saved_meters (id, user_id, meter_number, customer_number, customer_name, address, tariff, sanctioned_load, alias, created_at, updated_at)

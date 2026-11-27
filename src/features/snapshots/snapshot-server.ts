@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start"
 import crypto from "node:crypto"
 import { getDatabase } from "../db/server-db"
-import { getCurrentUserFn } from "../auth/auth-server"
+import { getCurrentUserFn, getProUserOrError } from "../auth/auth-server"
 import { fetchNescoData } from "../nesco/nesco-service"
 
 export interface SnapshotRecord {
@@ -30,10 +30,11 @@ export const saveSnapshotFn = createServerFn({ method: "POST" })
     notes?: string
   }) => d)
   .handler(async ({ data }): Promise<{ success: boolean; snapshot?: SnapshotRecord; error?: string }> => {
-    const user = await getCurrentUserFn()
-    if (!user) {
-      return { success: false, error: "স্ন্যাপশট সংরক্ষণ করতে অনুগ্রহ করে লগইন করুন।" }
+    const gate = await getProUserOrError()
+    if ("error" in gate) {
+      return { success: false, error: gate.error }
     }
+    const { user } = gate
 
     const {
       meterNumber,
@@ -102,8 +103,9 @@ export const saveSnapshotFn = createServerFn({ method: "POST" })
 export const getSnapshotsFn = createServerFn({ method: "GET" })
   .validator((d?: { meterNumber?: string }) => d)
   .handler(async ({ data }): Promise<SnapshotRecord[]> => {
-    const user = await getCurrentUserFn()
-    if (!user) return []
+    const gate = await getProUserOrError()
+    if ("error" in gate) return []
+    const { user } = gate
 
     const db = await getDatabase()
     const res = data?.meterNumber
@@ -183,18 +185,11 @@ export const syncAutomatedDailyPulseFn = createServerFn({ method: "POST" })
     dailyBurn?: number
     error?: string
   }> => {
-    const user = await getCurrentUserFn()
-    if (!user) {
-      return { success: false, error: "স্বয়ংক্রিয় লাইভ পালস সিঙ্ক করতে প্রথমে লগইন করুন।" }
+    const gate = await getProUserOrError()
+    if ("error" in gate) {
+      return { success: false, error: gate.error }
     }
-
-    const isPro = user.subscriptionTier === "detective_monthly" || user.subscriptionTier === "lifetime"
-    if (!isPro) {
-      return {
-        success: false,
-        error: "স্বয়ংক্রিয় মিডনাইট পালস সিঙ্ক ফিচারটি শুধুমাত্র মিটার প্লাস ও প্রিমিয়াম সদস্যদের জন্য উন্মুক্ত।",
-      }
-    }
+    const { user } = gate
 
     const db = await getDatabase()
     let targetMeter = data?.meterNumber?.replace(/[^0-9]/g, "").trim()
@@ -311,7 +306,8 @@ export const triggerGlobalMidnightCronFn = createServerFn({ method: "POST" })
 
     const db = await getDatabase()
     const usersRes = await db.execute({
-      sql: `SELECT id, name FROM users WHERE subscription_tier IN ('detective_monthly', 'lifetime')`,
+      sql: `SELECT id, name FROM users WHERE subscription_tier = 'lifetime' OR (subscription_tier = 'detective_monthly' AND subscription_expires_at > ?)`,
+      args: [new Date().toISOString()],
     })
 
     const users = usersRes.rows as unknown as Array<{ id: string; name: string }>
