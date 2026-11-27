@@ -8,6 +8,7 @@ import http from "node:http"
 import path from "node:path"
 import readline from "node:readline"
 import { fileURLToPath } from "node:url"
+import { gzipSync } from "node:zlib"
 import { MAX_SKEW_MS, seal, unseal } from "../src/features/nesco/bridge-crypto.ts"
 
 const PORT = Number(process.env.BRIDGE_PORT) || 3001
@@ -21,7 +22,7 @@ const CHECK_EVERY_MS = 2 * 60_000
 // fetch() has already decompressed the body, so these no longer describe it.
 const STALE_HEADERS = ["content-encoding", "content-length", "transfer-encoding"]
 
-export function createBridgeServer(key, send = fetch) {
+export function createBridgeServer(key, send = fetch, report = () => {}) {
   return http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url === "/health") return res.end("billbari-bridge")
 
@@ -36,10 +37,14 @@ export function createBridgeServer(key, send = fetch) {
       }
       job = unseal(key, Buffer.concat(chunks))
       if (Math.abs(Date.now() - job.at) > MAX_SKEW_MS) throw new Error("expired")
-    } catch {
+    } catch (err) {
+      report(`rejected a request (${err.code ?? err.message})`)
       return res.writeHead(404).end()
     }
 
+    // Sizes and timings only: never the meter number or page contents.
+    const started = Date.now()
+    const took = () => `${Date.now() - started}ms`
     let reply
     try {
       // The target is fixed: whatever a request says, this PC only ever talks to NESCO's panel.
@@ -50,16 +55,22 @@ export function createBridgeServer(key, send = fetch) {
         body: post ? job.body : undefined,
         signal: AbortSignal.timeout(20_000),
       })
+      const page = Buffer.from(await upstream.arrayBuffer())
+      report(`${job.method} NESCO ${upstream.status}, ${page.length} bytes in ${took()}`)
       reply = {
         id: job.id,
         status: upstream.status,
         headers: [...upstream.headers].filter(([name]) => !STALE_HEADERS.includes(name)),
-        body: Buffer.from(await upstream.arrayBuffer()).toString("base64"),
+        // The free tunnel moves a few KB a second and a history page is ~300 KB; compressed it is ~11 KB.
+        body: gzipSync(page, { level: 9 }).toString("base64"),
       }
     } catch (err) {
       reply = { id: job.id, error: err.cause?.code ?? err.name }
+      report(`${job.method} NESCO failed (${reply.error}) after ${took()}`)
     }
-    res.end(seal(key, reply))
+    const sealed = seal(key, reply)
+    res.on("close", () => report(`${job.method} reply ${res.writableFinished ? "sent" : "abandoned"}, ${sealed.length} bytes at ${took()}`))
+    res.end(sealed)
   })
 }
 
@@ -72,7 +83,7 @@ function loadPrivateKey() {
   return createPrivateKey(fs.readFileSync(KEY_FILE))
 }
 
-// The autostart task runs without a window, so the log file is the only record. Never log requests.
+// The autostart task runs without a window, so the log file is the only record. Never log request contents.
 function log(message) {
   const line = `${new Date().toISOString()} ${message}\n`
   process.stdout.write(line)
@@ -158,14 +169,14 @@ function main() {
     if (healthy) {
       failures = 0
       await register()
-    } else if (++failures >= 2) {
+    } else if ((log("health check failed"), ++failures >= 2)) {
       failures = 0
       log("tunnel not answering")
       ssh.kill()
     }
   }
 
-  const server = createBridgeServer(key)
+  const server = createBridgeServer(key, fetch, log)
   // A second copy (for example the autostart task) simply leaves the first one running.
   server.on("error", (err) => {
     log(`bridge not started (${err.code})`)

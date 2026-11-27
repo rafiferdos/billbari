@@ -1,6 +1,7 @@
 // NESCO answers 403 to servers outside Bangladesh, so the deployed app reaches it through scripts/bd-bridge.mjs.
 // The bridge reports its current tunnel address to /api/nesco/bridge; nothing has to be configured by hand.
 import { randomUUID, verify } from "node:crypto"
+import { gunzipSync } from "node:zlib"
 import { getDatabase } from "@/features/db/server-db"
 import { MAX_SKEW_MS, seal, unseal } from "./bridge-crypto"
 import type { BridgeReply, BridgeRequest } from "./bridge-crypto"
@@ -67,5 +68,5 @@ export async function bridgeFetch(
   }
   if (reply.id !== request.id) throw unreachable("BRIDGE_REPLY")
   if ("error" in reply) throw unreachable(reply.error)
-  return new Response(Buffer.from(reply.body, "base64"), { status: reply.status, headers: reply.headers })
+  return new Response(gunzipSync(Buffer.from(reply.body, "base64")), { status: reply.status, headers: reply.headers })
 }

@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { createBridgeServer } from "../scripts/bd-bridge.mjs"
 import { getDatabase } from "../src/features/db/server-db"
 import { bridgeFetch, getBridge, registerBridge } from "../src/features/nesco/bridge"
+import { seal } from "../src/features/nesco/bridge-crypto"
 
 const key = randomBytes(32)
 const PORTAL = "https://customer.nesco.gov.bd/pre/panel"
@@ -40,6 +41,18 @@ describe("app to bridge", () => {
     expect(await res.text()).toBe("রিচার্জ")
     expect(res.headers.getSetCookie()).toEqual(["a=1; path=/", "b=2; path=/"])
     expect(nesco).toHaveBeenCalledWith(PORTAL, expect.objectContaining({ method: "POST", body: "cust_no=99999999" }))
+  })
+
+  it("compresses large pages, because the free tunnel moves only a few KB a second", async () => {
+    const page = "<tr><td>রিচার্জ</td><td>500.00</td></tr>".repeat(5000)
+    nesco.mockResolvedValueOnce(new Response(page)).mockResolvedValueOnce(new Response(page))
+
+    const wire = await fetch(url, {
+      method: "POST",
+      body: new Uint8Array(seal(key, { id: "1", at: Date.now(), method: "GET", headers: {} })),
+    })
+    expect((await wire.arrayBuffer()).byteLength).toBeLessThan(Buffer.byteLength(page) / 20)
+    expect(await (await ask({})).text()).toBe(page)
   })
 
   it("refuses a caller without the key and never contacts NESCO for it", async () => {
