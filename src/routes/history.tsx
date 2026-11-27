@@ -1,656 +1,383 @@
 import * as React from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+import { History, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Form } from "@/components/ui/form"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
-import { toast } from "@/components/ui/toast"
-import { useMeter } from "@/features/meter/meter-context"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import { Pagination, PaginationContent, PaginationItem } from "@/components/ui/pagination"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { ConsumptionChart } from "@/features/analytics/consumption-chart"
+import { computeDeductionTotals } from "@/features/analytics/free-stats"
+import { downloadCsv, toCsv, type CsvColumn } from "@/features/export/csv"
+import { PrintableTable } from "@/features/export/printable-table"
+import { MonthlyList, MonthlyTable, useMonthlyFormat } from "@/features/history/monthly-list"
+import { RechargeList, RechargeTable, useRecordDate } from "@/features/history/recharge-list"
+import { RecordActions } from "@/features/history/record-actions"
+import { PERIODS, filterRecharges, monthlyValue, visibleMonthlyKeys, type Period } from "@/features/history/records"
 import { useLanguage } from "@/features/i18n/language-context"
+import { useMeter } from "@/features/meter/meter-context"
+import { MeterError } from "@/features/meter/meter-error"
+import { maskMeter } from "@/features/meter/meter-input"
+import { MeterSearch } from "@/features/meter/meter-search"
 import { SourceBanner } from "@/features/nesco/source-badge"
-import type { RechargeRecord } from "@/features/nesco/types"
-import { formatMonthBangla } from "@/lib/bangla"
-import { History, Copy, Search, Check, Receipt, ShieldCheck } from "lucide-react"
+import type { MonthlyConsumptionRecord, NescoFetchResult, RechargeRecord } from "@/features/nesco/types"
+import { ReceiptDialog } from "@/features/recharge/receipt-dialog"
+import { splitTokens } from "@/features/recharge/token"
+import { usePrint } from "@/hooks/use-print"
+import { sortMonthlyDesc, sortRechargesDesc } from "@/lib/nesco-dates"
+
+const PAGE_SIZE = 10
 
 export const Route = createFileRoute("/history")({
+  // optional, so a plain link to /history stays valid
+  validateSearch: (search: Record<string, unknown>): { tab?: "monthly" } =>
+    search.tab === "monthly" ? { tab: "monthly" } : {},
   component: HistoryPage,
 })
 
-/**
- * Compacts a token string for table display (e.g., "0135 •••• 6712")
- * to prevent long multi-tokens from pushing table columns.
- */
-function compactToken(token: string | null | undefined, isBangla = true): string {
-  if (!token) return isBangla ? "টোকেন অপ্রাপ্য" : "Token Unavailable"
-  const clean = token.replace(/[^0-9A-Za-z-]/g, "").trim()
-  if (clean.length <= 14) return clean
-  const first = clean.slice(0, 4)
-  const last = clean.slice(-4)
-  return `${first} •••• ${last}`
-}
-
-/**
- * Splits multi-token sequences (e.g. key revision tokens + recharge tokens)
- */
-function extractTokenList(rawToken: string | null | undefined): string[] {
-  if (!rawToken) return []
-  const clean = rawToken.trim()
-  const parts = clean.split(/[\s,/;\n]+/).filter(Boolean)
-  if (parts.length > 1) {
-    return parts
-  }
-  const onlyDigits = clean.replace(/[^0-9]/g, "")
-  if (onlyDigits.length >= 40 && onlyDigits.length % 20 === 0) {
-    const chunks: string[] = []
-    for (let i = 0; i < onlyDigits.length; i += 20) {
-      const chunk = onlyDigits.slice(i, i + 20)
-      const formatted = chunk.match(/.{1,4}/g)?.join("-") || chunk
-      chunks.push(formatted)
-    }
-    return chunks
-  }
-  return [clean]
-}
-
 function HistoryPage() {
-  const {
-    activeMeter,
-    activeMeterData: data,
-    isLoading,
-    fetchMeter,
-  } = useMeter()
-  const { t, isBangla, formatBDT, formatNumber, formatDate } = useLanguage()
-
-  const [meterInput, setMeterInput] = React.useState(activeMeter)
-  const [searchFilter, setSearchFilter] = React.useState("")
-  const [periodFilter, setPeriodFilter] = React.useState<"all" | "30" | "90" | "365">("all")
-  const [selectedToken, setSelectedToken] = React.useState<RechargeRecord | null>(null)
-  const [copiedToken, setCopiedToken] = React.useState(false)
-  const lastFetchedMeterRef = React.useRef<string>("")
-
-  // Keep meterInput synchronized with activeMeter
-  React.useEffect(() => {
-    if (activeMeter) {
-      setMeterInput(activeMeter)
-    }
-  }, [activeMeter])
-
-  // Automatically fetch once if activeMeter is set but data not yet loaded
-  React.useEffect(() => {
-    if (activeMeter && !data && !isLoading && lastFetchedMeterRef.current !== activeMeter) {
-      lastFetchedMeterRef.current = activeMeter
-      fetchMeter(activeMeter, { silent: true })
-    }
-  }, [activeMeter, data, isLoading, fetchMeter])
-
-  const handleFetch = async (targetMeter?: string) => {
-    const num = (targetMeter || meterInput).replace(/[^0-9]/g, "").trim()
-    if (!num || num.length < 8) {
-      toast.error(
-        isBangla
-          ? "অনুগ্রহ করে ৮ থেকে ১১ ডিজিটের সঠিক মিটার বা গ্রাহক নম্বর দিন।"
-          : "Please enter a valid 8 to 11 digit meter or customer ID."
-      )
-      return
-    }
-    setMeterInput(num)
-    await fetchMeter(num, { force: true })
-  }
-
-  const copyToClipboard = (token: string) => {
-    navigator.clipboard.writeText(token.replace(/-/g, ""))
-    setCopiedToken(true)
-    toast.success(isBangla ? "টোকেন নম্বর ক্লিপবোর্ডে কপি হয়েছে!" : "Token copied to clipboard!")
-    setTimeout(() => setCopiedToken(false), 2000)
-  }
-
-  // Filter recharges by period, then by search. A date that cannot be
-  // parsed is kept, never silently hidden by the period filter.
-  const filteredRecharges = React.useMemo(() => {
-    if (!data) return []
-    let rows = data.rechargeHistory
-    if (periodFilter !== "all") {
-      const cutoff = Date.now() - Number(periodFilter) * 24 * 60 * 60 * 1000
-      rows = rows.filter((r) => {
-        const parsed = Date.parse(r.date)
-        return Number.isNaN(parsed) || parsed >= cutoff
-      })
-    }
-    if (!searchFilter.trim()) return rows
-    const q = searchFilter.toLowerCase()
-    return rows.filter(
-      (r) =>
-        r.token.toLowerCase().includes(q) ||
-        r.via.toLowerCase().includes(q) ||
-        r.date.toLowerCase().includes(q) ||
-        String(r.amountBdt).includes(q)
-    )
-  }, [data, searchFilter, periodFilter])
+  const { activeMeterData: data, isLoading, error, failedMeter, fetchMeter } = useMeter()
+  const { t, formatNumber } = useLanguage()
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-primary/10 text-primary">
-              <History className="size-5" />
-            </span>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              {t.history.title}
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {data
-              ? data.dataSource === "sample_demo"
-                ? isBangla
-                  ? "নমুনা রেফারেন্স ডেটা — আসল মিটার স্টেটমেন্ট নয়"
-                  : "Sample reference data — not a real meter statement"
-                : isBangla
-                ? `নেসকো প্রি-পেইড গ্রাহক নং ${formatNumber(data.customerInfo.customerNumber)} (${data.customerInfo.name})-এর অফিসিয়াল স্টেটমেন্ট`
-                : `Official statement for NESCO customer #${formatNumber(data.customerInfo.customerNumber)} (${data.customerInfo.name})`
-              : t.history.subtitle}
-          </p>
+    <div className="section-stack">
+      <h1 className="text-2xl">{t.history.title}</h1>
+      {data ? (
+        <MeterSearch variant="compact" />
+      ) : (
+        !isLoading && (
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <History aria-hidden />
+              </EmptyMedia>
+              <EmptyTitle>{t.history.noMeter}</EmptyTitle>
+            </EmptyHeader>
+            <EmptyContent>
+              <MeterSearch variant="compact" />
+            </EmptyContent>
+          </Empty>
+        )
+      )}
+      {error && !isLoading && (
+        <MeterError error={error} onRetry={() => void fetchMeter(failedMeter, { force: true })} />
+      )}
+      {isLoading ? (
+        <div className="section-stack">
+          <Skeleton className="h-10 max-w-sm" />
+          <Skeleton className="h-40" />
+          <Skeleton className="h-64" />
         </div>
+      ) : (
+        data && (
+          <>
+            <p className="flex flex-wrap items-baseline gap-x-2">
+              <span className="min-w-0 font-semibold break-words">{data.customerInfo.name}</span>
+              <span className="num text-sm text-muted-foreground">
+                {formatNumber(maskMeter(data.customerInfo.meterNumber))}
+              </span>
+            </p>
+            <SourceBanner data={data} onRefresh={() => void fetchMeter(undefined, { force: true })} />
+            {/* keyed so filters and pages start over for another meter */}
+            <Records key={data.customerInfo.meterNumber} data={data} />
+          </>
+        )
+      )}
+    </div>
+  )
+}
 
-        {/* Quick Meter Selector */}
-        {data && (
-          <Form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleFetch()
+function Records({ data }: { data: NescoFetchResult }) {
+  const { t, formatNumber } = useLanguage()
+  const { tab } = Route.useSearch()
+  const navigate = Route.useNavigate()
+
+  return (
+    <Tabs
+      value={tab ?? "recharges"}
+      onValueChange={(value) =>
+        void navigate({ search: value === "monthly" ? { tab: "monthly" } : {}, replace: true })
+      }
+      className="gap-(--bb-section-gap)"
+    >
+      <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsTrigger value="recharges">
+          {t.history.recharges} ({formatNumber(data.rechargeHistory.length)})
+        </TabsTrigger>
+        <TabsTrigger value="monthly">
+          {t.history.monthly} ({formatNumber(data.monthlyUsage.length)})
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="recharges" className="section-stack">
+        <Recharges data={data} />
+      </TabsContent>
+      <TabsContent value="monthly" className="section-stack">
+        <Monthly data={data} />
+      </TabsContent>
+    </Tabs>
+  )
+}
+
+function Recharges({ data }: { data: NescoFetchResult }) {
+  const { t, formatBDT, formatNumber } = useLanguage()
+  const { activeMeter } = useMeter()
+  const recordDate = useRecordDate()
+  const { printing, print } = usePrint()
+  const [period, setPeriod] = React.useState<Period>("all")
+  const [query, setQuery] = React.useState("")
+  const [page, setPage] = React.useState(1)
+  const [receipt, setReceipt] = React.useState<RechargeRecord | null>(null)
+
+  const all = data.rechargeHistory
+  const rows = React.useMemo(() => filterRecharges(sortRechargesDesc(all), { period, query }), [all, period, query])
+  const totals = computeDeductionTotals(rows)
+  const totalList: [label: string, value: number][] = [
+    [t.receipt.gross, totals.gross],
+    [t.receipt.net, totals.net],
+    [t.receipt.rent, totals.rent],
+    [t.receipt.demand, totals.demandCharge],
+    [t.receipt.vat, totals.vat],
+    [t.receipt.pfc, totals.pfcCharge],
+    [t.receipt.arrears, totals.arrears],
+    [t.receipt.rebate, totals.subsidy],
+  ]
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  // a refresh can shrink the list under the current page
+  const current = Math.min(page, pages)
+  const first = (current - 1) * PAGE_SIZE
+  const visible = rows.slice(first, first + PAGE_SIZE)
+
+  if (!all.length) return <NoRows title={t.dashboard.noRecharges} />
+
+  const exportCsv = () => {
+    const columns: CsvColumn<RechargeRecord>[] = [
+      { header: t.history.date, value: (r) => r.date },
+      { header: t.receipt.token, value: (r) => splitTokens(r.token).join(" ") },
+      { header: t.receipt.gross, value: (r) => r.amountBdt },
+      { header: t.receipt.net, value: (r) => r.netEnergyBdt },
+      { header: t.receipt.energy, value: (r) => r.powerKwh },
+      { header: t.receipt.rent, value: (r) => r.rent },
+      { header: t.receipt.demand, value: (r) => r.demandCharge },
+      { header: t.receipt.pfc, value: (r) => r.pfcCharge },
+      { header: t.receipt.vat, value: (r) => r.vat },
+      { header: t.receipt.arrears, value: (r) => r.arrears },
+      { header: t.receipt.rebate, value: (r) => (r.subsidy === undefined ? null : Math.abs(r.subsidy)) },
+      { header: t.receipt.channel, value: (r) => r.via },
+    ]
+    downloadCsv(`billbari-recharges-${activeMeter}.csv`, toCsv(rows, columns))
+  }
+
+  return (
+    <>
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+        <Select
+          items={t.history.periods}
+          value={period}
+          onValueChange={(value) => {
+            setPeriod(value as Period)
+            setPage(1)
+          }}
+        >
+          <SelectTrigger aria-label={t.history.period} className="w-full lg:w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PERIODS.map((p) => (
+              <SelectItem key={p} value={p}>
+                {t.history.periods[p]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <InputGroup className="lg:max-w-xs">
+          <InputGroupAddon>
+            <Search aria-hidden />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setPage(1)
             }}
-            className="flex items-center gap-2"
-          >
-            <Input
-              value={meterInput}
-              onChange={(e) => setMeterInput(e.target.value)}
-              placeholder={isBangla ? "অন্য মিটার নম্বর" : "Other meter ID"}
-              className="h-9 w-36 sm:w-44 text-xs font-mono"
-              maxLength={11}
-            />
-            <Button type="submit" size="sm" disabled={isLoading} className="h-9 text-xs font-medium">
-              {isLoading ? (isBangla ? "লোড..." : "Loading...") : (isBangla ? "খুঁজুন" : "Search")}
-            </Button>
-          </Form>
-        )}
+            aria-label={t.history.searchLabel}
+            placeholder={t.history.searchPlaceholder}
+          />
+        </InputGroup>
+        <div className="lg:ml-auto">
+          <RecordActions
+            pdfKind="recharge"
+            isSample={data.dataSource === "sample_demo"}
+            empty={!rows.length}
+            onPrint={print}
+            onCsv={exportCsv}
+          />
+        </div>
       </div>
 
-      {!data ? (
-        <Card className="rounded-2xl border border-dashed p-8 sm:p-12 text-center space-y-6">
-          <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto shadow-inner">
-            <Search className="size-7" />
-          </div>
-          <div className="space-y-2 max-w-md mx-auto">
-            <h2 className="text-xl font-bold tracking-tight">
-              {isBangla ? "রিচার্জ ইতিহাস ও ২০ ডিজিটের টোকেন খুঁজুন" : "Inspect Recharge History & 20-Digit Tokens"}
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              {t.history.emptyNotice}
-            </p>
-          </div>
-          <Form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleFetch()
-            }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-2 max-w-sm mx-auto"
-          >
-            <Input
-              value={meterInput}
-              onChange={(e) => setMeterInput(e.target.value)}
-              placeholder={t.hero.meterInputPlaceholder}
-              className="h-11 text-sm font-mono text-center tracking-wider"
-              maxLength={11}
-            />
-            <Button type="submit" disabled={isLoading} className="h-11 px-6 text-sm font-medium w-full sm:w-auto">
-              {isLoading ? t.common.loading : t.hero.searchButton}
-            </Button>
-          </Form>
-        </Card>
-      ) : (
-        <>
-          <SourceBanner
-            data={data}
-            onRefresh={() => handleFetch(data.customerInfo.meterNumber)}
-          />
-          <Tabs defaultValue="recharges" className="space-y-4">
-          <TabsList className="grid grid-cols-2 max-w-xs">
-            <TabsTrigger value="recharges" className="text-xs">
-              {isBangla
-                ? `রিচার্জ ও টোকেন (${formatNumber(data.rechargeHistory.length)})`
-                : `Recharges & Tokens (${formatNumber(data.rechargeHistory.length)})`}
-            </TabsTrigger>
-            <TabsTrigger value="consumption" className="text-xs">
-              {isBangla
-                ? `মাসিক ব্যবহার (${formatNumber(data.monthlyUsage.length)})`
-                : `Monthly Usage (${formatNumber(data.monthlyUsage.length)})`}
-            </TabsTrigger>
-          </TabsList>
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle className="text-sm">{t.history.totals}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {totalList.map(([label, value]) => (
+              <div key={label} className="min-w-0">
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="num font-semibold break-words">{formatBDT(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        </CardContent>
+      </Card>
 
-          {/* Recharges Tab */}
-          <TabsContent value="recharges" className="space-y-4">
-            <Card className="rounded-2xl border shadow-xs overflow-hidden">
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
-                <div>
-                  <CardTitle className="text-base font-bold">
-                    {isBangla ? "ভেন্ডিং লেনদেন ও রিচার্জ টোকেন" : "Vending Transactions & Tokens"}
-                  </CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground">
-                    {isBangla
-                      ? "প্রতিটি সফল রিচার্জের ২০ ডিজিটের টোকেন কোড ও বিবিধ চার্জের বিবরণ"
-                      : "20-digit token keys and deduction breakdown for every verified transaction"}
-                  </CardDescription>
-                </div>
-
-                <div className="flex flex-col gap-1.5 w-full sm:w-auto sm:items-end">
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as typeof periodFilter)}>
-                      <SelectTrigger className="h-9 text-xs w-full sm:w-36 border-input bg-background">
-                        <SelectValue placeholder={isBangla ? "সময়কাল" : "Period"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">{isBangla ? "সব সময়" : "All time"}</SelectItem>
-                        <SelectItem value="30">{isBangla ? "গত ৩০ দিন" : "Last 30 days"}</SelectItem>
-                        <SelectItem value="90">{isBangla ? "গত ৯০ দিন" : "Last 90 days"}</SelectItem>
-                        <SelectItem value="365">{isBangla ? "গত ১২ মাস" : "Last 12 months"}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="relative w-full sm:w-60">
-                      <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                      <Input
-                        placeholder={t.history.searchPlaceholder}
-                        value={searchFilter}
-                        onChange={(e) => setSearchFilter(e.target.value)}
-                        className="pl-8 h-9 text-xs"
-                      />
-                    </div>
-                  </div>
-                  {data && filteredRecharges.length !== data.rechargeHistory.length && (
-                    <span className="text-[11px] text-muted-foreground">
-                      {isBangla
-                        ? `${formatNumber(filteredRecharges.length)} / ${formatNumber(data.rechargeHistory.length)}টি দেখানো হচ্ছে`
-                        : `Showing ${formatNumber(filteredRecharges.length)} of ${formatNumber(data.rechargeHistory.length)}`}
-                    </span>
-                  )}
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="w-12 text-xs font-semibold">#</TableHead>
-                        <TableHead className="text-xs font-semibold max-w-[140px]">
-                          {isBangla ? "টোকেন (ট্যাপে কপি)" : "Token (Tap to Copy)"}
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold">
-                          {isBangla ? "বিদ্যুৎ (kWh)" : "Power (kWh)"}
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold">
-                          {isBangla ? "টাকার পরিমাণ" : "Recharge Amount"}
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold">
-                          {isBangla ? "মাধ্যম" : "Channel"}
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold">
-                          {isBangla ? "তারিখ ও সময়" : "Date & Time"}
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold text-right">
-                          {isBangla ? "পদক্ষেপ" : "Action"}
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredRecharges.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-32 text-center text-xs text-muted-foreground">
-                            {t.history.noRecords}
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredRecharges.map((r, i) => (
-                          <TableRow
-                            key={r.id || i}
-                            onClick={() => setSelectedToken(r)}
-                            className="hover:bg-muted/50 cursor-pointer transition-colors group select-none"
-                            title={isBangla ? "বিস্তারিত ভাউচার দেখতে ক্লিক করুন" : "Click to view full voucher"}
-                          >
-                            <TableCell className="font-mono text-xs text-muted-foreground">
-                              {formatNumber(i + 1)}
-                            </TableCell>
-                            <TableCell className="max-w-[140px] py-2.5">
-                              <div className="flex items-center gap-1.5">
-                                {r.token ? (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      copyToClipboard(r.token)
-                                    }}
-                                    title={isBangla ? "ট্যাপ করে টোকেন কপি করুন" : "Tap to copy token"}
-                                    className="h-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/80 hover:bg-primary/10 hover:text-primary transition-all font-mono text-xs font-semibold border border-border/80 hover:border-primary/40 cursor-pointer text-left shadow-2xs"
-                                  >
-                                    <span>{compactToken(r.token, isBangla)}</span>
-                                    <Copy className="size-3 text-muted-foreground group-hover:text-primary shrink-0" />
-                                  </Button>
-                                ) : (
-                                  <span className="text-[11px] text-muted-foreground px-2 py-0.5 rounded bg-muted/50">
-                                    {isBangla ? "সরাসরি সমন্বয়" : "Direct Adjustment"}
-                                  </span>
-                                )}
-                                {r.token && r.token.length > 25 && (
-                                  <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 font-normal shrink-0">
-                                    {isBangla ? "মাল্টি" : "Multi"}
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-xs font-medium">
-                              {formatNumber(r.powerKwh)} kWh
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              <div className="font-bold text-foreground font-mono">
-                                {formatBDT(r.amountBdt)}
-                              </div>
-                              {r.netEnergyBdt && r.netEnergyBdt !== r.amountBdt ? (
-                                <div className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                  {isBangla ? "মিটারে:" : "Credited:"} {formatBDT(r.netEnergyBdt)}
-                                </div>
-                              ) : null}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[11px] font-normal">
-                                {r.via}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {formatDate(r.date)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs px-2.5 group-hover:border-primary/50 group-hover:bg-primary/5"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setSelectedToken(r)
-                                }}
-                              >
-                                {isBangla ? "বিস্তারিত" : "Details"}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Consumption Tab */}
-          <TabsContent value="consumption" className="space-y-4">
-            <Card className="rounded-2xl border shadow-xs overflow-hidden">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold">
-                  {isBangla ? "মাসিক বিদ্যুৎ ব্যবহার ও রিচার্জের খতিয়ান" : "Monthly Consumption Ledger"}
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">
-                  {isBangla
-                    ? "নেসকো বিলিং সিস্টেমের সংরক্ষিত পূর্ববর্তী মাসের মোট খরচ ও বিদ্যুৎ পরিমাপ"
-                    : "Historical energy units consumed and billed charges recorded in NESCO systems"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="text-xs font-semibold">{isBangla ? "বছর" : "Year"}</TableHead>
-                        <TableHead className="text-xs font-semibold">{isBangla ? "মাস" : "Month"}</TableHead>
-                        <TableHead className="text-xs font-semibold">{isBangla ? "মোট রিচার্জ" : "Gross Recharge"}</TableHead>
-                        <TableHead className="text-xs font-semibold">{isBangla ? "প্রিপেইড ছাড় (Rebate)" : "1% Rebate"}</TableHead>
-                        <TableHead className="text-xs font-semibold">{isBangla ? "বিদ্যুৎ ব্যবহার" : "Energy Consumed"}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.monthlyUsage.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="h-32 text-center text-xs text-muted-foreground">
-                            {isBangla ? "কোনো মাসিক ব্যবহারের রেকর্ড নেই।" : "No monthly usage records found."}
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        data.monthlyUsage.map((m, i) => (
-                          <TableRow key={i} className="hover:bg-muted/30 transition-colors">
-                            <TableCell className="font-mono text-xs">{formatNumber(m.year)}</TableCell>
-                            <TableCell className="text-xs font-medium">
-                              {isBangla ? formatMonthBangla(m.month) : String(m.month).slice(0, 3)}
-                            </TableCell>
-                            <TableCell className="text-xs font-bold text-foreground">
-                              {formatBDT(m.rechargeBdt)}
-                            </TableCell>
-                            <TableCell className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                              {formatBDT(m.discountBdt)}
-                            </TableCell>
-                            <TableCell className="text-xs font-semibold text-primary">
-                              {formatNumber(m.usageKwh)} kWh
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        </>
+      {rows.length !== all.length && (
+        <p aria-live="polite" className="text-xs text-muted-foreground">
+          {t.history.showing
+            .replace("{shown}", formatNumber(rows.length))
+            .replace("{total}", formatNumber(all.length))}
+        </p>
       )}
 
-      {/* Token Details Dialog */}
-      <Dialog open={Boolean(selectedToken)} onOpenChange={(open) => !open && setSelectedToken(null)}>
-        <DialogContent className="sm:max-w-md w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader className="pr-10">
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <Receipt className="size-5 text-primary" />
-              {isBangla ? "ভেন্ডিং টোকেন ভাউচার" : "Vending Token Voucher"}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              {t.history.tokenDetailsDesc}
-            </DialogDescription>
-          </DialogHeader>
+      {rows.length ? (
+        <>
+          <RechargeList records={visible} onReceipt={setReceipt} />
+          <RechargeTable records={visible} onReceipt={setReceipt} firstNumber={first + 1} />
+        </>
+      ) : (
+        <NoRows title={t.history.noMatch} />
+      )}
 
-          {selectedToken && (
-            <div className="space-y-4 pt-2">
-              {/* Token Display with Tap to Copy & Multi-token support */}
-              {(() => {
-                const tokenList = extractTokenList(selectedToken.token)
-                if (tokenList.length > 1) {
-                  return (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="font-bold text-foreground">
-                          {isBangla
-                            ? `মোট ${formatNumber(tokenList.length)}টি রিচার্জ টোকেন (ক্রম অনুযায়ী মিটারে দিন)`
-                            : `Total ${formatNumber(tokenList.length)} Tokens (Punch in order)`}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs text-primary gap-1"
-                          onClick={() => copyToClipboard(tokenList.join(" "))}
-                        >
-                          <Copy className="size-3" />
-                          <span>{isBangla ? "সব কপি" : "Copy All"}</span>
-                        </Button>
-                      </div>
+      {pages > 1 && (
+        <Pagination>
+          <PaginationContent className="flex-wrap justify-center">
+            <PaginationItem>
+              <Button variant="outline" size="sm" disabled={current === 1} onClick={() => setPage(current - 1)}>
+                {t.history.previous}
+              </Button>
+            </PaginationItem>
+            <PaginationItem aria-current="page" className="num px-2 text-sm">
+              {t.history.page.replace("{page}", formatNumber(current)).replace("{pages}", formatNumber(pages))}
+            </PaginationItem>
+            <PaginationItem>
+              <Button variant="outline" size="sm" disabled={current === pages} onClick={() => setPage(current + 1)}>
+                {t.history.next}
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
-                      <div className="space-y-2">
-                        {tokenList.map((tok, idx) => (
-                          <div
-                            key={idx}
-                            onClick={() => copyToClipboard(tok)}
-                            className="p-3 rounded-xl bg-muted/60 hover:bg-muted border flex items-center justify-between gap-2 cursor-pointer transition-colors group"
-                            title={isBangla ? "কপি করতে ট্যাপ করুন" : "Tap to copy"}
-                          >
-                            <div>
-                              <span className="text-[10px] text-muted-foreground font-semibold block">
-                                {isBangla ? `টোকেন ${formatNumber(idx + 1)}` : `Token ${formatNumber(idx + 1)}`}
-                              </span>
-                              <span className="font-mono text-sm sm:text-base font-bold text-primary select-all break-all">
-                                {tok}
-                              </span>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1 shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                copyToClipboard(tok)
-                              }}
-                            >
-                              <Copy className="size-3" />
-                              <span>{isBangla ? "কপি" : "Copy"}</span>
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                }
+      <ReceiptDialog record={receipt} customer={data.customerInfo} onOpenChange={(open) => !open && setReceipt(null)} />
 
-                return (
-                  <div
-                    onClick={() => selectedToken.token && copyToClipboard(selectedToken.token)}
-                    className="p-4 rounded-2xl bg-muted/60 hover:bg-muted/80 border text-center space-y-1.5 cursor-pointer transition-all active:scale-[0.99] group relative"
-                    title={isBangla ? "টোকেন নম্বর কপি করতে ট্যাপ করুন" : "Tap to copy token"}
-                  >
-                    <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
-                      <span>{isBangla ? "রিচার্জ টোকেন কোড" : "Recharge Token Code"}</span>
-                      <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full font-bold">
-                        {isBangla ? "ট্যাপ করে কপি করুন" : "Tap to copy"}
-                      </span>
-                    </div>
-                    <p className="font-mono text-lg sm:text-xl font-extrabold tracking-widest text-primary py-1 select-all break-all">
-                      {selectedToken.token || (isBangla ? "টোকেন কোড অপ্রাপ্য" : "Token Unavailable")}
-                    </p>
-                    {selectedToken.token && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs gap-1.5 mt-1"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          copyToClipboard(selectedToken.token)
-                        }}
-                      >
-                        {copiedToken ? (
-                          <>
-                            <Check className="size-3.5 text-emerald-500" />
-                            {isBangla ? "কপি হয়েছে" : "Copied"}
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="size-3.5" />
-                            {isBangla ? "টোকেন নম্বর কপি করুন" : "Copy Token Code"}
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                )
-              })()}
+      {printing && (
+        <PrintableTable
+          title={t.history.rechargePrintTitle}
+          subtitle={[
+            data.customerInfo.name,
+            formatNumber(maskMeter(data.customerInfo.meterNumber)),
+            t.history.periods[period],
+            query.trim(),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+          columns={[
+            { header: t.history.date },
+            { header: t.receipt.token },
+            { header: t.history.amount, align: "right" },
+            { header: t.history.energy, align: "right" },
+            { header: "kWh", align: "right" },
+            { header: t.receipt.channel },
+          ]}
+          rows={rows.map((r) => [
+            recordDate(r.date),
+            splitTokens(r.token).join(", "),
+            formatBDT(r.amountBdt),
+            r.netEnergyBdt === undefined ? "—" : formatBDT(r.netEnergyBdt),
+            formatNumber(r.powerKwh),
+            r.via,
+          ])}
+          footer={totalList.map(([label, value]) => `${label}: ${formatBDT(value)}`).join(" · ")}
+        />
+      )}
+    </>
+  )
+}
 
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2.5 rounded-lg border bg-card">
-                  <span className="text-muted-foreground block text-[11px]">{isBangla ? "রিচার্জের পরিমাণ" : "Recharge Deposit"}</span>
-                  <span className="font-bold text-foreground text-sm font-mono">{formatBDT(selectedToken.amountBdt)}</span>
-                </div>
-                <div className="p-2.5 rounded-lg border bg-card">
-                  <span className="text-muted-foreground block text-[11px]">{isBangla ? "মিটারে যুক্ত বিদ্যুৎ টাকা" : "Net Power Credited"}</span>
-                  <span className="font-bold text-primary text-sm font-mono">
-                    {formatBDT(selectedToken.netEnergyBdt || selectedToken.amountBdt)}
-                  </span>
-                </div>
-                <div className="p-2.5 rounded-lg border bg-card">
-                  <span className="text-muted-foreground block text-[11px]">{isBangla ? "প্রাপ্ত বিদ্যুৎ" : "Power Units"}</span>
-                  <span className="font-bold text-foreground text-sm">{formatNumber(selectedToken.powerKwh)} kWh</span>
-                </div>
-                <div className="p-2.5 rounded-lg border bg-card">
-                  <span className="text-muted-foreground block text-[11px]">{isBangla ? "পেমেন্ট মাধ্যম" : "Channel"}</span>
-                  <span className="font-medium text-foreground">{selectedToken.via}</span>
-                </div>
-              </div>
+function Monthly({ data }: { data: NescoFetchResult }) {
+  const { t, formatNumber } = useLanguage()
+  const { activeMeter } = useMeter()
+  const format = useMonthlyFormat()
+  const { printing, print } = usePrint()
+  const [range, setRange] = React.useState<"recent" | "all">("recent")
 
-              {(selectedToken.rent || selectedToken.demandCharge || selectedToken.vat) ? (
-                <div className="p-3 rounded-xl bg-muted/40 border text-xs space-y-1.5">
-                  <span className="text-[11px] font-bold text-muted-foreground block">
-                    {isBangla ? "সরকারি ও নিয়মিত কর্তন বিবরণী:" : "Deduction Telemetry:"}
-                  </span>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-                    {selectedToken.rent ? (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">{isBangla ? "মিটার রেন্ট:" : "Meter Rent:"}</span>
-                        <span className="font-mono text-foreground">{formatBDT(selectedToken.rent)}</span>
-                      </div>
-                    ) : null}
-                    {selectedToken.demandCharge ? (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">{isBangla ? "ডিমান্ড চার্জ:" : "Demand Charge:"}</span>
-                        <span className="font-mono text-foreground">{formatBDT(selectedToken.demandCharge)}</span>
-                      </div>
-                    ) : null}
-                    {selectedToken.vat ? (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">{isBangla ? "ভ্যাট (৫%):" : "VAT (5%):"}</span>
-                        <span className="font-mono text-foreground">{formatBDT(selectedToken.vat)}</span>
-                      </div>
-                    ) : null}
-                    {selectedToken.subsidy ? (
-                      <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
-                        <span>{isBangla ? "১% সরকারি রেয়াত:" : "1% Rebate:"}</span>
-                        <span className="font-mono font-bold">+{formatBDT(Math.abs(selectedToken.subsidy))}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
+  const sorted = React.useMemo(() => sortMonthlyDesc(data.monthlyUsage), [data.monthlyUsage])
+  const rows = range === "recent" ? sorted.slice(0, 12) : sorted
+  const columns = visibleMonthlyKeys(rows)
+  const isSample = data.dataSource === "sample_demo"
 
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                <ShieldCheck className="size-4 shrink-0" />
-                <span>
-                  {isBangla
-                    ? "মিটারের কিপ্যাডে সরাসরি এই ২০ সংখ্যার টোকেনটি প্রবেশ করিয়ে এন্টার (↵) চাপুন।"
-                    : "Punch this 20-digit key into your meter keypad and press the blue Enter (↵) key."}
-                </span>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+  if (!sorted.length) return <NoRows title={t.dashboard.noMonths} />
+
+  const exportCsv = () => {
+    const csvColumns: CsvColumn<MonthlyConsumptionRecord>[] = [
+      { header: t.history.year, value: (r) => r.year },
+      { header: t.history.month, value: (r) => r.month },
+      ...columns.map((key) => ({
+        header: t.history.columns[key],
+        value: (r: MonthlyConsumptionRecord) => monthlyValue(r, key),
+      })),
+    ]
+    downloadCsv(`billbari-monthly-${activeMeter}.csv`, toCsv(rows, csvColumns))
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ToggleGroup
+          variant="outline"
+          spacing={0}
+          aria-label={t.history.range}
+          value={[range]}
+          // pressing the active item would otherwise leave nothing selected
+          onValueChange={([next]) => next && setRange(next as typeof range)}
+        >
+          <ToggleGroupItem value="recent">{t.history.recentMonths}</ToggleGroupItem>
+          <ToggleGroupItem value="all">{t.history.allMonths}</ToggleGroupItem>
+        </ToggleGroup>
+        <RecordActions pdfKind="monthly" isSample={isSample} empty={false} onPrint={print} onCsv={exportCsv} />
+      </div>
+
+      <ConsumptionChart monthlyData={rows} isSampleData={isSample} />
+      <MonthlyList rows={rows} columns={columns} />
+      <MonthlyTable rows={rows} columns={columns} />
+
+      {printing && (
+        <PrintableTable
+          title={t.history.monthly}
+          subtitle={`${data.customerInfo.name} · ${formatNumber(maskMeter(data.customerInfo.meterNumber))} · ${
+            range === "recent" ? t.history.recentMonths : t.history.allMonths
+          }`}
+          columns={[
+            { header: t.history.year },
+            { header: t.history.month },
+            ...columns.map((key) => ({ header: t.history.columns[key], align: "right" as const })),
+          ]}
+          rows={rows.map((r) => [formatNumber(r.year), format.month(r), ...columns.map((key) => format.value(r, key))])}
+        />
+      )}
+    </>
+  )
+}
+
+function NoRows({ title }: { title: string }) {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyTitle className="text-sm">{title}</EmptyTitle>
+      </EmptyHeader>
+    </Empty>
   )
 }
