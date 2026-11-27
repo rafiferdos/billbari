@@ -244,9 +244,13 @@ pnpm build
 
 ## 🌉 বাংলাদেশ ব্রিজ (লাইভ ডেটার জন্য আবশ্যক)
 
-নেসকো পোর্টাল বাংলাদেশের বাইরের সার্ভারকে (Vercel সহ) HTTP 403 দেয়। তাই লাইভ সাইট বাংলাদেশের একটি পিসিতে চলা `scripts/bd-bridge.mjs`-এর মাধ্যমে ডেটা আনে। ব্রিজ নিজে একটি SSH টানেল খোলে (localhost.run, কোনো অ্যাকাউন্ট লাগে না) এবং ঠিকানাটি সই করে অ্যাপকে জানায়। অ্যাপ ও ব্রিজের মধ্যকার ডেটা এনক্রিপ্টেড।
+নেসকো পোর্টাল বাংলাদেশের বাইরের সার্ভারকে (Vercel সহ) HTTP 403 দেয়। তাই লাইভ সাইট বাংলাদেশের একটি পিসিতে চলা `scripts/bd-bridge.mjs`-এর মাধ্যমে ডেটা আনে। ব্রিজ নিজে একটি Cloudflare quick tunnel খোলে (কোনো অ্যাকাউন্ট লাগে না) এবং ঠিকানাটি সই করে অ্যাপকে জানায়। অ্যাপ ও ব্রিজের মধ্যকার ডেটা এনক্রিপ্টেড।
 
 ```powershell
+# একবার: Cloudflare-এর অফিসিয়াল cloudflared নামান
+New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\billbari\cloudflared"
+gh release download --repo cloudflare/cloudflared --pattern cloudflared-windows-amd64.exe --output "$env:LOCALAPPDATA\billbari\cloudflared\cloudflared.exe"
+
 # একবার: লগইন করলেই ব্রিজ চালু হবে, বন্ধ হলে ৫ মিনিটের মধ্যে আবার চালু হবে
 powershell -ExecutionPolicy Bypass -File scripts/install-bridge.ps1
 
@@ -254,6 +258,7 @@ powershell -ExecutionPolicy Bypass -File scripts/install-bridge.ps1
 pnpm bridge
 ```
 
+- Quick tunnel Cloudflare-এর শর্তাবলির অধীন এবং এর আপটাইমের কোনো নিশ্চয়তা নেই।
 - লগ: `data/bridge.log`। ব্যক্তিগত চাবি: `data/bridge-key.pem` (কখনো কমিট করবেন না)।
 - অন্য পিসিতে সরালে `node scripts/bd-bridge.mjs --public-key`-এর আউটপুট `src/features/nesco/bridge-public-key.ts`-এ বসিয়ে ডিপ্লয় করুন।
 - পিসি বন্ধ, লগআউট বা ইন্টারনেট বিচ্ছিন্ন থাকলে লাইভ ডেটা আসবে না।

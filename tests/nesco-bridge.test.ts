@@ -3,8 +3,7 @@ import type { Server } from "node:http"
 import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 // @ts-expect-error: a plain Node script without type declarations
-import { createBridgeServer } from "../scripts/bd-bridge.mjs"
-import { getDatabase } from "../src/features/db/server-db"
+import { createBridgeServer, quickTunnelUrl } from "../scripts/bd-bridge.mjs"
 import { bridgeFetch, getBridge, registerBridge } from "../src/features/nesco/bridge"
 import { seal } from "../src/features/nesco/bridge-crypto"
 
@@ -43,7 +42,7 @@ describe("app to bridge", () => {
     expect(nesco).toHaveBeenCalledWith(PORTAL, expect.objectContaining({ method: "POST", body: "cust_no=99999999" }))
   })
 
-  it("compresses large pages, because the free tunnel moves only a few KB a second", async () => {
+  it("compresses large pages so they cross the tunnel quickly", async () => {
     const page = "<tr><td>রিচার্জ</td><td>500.00</td></tr>".repeat(5000)
     nesco.mockResolvedValueOnce(new Response(page)).mockResolvedValueOnce(new Response(page))
 
@@ -69,6 +68,15 @@ describe("app to bridge", () => {
   })
 })
 
+describe("tunnel output", () => {
+  it("reads the address cloudflared announces, not the one in its API errors", () => {
+    expect(quickTunnelUrl("INF |  https://calm-river-demo.trycloudflare.com  |")).toBe(
+      "https://calm-river-demo.trycloudflare.com",
+    )
+    expect(quickTunnelUrl('ERR failed to request quick Tunnel: Post "https://api.trycloudflare.com/tunnel"')).toBeUndefined()
+  })
+})
+
 describe("bridge registration", () => {
   const pair = generateKeyPairSync("ed25519")
   const publicKey = pair.publicKey.export({ type: "spki", format: "pem" }).toString()
@@ -76,9 +84,13 @@ describe("bridge registration", () => {
     const body = JSON.stringify({ url: "https://one.lhr.life", key: key.toString("base64"), at: Date.now(), ...over })
     return registerBridge(body, sign(null, Buffer.from(body), signer).toString("base64"), publicKey)
   }
-  const clear = async () => (await getDatabase()).execute("DELETE FROM nesco_bridge")
-  beforeAll(clear)
-  afterAll(clear)
+  // Its own database: test files run in parallel and a shared SQLite file locks up.
+  beforeAll(() => {
+    vi.stubEnv("TURSO_DATABASE_URL", ":memory:")
+  })
+  afterAll(() => {
+    vi.unstubAllEnvs()
+  })
 
   it("stores only fresh, https, correctly signed addresses", async () => {
     expect(await register({}, generateKeyPairSync("ed25519").privateKey)).toBe(false)

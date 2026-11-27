@@ -1,6 +1,6 @@
 // Runs on a PC in Bangladesh. NESCO answers 403 to servers abroad, so the deployed app sends its NESCO requests here.
-// No accounts or settings: it opens an SSH tunnel and tells the app the current address, signed with a key
-// that never leaves this PC (data/bridge-key.pem). `--public-key` prints the half that goes in the app.
+// No accounts or settings: it opens a Cloudflare quick tunnel and tells the app the current address, signed
+// with a key that never leaves this PC (data/bridge-key.pem). `--public-key` prints the half that goes in the app.
 import { spawn } from "node:child_process"
 import { createPrivateKey, createPublicKey, generateKeyPairSync, randomBytes, sign } from "node:crypto"
 import fs from "node:fs"
@@ -19,8 +19,17 @@ const KEY_FILE = path.join(DATA_DIR, "bridge-key.pem")
 const LOG_FILE = path.join(DATA_DIR, "bridge.log")
 const MAX_REQUEST_BYTES = 64 * 1024
 const CHECK_EVERY_MS = 2 * 60_000
+const INSTALLED = path.join(process.env.LOCALAPPDATA ?? "", "billbari", "cloudflared", "cloudflared.exe")
+const CLOUDFLARED = process.env.CLOUDFLARED || (fs.existsSync(INSTALLED) ? INSTALLED : "cloudflared")
+const FIRST_RETRY_MS = 10_000
+const MAX_RETRY_MS = 5 * 60_000
+// A new hostname takes a few seconds to appear in DNS; asking sooner would cache "not found".
+const DNS_DELAY_MS = 6_000
 // fetch() has already decompressed the body, so these no longer describe it.
 const STALE_HEADERS = ["content-encoding", "content-length", "transfer-encoding"]
+
+/** The address in a line of cloudflared output; its error lines name api.trycloudflare.com instead. */
+export const quickTunnelUrl = (line) => line.match(/https:\/\/(?!api\.)[a-z0-9-]+\.trycloudflare\.com/)?.[0]
 
 export function createBridgeServer(key, send = fetch, report = () => {}) {
   return http.createServer(async (req, res) => {
@@ -61,7 +70,7 @@ export function createBridgeServer(key, send = fetch, report = () => {}) {
         id: job.id,
         status: upstream.status,
         headers: [...upstream.headers].filter(([name]) => !STALE_HEADERS.includes(name)),
-        // The free tunnel moves a few KB a second and a history page is ~300 KB; compressed it is ~11 KB.
+        // A history page is ~300 KB of repetitive HTML; compressed it is ~11 KB.
         body: gzipSync(page, { level: 9 }).toString("base64"),
       }
     } catch (err) {
@@ -99,7 +108,8 @@ function main() {
 
   const key = randomBytes(32)
   let url = ""
-  let ssh
+  let tunnel
+  let retryMs = FIRST_RETRY_MS
   let failures = 0
   let lastStatus = ""
 
@@ -124,39 +134,28 @@ function main() {
   function openTunnel() {
     url = ""
     failures = 0
-    ssh = spawn(
-      "ssh",
-      [
-        "-o", "StrictHostKeyChecking=accept-new",
-        "-o", "PubkeyAuthentication=no",
-        "-o", "ServerAliveInterval=15",
-        "-o", "ServerAliveCountMax=3",
-        "-o", "ExitOnForwardFailure=yes",
-        "-R", `80:127.0.0.1:${PORT}`,
-        "nokey@localhost.run",
-        "--", "--output", "json",
-      ],
-      { stdio: ["ignore", "pipe", "ignore"], windowsHide: true },
-    )
-    // The free tunnel rotates its address now and then; every new one is registered at once.
-    readline.createInterface({ input: ssh.stdout }).on("line", (line) => {
-      let address
-      try {
-        address = JSON.parse(line).data?.address
-      } catch {
-        return
-      }
-      if (!address?.endsWith(".lhr.life") || url === `https://${address}`) return
-      url = `https://${address}`
-      failures = 0
+    let address = ""
+    tunnel = spawn(CLOUDFLARED, ["tunnel", "--no-autoupdate", "--url", `http://127.0.0.1:${PORT}`], {
+      stdio: ["ignore", "ignore", "pipe"],
+      windowsHide: true,
+    })
+    readline.createInterface({ input: tunnel.stderr }).on("line", (line) => {
+      address ||= quickTunnelUrl(line) ?? ""
+      // The address is announced before the connection is up; wait for both.
+      if (url || !address || !line.includes("Registered tunnel connection")) return
+      url = address
+      retryMs = FIRST_RETRY_MS
       log("tunnel open")
       lastStatus = ""
-      register()
+      setTimeout(register, DNS_DELAY_MS)
     })
-    ssh.on("error", (err) => log(`ssh did not start (${err.code})`))
-    ssh.on("close", () => {
-      log("tunnel closed, reopening")
-      setTimeout(openTunnel, 10_000)
+    tunnel.on("error", (err) => log(`cloudflared did not start (${err.code})`))
+    tunnel.on("close", () => {
+      url = ""
+      log(`tunnel closed, reopening in ${retryMs / 1000}s`)
+      setTimeout(openTunnel, retryMs)
+      // Back off so that an outage does not get this PC rate limited.
+      retryMs = Math.min(retryMs * 2, MAX_RETRY_MS)
     })
   }
 
@@ -172,7 +171,7 @@ function main() {
     } else if ((log("health check failed"), ++failures >= 2)) {
       failures = 0
       log("tunnel not answering")
-      ssh.kill()
+      tunnel.kill()
     }
   }
 
@@ -189,7 +188,7 @@ function main() {
   })
   for (const signal of ["SIGINT", "SIGTERM"]) {
     process.on(signal, () => {
-      ssh?.kill()
+      tunnel?.kill()
       process.exit()
     })
   }
