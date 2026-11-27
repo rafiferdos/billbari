@@ -9,7 +9,7 @@ Never paste personal data (meter numbers, names, tokens) here.
 | 2 — Data & entitlements | done | `80f6142..4c4a803` plus a docs commit | 2026-11-27 |
 | 3 — Shell & home | done | `a0508e1..225ab7e` plus a docs commit | 2026-11-27 |
 | 4 — Records & tools | done | `5112d6e..742ebaa` plus a docs commit | 2026-11-27 |
-| 5 — Pro & polish | not started | | |
+| 5 — Pro & polish | done | `225f3f8..a3c4003` plus a docs commit | 2026-11-27 |
 
 Plan baseline: commit `3205907`, 2026-11-27. `node_modules` was not installed at
 planning time; Phase 1 Step 1 installs it and records the test/typecheck baseline.
@@ -281,3 +281,80 @@ meter, signed-in views with a real account.
 - A failed meter search writes the number to the server log (`nesco-service.ts`).
 - Nothing in the repo schedules `/api/cron/daily-pulse`.
 - Appliance simulator and saving tips still use the older dense card styling.
+
+---
+
+## Phase 5 — Pro pages, cleanup, QA (done 2026-11-27)
+
+**Deviations from the plan:**
+- Analytics fix: month-over-month, seasonality and monthly averages in
+  `generateAnalytics` now skip the running month, and English insight text uses English
+  digits and the channel name NESCO sent. Both showed false or mixed-language text on
+  the new Insights page.
+- Pro pages show a skeleton while the account loads, so Pro users do not see the lock
+  flash. `ProGate` elsewhere still does.
+- `history.tsx` and `insights.tsx` share `meter/meter-page.tsx` (search, empty, error,
+  loading, name line). `featureText` replaces repeated bilingual lookups.
+- Tracking: the "Automated Midnight Pulse Active" card is gone (nothing schedules the
+  cron). Manual entry no longer prefills invented 85 / 2550 estimates or another
+  meter's values, and hides unknown estimates. The burn card is hidden when the balance
+  rose (it claimed "100% more efficient" after a recharge). The cached snapshot list now
+  mirrors the server, because it showed another account's rows on a shared browser. The
+  open meter is the loaded meter number, and the entry date is the local day.
+- Pricing: `PaymentPlan.featuresEnglish` added and plan bullets shown on the cards; the
+  cards are buttons (they were click-only divs); unverifiable tags and descriptions
+  removed; bKash pink replaced by the primary token. Verification flow unchanged.
+- Token check has no baseline mode at all and also catches `[#hex]` classes. The Google
+  logo moved to `public/google-g.svg`.
+- Also deleted: unused `alert-dialog`, `field`, `progress`, `switch` UI files, unused
+  types and collection, 64 unused translation entries.
+- QA found and fixed: a printed receipt was shifted off the page in production builds
+  (the CSS minifier dropped `translate: none`); the locked card heading skipped a level.
+- QA ran after Tasks 1–3 in one pass, not inside each task.
+- The branch review was a self-review, not a fresh-context reviewer.
+
+**Numbers:** 233 tests. Lint 0 errors, 70 warnings. Token-lint total 161 → **0**.
+`isBangla ?` occurrences 190 → 41; the rest pick bilingual data fields or a locale.
+
+**Old tracking page behaviors, all kept:** meter follows the active meter; server load
+synced to the client DB (client copy shown first); manual daily sync; manual entry;
+delete with confirm; detail dialog; source filter; daily burn card; sample preview for
+non-Pro viewers.
+
+**QA matrix** (sample meter, local SQLite, throwaway Pro account, restored afterwards)
+
+| Check | Result | Note |
+| --- | --- | --- |
+| Dashboard: 8 themes × light/dark × 360/1280 | ✔ | No horizontal scroll, dock covers nothing, layout and fonts match the theme |
+| Glass, gradient and green header readability | ✔ | Token contrast test; spot screenshots of `aurora`, `sonar`, `komol` |
+| Safe area under the dock | ✔ | Not tested on an iOS device; CSS uses `env(safe-area-inset-bottom)` |
+| Landing, History, Tools, Insights, Tracking, Help: `bidyut`, `khata`, `console` × modes × widths, free | ✔ | Locked Insights and Tracking show no money outside buttons |
+| Insights and Tracking as Pro, same matrix | ✔ | Charts render; save, sync, delete and details work |
+| Tab order, "/" shortcut | ✔ | header → search → page → footer |
+| Dialogs and sheets: focus trap, Esc, focus return | ✔ | Pricing, snapshot, receipt, More, appearance |
+| Icon-only buttons named, `aria-current` on nav | ✔ | |
+| Lighthouse mobile, `/` with sample meter | ✔ | Accessibility 100, Best Practices 100. LCP 149 ms, CLS 0.10 (local, unthrottled) |
+| Only the active theme's fonts load | ✔ | Fresh profile; Chrome may prefetch fonts seen earlier |
+| Reduced motion | ✔ | No running CSS animations; Recharts follows the setting |
+| Print: history tables and receipt | ✔ | Print media emulation; no real printer |
+| No flash, no hydration errors | ✔ | Theme set before the body in all 8; no console errors |
+
+**Known issues**
+- `autoDailyPulse` is sold as Pro, but the repo schedules no cron for
+  `/api/cron/daily-pulse`. It needs a schedule and `CRON_SECRET`, or removal from the matrix.
+- Without `BKASH_PERSONAL_NUMBER` the payment dialog shows a number hard-coded in
+  `bkash-server.ts` and the dialog. Set the variable, or remove the fallback.
+- A first daily sync (and the cron) stores a made-up daily cost of 48.5 when there is no
+  earlier snapshot. The synced "reading" is the month's usage, not a meter reading.
+- `login`/`register` return a user without `isPremium`: Pro users look free until reload.
+- Auth toasts and server error messages are Bangla only.
+- Offline, the cached snapshot list is not scoped to the account.
+- `parseNescoDate` reads all-numeric `DD-MM-YYYY` month-first when the day is 12 or less.
+- A failed meter search writes the number to the server log. A real household's meter
+  number remains in git history (Phase 2).
+- Earlier test rows may remain in the remote Turso database (Phase 2).
+- Bangla snapshot-dialog date shows a Latin year. Recharts warns once about a zero-size
+  chart in production. CLS is at the 0.10 limit. Appliance simulator and saving tips
+  keep the older dense styling.
+- Not checked: real printer, file download, live NESCO PDF links, Google sign-in, a real
+  bKash payment.
