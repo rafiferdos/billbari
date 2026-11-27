@@ -1,70 +1,98 @@
 import * as cheerio from "cheerio"
-import type { MonthlyConsumptionRecord, RechargeRecord, NescoFetchResult } from "./types"
-import { getSampleMeterData } from "./sample-data"
+import type { CustomerField, CustomerInfo, MonthlyConsumptionRecord, RechargeReceiptData, RechargeRecord, NescoFetchResult } from "./types"
+import { NESCO_SUBMIT, openNescoSession, postNescoForm } from "./nesco-session"
+import { toNum } from "./parse-utils"
+import { SAMPLE_METERS, getSampleMeterData } from "./sample-data"
 
-const DEFAULT_PORTAL_URL = "https://customer.nesco.gov.bd/pre/panel"
-const TIMEOUT_MS = 25000 // 25 seconds headroom for NESCO and tunnel response
-const BROWSER_USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+type CustomerKey = Exclude<keyof CustomerInfo, "fields" | "arrearNotice">
 
-function getPortalUrl(): string {
-  const custom = process.env.NESCO_PROXY_URL || process.env.NESCO_PORTAL_URL
-  return custom?.trim() || DEFAULT_PORTAL_URL
-}
+// NESCO and editors encode letters like য় differently; compare in one form.
+const nfc = (text: string) => text.normalize("NFC").toLowerCase()
 
-interface NescoScrapedCustomerInfo {
-  name: string
-  address: string
-  electricityOffice: string
-  feederName: string
-  meterNumber: string
-  customerNumber: string
-  approvedLoadKw: number
-  balance: number
-  tariff: string
-}
+// First matching rule wins, so the balance rule comes before anything else.
+const CUSTOMER_LABELS: [CustomerKey, string[]][] = [
+  ["balance", ["ব্যালেন্স", "balance"]],
+  ["name", ["গ্রাহকের নাম", "customer name"]],
+  ["address", ["ঠিকানা", "address"]],
+  ["electricityOffice", ["অফিস", "office"]],
+  ["feederName", ["ফিডার", "feeder"]],
+  ["meterNumber", ["মিটার নম্বর", "meter no", "meter number"]],
+  ["customerNumber", ["গ্রাহক নম্বর", "কনজ্যুমার নম্বর", "customer no", "consumer no"]],
+  ["approvedLoadKw", ["লোড", "load"]],
+  ["tariff", ["ট্যারিফ", "tariff"]],
+]
+const TIME_WORDS = ["সময়", "তারিখ", "time", "date", "update"]
 
-function parseCustomerInfo($: cheerio.CheerioAPI, custNo: string): NescoScrapedCustomerInfo {
-  const labelValues: Record<string, string> = {}
+const clean = (text: string) => text.replace(/\s+/g, " ").trim()
+const includesAny = (text: string, words: string[]) => words.some((w) => text.includes(nfc(w)))
+// "(সময়ঃ 27 November 2026 12:00:00 AM )" inside the balance label
+const LABEL_TIME = new RegExp(`(?:${"সময়".normalize("NFC")}|time)\\s*[ঃ:]\\s*([^)]+?)\\s*\\)`, "i")
 
-  $("label").each((_, elem) => {
-    const text = $(elem).text().replace(/\s+/g, " ").trim()
-    const inputVal = $(elem).next("input").val() || $(elem).parent().find("input").val() || ""
-    if (text) {
-      labelValues[text] = String(inputVal).trim()
+export function parseCustomerInfo($: cheerio.CheerioAPI, custNo: string): CustomerInfo {
+  const fields: CustomerField[] = []
+  const found: Partial<Record<CustomerKey, string>> = {}
+
+  $($("#con_info_div").length ? "#con_info_div label" : "label").each((_, elem) => {
+    const label = clean($(elem).text())
+    if (!label) return
+    // The live portal wraps each input in the label's next sibling, several pairs per row.
+    const next = $(elem).next()
+    let input = next.is("input") ? next : next.find("input").first()
+    if (!input.length && !$(elem).siblings("label").length) input = $(elem).parent().find("input").first()
+    const id = $(elem).attr("for")
+    if (!input.length && id) input = $("input").filter((__, el) => el.attribs.id === id)
+    if (!input.length) return
+
+    const value = clean(String(input.val() ?? ""))
+    fields.push({ label, value })
+
+    const text = nfc(label)
+    let key = CUSTOMER_LABELS.find(([, words]) => includesAny(text, words))?.[0]
+    if (key === "balance") {
+      const time = label.normalize("NFC").match(LABEL_TIME)?.[1]
+      if (time) found.balanceUpdatedAt ??= time
+      else if (includesAny(text, TIME_WORDS)) key = "balanceUpdatedAt"
     }
+    if (key) found[key] ??= value
   })
 
-  // Alternatively collect all inputs in customer-info card
-  const inputList: string[] = []
-  $("input.form-control").each((_, elem) => {
-    inputList.push(String($(elem).val() || "").trim())
-  })
+  // Positional fallback for markup without usable labels.
+  const inputs = $("input.form-control")
+    .map((_, elem) => String($(elem).val() || "").trim())
+    .get()
 
-  // Try to parse values
-  const name = inputList[1] || labelValues["গ্রাহকের নাম"] || labelValues["Customer Name"] || "NESCO Customer"
-  const address = inputList[3] || labelValues["ঠিকানা"] || labelValues["Address"] || "Rajshahi / Rangpur"
-  const office = inputList[5] || labelValues["বিদ্যুৎ অফিস"] || labelValues["Electricity Office"] || "NESCO Office"
-  const feeder = inputList[6] || labelValues["ফিডার"] || labelValues["Feeder Name"] || "Local Feeder"
-  const meterNum = inputList[8] || custNo
-  const load = parseFloat(inputList[9] || "2.0") || 2.0
-  const balanceRaw = inputList[inputList.length - 1] || "0.0"
-  const balance = parseFloat(balanceRaw.replace(/[^0-9.]/g, "")) || 0
+  const notice = $("#arrear_notice_div")
+  const hidden = /display\s*:\s*none/i.test(notice.attr("style") ?? "")
 
   return {
-    name,
-    address,
-    electricityOffice: office,
-    feederName: feeder,
-    meterNumber: meterNum,
-    customerNumber: custNo,
-    approvedLoadKw: load,
-    balance,
-    tariff: "LT-A (Domestic)",
+    name: found.name || inputs[1] || "NESCO Customer",
+    address: found.address || inputs[3] || "Rajshahi / Rangpur",
+    electricityOffice: found.electricityOffice || inputs[5] || "NESCO Office",
+    feederName: found.feederName || inputs[6] || "Local Feeder",
+    meterNumber: found.meterNumber || inputs[8] || custNo,
+    customerNumber: found.customerNumber || custNo,
+    approvedLoadKw: toNum(found.approvedLoadKw) || toNum(inputs[9]) || 2,
+    balance: toNum(found.balance ?? inputs.at(-1)),
+    tariff: found.tariff || "LT-A (Domestic)",
+    fields,
+    arrearNotice: hidden ? null : clean(notice.text()) || null,
+    balanceUpdatedAt: found.balanceUpdatedAt || null,
   }
 }
 
-function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
+const RECEIPT_ATTRS: Record<keyof RechargeReceiptData, string> = {
+  orderNo: "data-order",
+  seq: "data-seq",
+  purchaseAmount: "data-purchaseamount",
+  totalAmount: "data-totalamount",
+  debtAmount: "data-debtamount",
+  paidAmount: "data-paidamount",
+  saleName: "data-salename",
+  purchaseDate: "data-purchasedate",
+  purchaseEnergy: "data-purchaseenergy",
+}
+
+export function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
   const records: RechargeRecord[] = []
   const table = $("table.bfont_post").first()
   if (!table.length) return records
@@ -112,7 +140,13 @@ function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
     const cols = $(row).find("td").map((__, td) => $(td).text().trim()).get()
     if (cols.length >= 7) {
       const id = cols[0] || String(i + 1)
-      let token = cols[tokenIdx] || ""
+      const link = $(row).find("a.consumerRechargeData").first()
+      const receipt: RechargeReceiptData = Object.fromEntries(
+        Object.entries(RECEIPT_ATTRS)
+          .map(([key, attr]) => [key, link.attr(attr)?.trim()])
+          .filter(([, value]) => value)
+      )
+      let token = link.attr("data-token")?.trim() || cols[tokenIdx] || ""
 
       // Failsafe: if token column was empty or didn't contain digits, scan cols for token pattern
       if (!token || !token.replace(/[^0-9]/g, "").length) {
@@ -127,8 +161,8 @@ function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
 
       // Intelligently parse Gross Recharge (amount paid by customer at bKash/Nagad)
       // vs Net Energy (amount added directly to meter electricity balance after deductions)
-      let grossAmount = parseFloat(cols[grossAmountIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const netEnergyBdt = parseFloat(cols[netEnergyIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      let grossAmount = toNum(cols[grossAmountIdx])
+      const netEnergyBdt = toNum(cols[netEnergyIdx])
 
       // If gross amount wasn't in cols[10] (e.g. older 6-column layout), fallback to net or amount column
       if (grossAmount === 0 && netEnergyBdt > 0) {
@@ -136,19 +170,22 @@ function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
       }
 
       // Parse power in kWh (must be non-negative)
-      let powerKwh = parseFloat(cols[powerKwhIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      let powerKwh = toNum(cols[powerKwhIdx])
       if (powerKwh < 0) powerKwh = 0
 
-      const rent = parseFloat(cols[rentIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const demandCharge = parseFloat(cols[demandIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const pfcCharge = parseFloat(cols[pfcIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const vat = parseFloat(cols[vatIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const arrears = parseFloat(cols[arrearsIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const subsidy = parseFloat(cols[rebateIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const rent = toNum(cols[rentIdx])
+      const demandCharge = toNum(cols[demandIdx])
+      const pfcCharge = toNum(cols[pfcIdx])
+      const vat = toNum(cols[vatIdx])
+      const arrears = toNum(cols[arrearsIdx])
+      const subsidy = toNum(cols[rebateIdx])
 
       const via = cols[viaIdx] || "Online"
       const date = cols[dateIdx] || ""
       const status = cols[statusIdx] || "Success"
+
+      // One vend can carry several tokens, which NESCO joins with commas and a literal "<br>".
+      token = token.replace(/<br\s*\/?>/gi, " ").split(/[\s,]+/).filter(Boolean).join(", ")
 
       if (token || grossAmount > 0) {
         records.push({
@@ -166,6 +203,7 @@ function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
           vat,
           arrears,
           subsidy,
+          ...(Object.keys(receipt).length > 0 && { receipt }),
         })
       }
     }
@@ -174,7 +212,7 @@ function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
   return records
 }
 
-function parseConsumptionTable($: cheerio.CheerioAPI): MonthlyConsumptionRecord[] {
+export function parseConsumptionTable($: cheerio.CheerioAPI): MonthlyConsumptionRecord[] {
   const records: MonthlyConsumptionRecord[] = []
   const table = $("table.bfont_post").first()
   if (!table.length) return records
@@ -218,20 +256,20 @@ function parseConsumptionTable($: cheerio.CheerioAPI): MonthlyConsumptionRecord[
     if (cols.length >= 5) {
       const year = cols[yearIdx]
       const month = cols[monthIdx]
-      const rechargeBdt = parseFloat(cols[rechargeIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const discountBdt = parseFloat(cols[discountIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const energyBdt = parseFloat(cols[energyBdtIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const meterRent = parseFloat(cols[rentIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const demandCharge = parseFloat(cols[demandIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const vat = parseFloat(cols[vatIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const totalBillBdt = parseFloat(cols[totalBillIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
-      const monthEndBalance = parseFloat(cols[balanceIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      const rechargeBdt = toNum(cols[rechargeIdx])
+      const discountBdt = toNum(cols[discountIdx])
+      const energyBdt = toNum(cols[energyBdtIdx])
+      const meterRent = toNum(cols[rentIdx])
+      const demandCharge = toNum(cols[demandIdx])
+      const vat = toNum(cols[vatIdx])
+      const totalBillBdt = toNum(cols[totalBillIdx])
+      const monthEndBalance = toNum(cols[balanceIdx])
 
       // Usage in kWh (make sure we grab kWh, not BDT!)
-      let usageKwh = parseFloat(cols[usageKwhIdx]?.replace(/[^0-9.-]/g, "") || "0") || 0
+      let usageKwh = toNum(cols[usageKwhIdx])
       if (usageKwh === 0 && cols.length === 5) {
         // In legacy 5-column table, index 4 was usage
-        usageKwh = parseFloat(cols[4]?.replace(/[^0-9.-]/g, "") || "0") || 0
+        usageKwh = toNum(cols[4])
       }
 
       if (year && month) {
@@ -261,105 +299,21 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
     throw new Error("অনুগ্রহ করে ৮ থেকে ১১ ডিজিটের সঠিক মিটার বা গ্রাহক নম্বর দিন।")
   }
 
-  // Only return sample data if explicitly requested in unit tests / explicit demo mode
-  if (forceSample) {
+  // Built-in sample numbers never reach the portal: they may belong to a real customer.
+  if (forceSample || cleanCustNo in SAMPLE_METERS) {
     return getSampleMeterData(cleanCustNo)
   }
 
-  const portalUrl = getPortalUrl()
-
   try {
-    // 1. Initial GET to obtain session cookies and CSRF token
-    const getRes = await fetch(portalUrl, {
-      headers: {
-        "User-Agent": BROWSER_USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "Sec-Ch-Ua": '"Not-A.Brand";v="99", "Chromium";v="124", "Google Chrome";v="124"',
-        "Sec-Ch-Ua-Mobile": "?0",
-        "Sec-Ch-Ua-Platform": '"Windows"',
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Upgrade-Insecure-Requests": "1",
-      },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    })
-
-    if (!getRes.ok) {
-      if (getRes.status === 403) {
-        throw new Error(
-          "নেসকো পোর্টাল এক্সেস আটকে দিয়েছে (HTTP 403 Forbidden)। নেসকো সরকারি পোর্টাল শুধুমাত্র বাংলাদেশ থেকে সরাসরি এক্সেসযোগ্য। বিদেশি ক্লাউড সার্ভার (যেমন Vercel) থেকে জিও-ব্লকিং (Geo-blocking) থাকায় সরাসরি সংযোগ ব্লক হচ্ছে।"
-        )
-      }
-      throw new Error(`নেসকো সরকারি পোর্টাল স্ট্যাটাস কোড: ${getRes.status}`)
-    }
-
-    const getHtml = await getRes.text()
-    const cookies = getRes.headers.getSetCookie?.() || []
-    const cookieHeader = cookies.map((c) => c.split(";")[0]).join("; ")
-
-    const tokenMatch =
-      getHtml.match(/<meta\s+name=["']csrf-token["']\s+content=["']([^"']+)["']/i) ||
-      getHtml.match(/name=["']_token["']\s+value=["']([^"']+)["']/i)
-
-    const csrfToken = tokenMatch ? tokenMatch[1] : ""
-    if (!csrfToken) {
-      throw new Error("নেসকো পোর্টাল থেকে CSRF টোকেন পাওয়া যায়নি।")
-    }
-
-    // 2. Fetch Recharge History & Monthly Usage in parallel for maximum speed
-    const rechargeBody = new URLSearchParams({
-      _token: csrfToken,
-      cust_no: cleanCustNo,
-      submit: "রিচার্জ হিস্ট্রি",
-    })
-
-    const usageBody = new URLSearchParams({
-      _token: csrfToken,
-      cust_no: cleanCustNo,
-      submit: "মাসিক ব্যবহার",
-    })
-
-    const postHeaders = {
-      "User-Agent": BROWSER_USER_AGENT,
-      "Cookie": cookieHeader,
-      "Referer": portalUrl,
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Origin": "https://customer.nesco.gov.bd",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-      "Accept-Language": "bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Sec-Ch-Ua": '"Not-A.Brand";v="99", "Chromium";v="124", "Google Chrome";v="124"',
-      "Sec-Ch-Ua-Mobile": "?0",
-      "Sec-Ch-Ua-Platform": '"Windows"',
-      "Sec-Fetch-Dest": "document",
-      "Sec-Fetch-Mode": "navigate",
-      "Sec-Fetch-Site": "same-origin",
-      "Sec-Fetch-User": "?1",
-      "Upgrade-Insecure-Requests": "1",
-    }
-
+    const session = await openNescoSession()
     const [rechargeRes, usageRes] = await Promise.all([
-      fetch(portalUrl, {
-        method: "POST",
-        headers: postHeaders,
-        body: rechargeBody.toString(),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      }),
-      fetch(portalUrl, {
-        method: "POST",
-        headers: postHeaders,
-        body: usageBody.toString(),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      }),
+      postNescoForm(session, cleanCustNo, NESCO_SUBMIT.recharge),
+      postNescoForm(session, cleanCustNo, NESCO_SUBMIT.monthly),
     ])
 
     if (!rechargeRes.ok) {
       if (rechargeRes.status === 403) {
-        throw new Error("নেসকো পোর্টাল এক্সেস আটকে দিয়েছে (HTTP 403 Forbidden)।")
+        throw new Error("নেসকো পোর্টাল এক্সেস আটকে দিয়েছে (HTTP 403 Forbidden)।")
       }
       throw new Error(`নেসকো রিচার্জ রিকোয়েস্ট ব্যর্থ (স্ট্যাটাস ${rechargeRes.status})`)
     }

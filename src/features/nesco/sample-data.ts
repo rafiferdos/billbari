@@ -1,9 +1,31 @@
 import type { CustomerInfo, MonthlyConsumptionRecord, RechargeRecord, NescoFetchResult } from "./types"
 
+type SampleInfo = Omit<CustomerInfo, "fields" | "arrearNotice" | "balanceUpdatedAt">
+
+function sampleInfo(info: SampleInfo): CustomerInfo {
+  const rows: [string, string | number][] = [
+    ["গ্রাহকের নাম", info.name],
+    ["ঠিকানা", info.address],
+    ["সংশ্লিষ্ট বিদ্যুৎ অফিস", info.electricityOffice],
+    ["ফিডারের নাম", info.feederName],
+    ["কনজ্যুমার নম্বর", info.customerNumber],
+    ["মিটার নম্বর", info.meterNumber],
+    ["অনুমোদিত লোড (কি.ও)", info.approvedLoadKw],
+    ["অনুমোদিত ট্যারিফ", info.tariff],
+    ["অবশিষ্ট ব্যালেন্স (টাকা)", info.balance],
+  ]
+  return {
+    ...info,
+    fields: rows.map(([label, value]) => ({ label, value: String(value) })),
+    arrearNotice: null,
+    balanceUpdatedAt: null,
+  }
+}
+
 export const SAMPLE_METERS: Record<string, { labelBangla: string; customerInfo: CustomerInfo; rechargeHistory: RechargeRecord[]; monthlyUsage: MonthlyConsumptionRecord[] }> = {
   "12345678": {
     labelBangla: "আবাসিক গ্রাহক (রাজশাহী সদর)",
-    customerInfo: {
+    customerInfo: sampleInfo({
       name: "MD. RAHIM UDDIN",
       address: "House 42, Road 5, Alokar Mor, Sadar, Rajshahi",
       electricityOffice: "Rajshahi S&D-1",
@@ -13,7 +35,7 @@ export const SAMPLE_METERS: Record<string, { labelBangla: string; customerInfo: 
       approvedLoadKw: 2.0,
       balance: 987.43,
       tariff: "LT-A (Domestic)",
-    },
+    }),
     rechargeHistory: [
       {
         id: "1",
@@ -122,7 +144,7 @@ export const SAMPLE_METERS: Record<string, { labelBangla: string; customerInfo: 
   },
   "11019842510": {
     labelBangla: "মধ্যম পরিসরের পরিবার (বগুড়া শহর)",
-    customerInfo: {
+    customerInfo: sampleInfo({
       name: "BEGUM FATEMA KHATUN",
       address: "Jaleshwaritola, Ward 4, Bogura Municipality",
       electricityOffice: "Bogura S&D-2",
@@ -132,7 +154,7 @@ export const SAMPLE_METERS: Record<string, { labelBangla: string; customerInfo: 
       approvedLoadKw: 3.0,
       balance: 1420.5,
       tariff: "LT-A (Domestic)",
-    },
+    }),
     rechargeHistory: [
       {
         id: "1",
@@ -190,10 +212,10 @@ export function getSampleMeterData(meterNumber: string): NescoFetchResult {
   return {
     success: true,
     dataSource: "sample_demo",
-    customerInfo: {
+    customerInfo: sampleInfo({
       ...match.customerInfo,
       meterNumber: meterNumber || match.customerInfo.meterNumber,
-    },
+    }),
     rechargeHistory: match.rechargeHistory,
     monthlyUsage: match.monthlyUsage,
     statusMessage: "রেফারেন্স ডেমো ডেটা সফলভাবে লোড হয়েছে।",

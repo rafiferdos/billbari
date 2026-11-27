@@ -8,6 +8,28 @@ export interface CustomerInfo {
   approvedLoadKw: number | string
   balance: number
   tariff: string
+  /** Every label/value NESCO shows, in NESCO's order. */
+  fields: CustomerField[]
+  arrearNotice: string | null
+  balanceUpdatedAt: string | null
+}
+
+export interface CustomerField {
+  label: string
+  value: string
+}
+
+/** Vending receipt, as NESCO prints it (strings, empty ones omitted). */
+export interface RechargeReceiptData {
+  orderNo?: string
+  seq?: string
+  purchaseAmount?: string
+  totalAmount?: string
+  debtAmount?: string
+  paidAmount?: string
+  saleName?: string
+  purchaseDate?: string
+  purchaseEnergy?: string
 }
 
 export interface RechargeRecord {
@@ -26,6 +48,7 @@ export interface RechargeRecord {
   vat?: number
   arrears?: number
   subsidy?: number
+  receipt?: RechargeReceiptData
 }
 
 export interface MonthlyConsumptionRecord {
