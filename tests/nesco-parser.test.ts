@@ -107,6 +107,16 @@ describe("fetchNescoData", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {})
     await expect(fetchNescoData("99999999")).rejects.toThrow("HTTP 403 Forbidden")
   })
+
+  it("names a connection failure and keeps the meter number out of the logs", async () => {
+    const cause = { code: "ENOTFOUND" }
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed", { cause })))
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    warn.mockClear()
+    await expect(fetchNescoData("99999999")).rejects.toThrow("(network: ENOTFOUND)")
+    expect(warn).toHaveBeenCalled()
+    expect(warn.mock.calls.flat().join(" ")).not.toContain("99999999")
+  })
 })
 
 const fixture = (name: string) => new URL(`./fixtures/nesco/${name}.html`, import.meta.url)

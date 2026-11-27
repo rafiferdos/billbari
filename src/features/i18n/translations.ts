@@ -249,6 +249,7 @@ export const translations = {
       sample: "মিটার তথ্য লোড হয়েছে।",
       blocked: "নেসকো পোর্টাল সংযোগ আটকে দিয়েছে (HTTP 403)।",
       gateway: "নেসকো সার্ভার এখন পাওয়া যাচ্ছে না (HTTP 502)।",
+      unreachable: "নেসকো সার্ভারের সাথে সংযোগ করা যায়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।",
       failed: "মিটার তথ্য লোড করা সম্ভব হয়নি।",
     },
     auth: {
@@ -811,6 +812,7 @@ export const translations = {
       sample: "Sample meter data loaded.",
       blocked: "NESCO portal blocked the connection (HTTP 403). It only accepts Bangladeshi IP addresses.",
       gateway: "NESCO's server is unavailable (HTTP 502).",
+      unreachable: "Could not connect to NESCO's server. Please try again in a while.",
       failed: "Could not load the meter.",
     },
     auth: {

@@ -351,8 +351,14 @@ export async function fetchNescoData(custNo: string, forceSample = false): Promi
     let errorMsg = err instanceof Error ? err.message : String(err)
     if (errorMsg.toLowerCase().includes("timeout") || errorMsg.toLowerCase().includes("aborted")) {
       errorMsg = "নেসকো সরকারি সার্ভার সাড়া দিতে অতিরিক্ত সময় নিয়েছে (Timeout)। অনুগ্রহ করে কয়েক সেকেন্ড পর পুনরায় সার্চ বাটনে চাপুন।"
+    } else if (err instanceof TypeError && errorMsg === "fetch failed") {
+      // The client matches "network:" to pick the English text.
+      const code = (err.cause as { code?: string } | undefined)?.code ?? "unknown"
+      errorMsg = `নেসকো সার্ভারের সাথে সংযোগ করা যায়নি (network: ${code})। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।`
     }
-    console.warn(`[NESCO Live Fetch Warning for ${cleanCustNo}]:`, errorMsg)
+    // Never log the meter number: it identifies a customer.
+    const route = process.env.NESCO_PROXY_URL ? "proxy" : "direct"
+    console.warn(`[NESCO live fetch failed, ${route}]:`, errorMsg)
     throw new Error(errorMsg)
   }
 }

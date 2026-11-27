@@ -160,7 +160,9 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
             ? t.meterLoad.blocked
             : rawMsg.includes("502")
               ? t.meterLoad.gateway
-              : t.meterLoad.failed
+              : rawMsg.includes("network:")
+                ? t.meterLoad.unreachable
+                : t.meterLoad.failed
         setError(msg)
         setFailedMeter(num)
         if (!options?.silent) {
