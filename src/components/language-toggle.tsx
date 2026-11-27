@@ -13,8 +13,8 @@ interface LanguageToggleProps {
   className?: string
 }
 
-// Navbar space fix (Phase 8 correction): the two-pill toggle is about
-// 100px wide, which is what pushed the mobile top row over 360px.
+// Header space: the two-pill toggle is about 100px wide, which is what
+// pushed the mobile top row over 360px.
 // On small screens it becomes a single 32px globe icon that opens a
 // menu; the full pill toggle returns at sm and up, where it fits.
 // Nothing is lost: both languages stay one tap away in either form.

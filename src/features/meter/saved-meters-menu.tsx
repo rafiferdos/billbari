@@ -24,9 +24,12 @@ import { useLanguage } from "@/features/i18n/language-context"
 export function SavedMetersMenu({
   onSaveCurrentMeter,
   hasCurrentMeter,
+  trigger,
 }: {
   onSaveCurrentMeter?: () => void
   hasCurrentMeter?: boolean
+  /** Replaces the default "Saved meters" button. */
+  trigger?: React.ReactElement
 }) {
   const { user, openAuthModal } = useAuth()
   const { fetchMeter } = useMeter()
@@ -94,13 +97,17 @@ export function SavedMetersMenu({
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
-      <DropdownMenuTrigger className="focus:outline-none">
-        <div className="h-11 px-4 rounded-xl border border-input bg-background flex items-center justify-center gap-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors w-full sm:w-auto shrink-0 cursor-pointer">
-          <Bookmark className="size-4 text-primary" />
-          <span>{isBangla ? "সংরক্ষিত মিটার" : "Saved meters"}</span>
-          <ChevronDown className="size-3.5 text-muted-foreground" />
-        </div>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger
+        render={
+          trigger ?? (
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Bookmark className="text-primary" />
+              <span>{isBangla ? "সংরক্ষিত মিটার" : "Saved meters"}</span>
+              <ChevronDown className="text-muted-foreground" />
+            </Button>
+          )
+        }
+      />
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuGroup>
           <DropdownMenuLabel>

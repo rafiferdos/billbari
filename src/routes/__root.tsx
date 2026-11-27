@@ -12,7 +12,8 @@ import {
 import { THEME_CSS } from "@/features/theme/build-theme-css"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/toast"
-import { Navbar } from "@/components/navbar"
+import { AppHeader } from "@/components/app-header"
+import { MobileDock } from "@/components/mobile-dock"
 import { Footer } from "@/components/footer"
 import { AuthProvider } from "@/features/auth/auth-context"
 import { AuthDialog } from "@/features/auth/auth-dialog"
@@ -88,11 +89,12 @@ function RootComponent() {
                   <MeterProvider>
                     <div className="min-h-screen flex flex-col text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-colors duration-200">
                       <Toaster />
-                      <Navbar />
-                      <main className="flex-1">
+                      <AppHeader />
+                      <main className="page-shell flex-1 py-(--bb-section-gap) max-lg:nav-dock:pb-[calc(5rem+env(safe-area-inset-bottom))]">
                         <Outlet />
                       </main>
                       <Footer />
+                      <MobileDock />
                       <AuthDialog />
                       <PricingDialog />
                     </div>

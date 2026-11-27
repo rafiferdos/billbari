@@ -28,7 +28,7 @@ function TariffsPage() {
   }, [unitsInput, loadKw, isSinglePhase])
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 max-w-6xl">
+    <div className="space-y-6 sm:space-y-8">
       <div id="main-calculator-top" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

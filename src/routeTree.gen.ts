@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as SnapshotsRouteImport } from './routes/snapshots'
 import { Route as TariffsRouteImport } from './routes/tariffs'
 import { Route as ApiAuthGoogleRouteImport } from './routes/api/auth/google'
@@ -23,9 +25,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsightsRoute = InsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SnapshotsRoute = SnapshotsRouteImport.update({
@@ -61,7 +73,9 @@ const ApiAuthCallbackGoogleRoute = ApiAuthCallbackGoogleRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/help': typeof HelpRoute
   '/history': typeof HistoryRoute
+  '/insights': typeof InsightsRoute
   '/snapshots': typeof SnapshotsRoute
   '/tariffs': typeof TariffsRoute
   '/api/auth/google': typeof ApiAuthGoogleRoute
@@ -71,7 +85,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/help': typeof HelpRoute
   '/history': typeof HistoryRoute
+  '/insights': typeof InsightsRoute
   '/snapshots': typeof SnapshotsRoute
   '/tariffs': typeof TariffsRoute
   '/api/auth/google': typeof ApiAuthGoogleRoute
@@ -82,7 +98,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/help': typeof HelpRoute
   '/history': typeof HistoryRoute
+  '/insights': typeof InsightsRoute
   '/snapshots': typeof SnapshotsRoute
   '/tariffs': typeof TariffsRoute
   '/api/auth/google': typeof ApiAuthGoogleRoute
@@ -94,7 +112,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/help'
     | '/history'
+    | '/insights'
     | '/snapshots'
     | '/tariffs'
     | '/api/auth/google'
@@ -104,7 +124,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/help'
     | '/history'
+    | '/insights'
     | '/snapshots'
     | '/tariffs'
     | '/api/auth/google'
@@ -114,7 +136,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/help'
     | '/history'
+    | '/insights'
     | '/snapshots'
     | '/tariffs'
     | '/api/auth/google'
@@ -125,7 +149,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HelpRoute: typeof HelpRoute
   HistoryRoute: typeof HistoryRoute
+  InsightsRoute: typeof InsightsRoute
   SnapshotsRoute: typeof SnapshotsRoute
   TariffsRoute: typeof TariffsRoute
   ApiAuthGoogleRoute: typeof ApiAuthGoogleRoute
@@ -143,11 +169,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/history': {
       id: '/history'
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insights': {
+      id: '/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof InsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/snapshots': {
@@ -197,7 +237,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HelpRoute: HelpRoute,
   HistoryRoute: HistoryRoute,
+  InsightsRoute: InsightsRoute,
   SnapshotsRoute: SnapshotsRoute,
   TariffsRoute: TariffsRoute,
   ApiAuthGoogleRoute: ApiAuthGoogleRoute,
