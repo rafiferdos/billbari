@@ -168,6 +168,17 @@
     [data-slot="dialog-content"]:has([data-print-root]) > :not([data-print-root]) {
         display: none;
     }
+    /* A print table replaces the page: dropped, not just hidden, so no blank pages follow; dark ink in dark themes too. */
+    body:has(> [data-print-table]) > :not([data-print-table]) {
+        display: none;
+    }
+    body > [data-print-table] {
+        position: static;
+        --foreground: #000;
+        --muted-foreground: #444;
+        --border: #999;
+        color: #000;
+    }
     [data-slot="dialog-content"] [data-print-root] {
         position: static;
     }
