@@ -1,12 +1,9 @@
 {
-  "src/components/footer.tsx": 2,
   "src/components/language-toggle.tsx": 3,
-  "src/components/navbar.tsx": 18,
   "src/features/analytics/advanced-stats.tsx": 26,
   "src/features/analytics/consumption-chart.tsx": 1,
   "src/features/analytics/recharge-trend-chart.tsx": 1,
   "src/features/analytics/slab-progress-card.tsx": 9,
-  "src/features/analytics/stat-card.tsx": 11,
   "src/features/auth/auth-dialog.tsx": 5,
   "src/features/meter/saved-meters-menu.tsx": 2,
   "src/features/nesco/source-badge.tsx": 40,
@@ -16,7 +13,6 @@
   "src/features/tariffs/appliance-simulator.tsx": 13,
   "src/features/tariffs/bill-saving-section.tsx": 17,
   "src/routes/history.tsx": 12,
-  "src/routes/index.tsx": 15,
   "src/routes/snapshots.tsx": 37,
   "src/routes/tariffs.tsx": 7
 }

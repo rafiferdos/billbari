@@ -9,14 +9,14 @@ import { useMeter } from "./meter-context"
 export function useSaveMeter() {
   const { user, openAuthModal } = useAuth()
   const { activeMeterData: data } = useMeter()
-  const { isBangla } = useLanguage()
+  const { t } = useLanguage()
   const [isSaving, setIsSaving] = React.useState(false)
 
   const saveMeter = async () => {
     if (!data) return
     if (!user) {
       openAuthModal("login")
-      toast.info(isBangla ? "মিটার সেভ করতে অনুগ্রহ করে লগইন করুন।" : "Please sign in to save your meter.")
+      toast.info(t.saveMeterFlow.signIn)
       return
     }
 
@@ -31,16 +31,14 @@ export function useSaveMeter() {
           address: info.address,
           tariff: info.tariff,
           sanctionedLoad: String(info.approvedLoadKw),
-          alias: isBangla ? `${info.name} এর মিটার` : `${info.name}'s Meter`,
+          // a function replacement keeps "$" in a name literal
+          alias: t.saveMeterFlow.alias.replace("{name}", () => info.name),
         },
       })
-      if (res.success) {
-        toast.success(isBangla ? "মিটারটি আপনার একাউন্টে সেভ করা হয়েছে!" : "Meter saved to your account profile!")
-      } else {
-        toast.error(res.error || (isBangla ? "মিটার সংরক্ষণ করা যায়নি।" : "Failed to save meter."))
-      }
+      if (res.success) toast.success(t.saveMeterFlow.saved)
+      else toast.error(res.error || t.saveMeterFlow.failed)
     } catch {
-      toast.error(isBangla ? "মিটার সংরক্ষণে সমস্যা হয়েছে।" : "An error occurred while saving meter.")
+      toast.error(t.saveMeterFlow.error)
     } finally {
       setIsSaving(false)
     }
