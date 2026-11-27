@@ -352,7 +352,7 @@ describe("Bill Saving Strategies & Bilingual Telemetry", () => {
   })
 
   it("generates fully bilingual actionable insights with English fields", () => {
-    const sample = getSampleMeterData("36023363")
+    const sample = getSampleMeterData("12345678")
     const analytics = generateAnalytics(sample)
 
     expect(analytics.insights.length).toBeGreaterThanOrEqual(8)
@@ -367,7 +367,7 @@ describe("Bill Saving Strategies & Bilingual Telemetry", () => {
   it("provides realistic 14-day automated midnight pulse sample data for free users", () => {
     expect(SAMPLE_PRO_SNAPSHOTS.length).toBeGreaterThanOrEqual(14)
     expect(SAMPLE_PRO_SNAPSHOTS[0].sourceType).toBe("automated_daily_cron")
-    expect(SAMPLE_PRO_SNAPSHOTS[0].meterNumber).toBe("36023363")
+    expect(SAMPLE_PRO_SNAPSHOTS[0].meterNumber).toBe("12345678")
     expect(SAMPLE_PRO_SNAPSHOTS[0].balance).toBeGreaterThan(0)
     expect(SAMPLE_PRO_SNAPSHOTS[0].dailyEstimatedCost).toBeGreaterThan(0)
 

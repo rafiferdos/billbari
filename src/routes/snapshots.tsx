@@ -176,7 +176,7 @@ function SnapshotsPage() {
 
   // Active snapshots list based on preview mode
   const displayedSnapshots = isPreviewMode ? SAMPLE_PRO_SNAPSHOTS : combinedSnapshots
-  const displayedMeter = isPreviewMode ? "36023363" : (meterFilter || activeMeter || "")
+  const displayedMeter = isPreviewMode ? "12345678" : (meterFilter || activeMeter || "")
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 max-w-6xl">

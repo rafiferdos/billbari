@@ -4,7 +4,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_1",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-11-02T00:30:00.000Z",
     balance: 842.5,
     readingKwh: 2431.5,
@@ -17,7 +17,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_2",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-11-01T00:30:00.000Z",
     balance: 894.8,
     readingKwh: 2425.2,
@@ -30,7 +30,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_3",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-31T00:30:00.000Z",
     balance: 943.0,
     readingKwh: 2418.8,
@@ -43,7 +43,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_4",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-30T00:30:00.000Z",
     balance: 994.0,
     readingKwh: 2412.0,
@@ -56,7 +56,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_5",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-29T00:30:00.000Z",
     balance: 1038.5,
     readingKwh: 2406.1,
@@ -69,7 +69,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_6",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-28T00:30:00.000Z",
     balance: 1106.5,
     readingKwh: 2398.0,
@@ -82,7 +82,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_7",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-27T00:30:00.000Z",
     balance: 1152.7,
     readingKwh: 2392.4,
@@ -95,7 +95,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_8",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-26T00:30:00.000Z",
     balance: 1202.0,
     readingKwh: 2386.1,
@@ -108,7 +108,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_9",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-25T00:30:00.000Z",
     balance: 1250.0,
     readingKwh: 2380.0,
@@ -121,7 +121,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_10",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-24T00:30:00.000Z",
     balance: 1300.0,
     readingKwh: 2373.5,
@@ -134,7 +134,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_11",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-23T00:30:00.000Z",
     balance: 1352.0,
     readingKwh: 2367.0,
@@ -147,7 +147,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_12",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-22T00:30:00.000Z",
     balance: 1399.5,
     readingKwh: 2361.0,
@@ -160,7 +160,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_13",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-21T00:30:00.000Z",
     balance: 1448.5,
     readingKwh: 2354.5,
@@ -173,7 +173,7 @@ export const SAMPLE_PRO_SNAPSHOTS: SnapshotRecord[] = [
   {
     id: "sample_snap_14",
     userId: "pro_preview_sample",
-    meterNumber: "36023363",
+    meterNumber: "12345678",
     snapshotDate: "2026-10-20T00:30:00.000Z",
     balance: 1500.0,
     readingKwh: 2348.0,

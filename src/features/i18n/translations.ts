@@ -38,7 +38,7 @@ export const translations = {
       sampleMeterText: "ডেমো মিটার দেখুন",
       clearSearch: "মুছুন",
       recentSearches: "সাম্প্রতিক সার্চ:",
-      hint: "টিপস: কাস্টমার নম্বর (যেমন: 36023363) বা মিটার নম্বর দিয়ে সার্চ করতে পারেন।",
+      hint: "টিপস: কাস্টমার নম্বর (যেমন: 12345678) বা মিটার নম্বর দিয়ে সার্চ করতে পারেন।",
       pasteFromClipboard: "ক্লিপবোর্ড থেকে পেস্ট",
     },
     status: {
@@ -349,7 +349,7 @@ export const translations = {
       sampleMeterText: "Explore Demo Meter",
       clearSearch: "Clear",
       recentSearches: "Recent:",
-      hint: "Pro-tip: You can search directly with either your Customer Number (e.g. 36023363) or Meter Number.",
+      hint: "Pro-tip: You can search directly with either your Customer Number (e.g. 12345678) or Meter Number.",
       pasteFromClipboard: "Paste",
     },
     status: {
