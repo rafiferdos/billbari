@@ -1,34 +1,22 @@
 import * as React from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
+import { ArrowRight, Check, Copy, Crown, ShieldCheck, Smartphone } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Form } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/toast"
 import { useAuth } from "@/features/auth/auth-context"
 import { useLanguage } from "@/features/i18n/language-context"
-import { verifyBkashTrxFn, getPaymentConfigFn, type PaymentConfig } from "./bkash-server"
-import {
-  ShieldCheck,
-  Copy,
-  Check,
-  Crown,
-  Sparkles,
-  ArrowRight,
-  Smartphone,
-} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { getPaymentConfigFn, verifyBkashTrxFn, type PaymentConfig } from "./bkash-server"
+import { PlanFeatures } from "./plan-features"
+import { PAYMENT_PLANS } from "./types"
 
 export function PricingDialog() {
   const { user, isPricingModalOpen, closePricingModal, openAuthModal, refreshUser } = useAuth()
-  const { t, isBangla, formatBDT } = useLanguage()
+  const { t, isBangla, formatBDT, formatNumber } = useLanguage()
 
   const [config, setConfig] = React.useState<PaymentConfig | null>(null)
   const [selectedPlan, setSelectedPlan] = React.useState<"detective_monthly" | "lifetime">("detective_monthly")
@@ -45,11 +33,12 @@ export function PricingDialog() {
 
   const bkashNumber = config?.bkashNumber || "01784912345"
   const amountToPay = selectedPlan === "lifetime" ? 100 : 20
+  const planName = selectedPlan === "lifetime" ? t.pricing.planLifetimeName : t.pricing.planMonthlyName
 
   const handleCopyNumber = () => {
     navigator.clipboard.writeText(bkashNumber)
     setCopiedNumber(true)
-    toast.success(isBangla ? "বিকাশ নম্বরটি কপি হয়েছে!" : "bKash number copied to clipboard!")
+    toast.success(t.pricing.numberCopied)
     setTimeout(() => setCopiedNumber(false), 2000)
   }
 
@@ -58,17 +47,13 @@ export function PricingDialog() {
     if (!user) {
       closePricingModal()
       openAuthModal("login")
-      toast.info(isBangla ? "সাবস্ক্রিপশন চালু করতে প্রথমে লগইন করুন।" : "Please sign in to upgrade your subscription.")
+      toast.info(t.pricing.signInFirst)
       return
     }
 
     const cleanTrx = trxId.trim().toUpperCase()
     if (!cleanTrx || cleanTrx.length < 8) {
-      toast.error(
-        isBangla
-          ? "অনুগ্রহ করে বিকাশের সঠিক ৮-১২ সংখ্যার Transaction ID (TrxID) দিন।"
-          : "Please enter a valid 8-12 character bKash Transaction ID (TrxID)."
-      )
+      toast.error(t.pricing.badTrx)
       return
     }
 
@@ -89,11 +74,10 @@ export function PricingDialog() {
         setTrxId("")
         setSenderNumber("")
       } else {
-        toast.error(res.error || (isBangla ? "পেমেন্ট যাচাই করা সম্ভব হয়নি।" : "Could not verify payment."))
+        toast.error(res.error || t.pricing.verifyFailed)
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (isBangla ? "পেমেন্ট যাচাই ব্যর্থ হয়েছে।" : "Verification failed.")
-      toast.error(msg)
+      toast.error(err instanceof Error ? err.message : t.pricing.verifyFailed)
     } finally {
       setIsVerifying(false)
     }
@@ -101,215 +85,145 @@ export function PricingDialog() {
 
   return (
     <Dialog open={isPricingModalOpen} onOpenChange={(open) => !open && closePricingModal()}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto p-5 sm:p-6 rounded-3xl">
-        <DialogHeader className="text-left space-y-1.5 pb-2 border-b border-border/60 pr-10">
-          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-            <Crown className="size-4 text-amber-500 fill-amber-500" />
-            <span>{isBangla ? "বিলবাড়ি মেম্বারশিপ" : "BillBari Membership"}</span>
-          </div>
-          <DialogTitle className="text-xl sm:text-2xl font-extrabold tracking-tight">
+      <DialogContent className="max-h-[90vh] overflow-y-auto p-5 sm:max-w-xl sm:p-6">
+        <DialogHeader className="border-b border-border pr-10 pb-2 text-left">
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <Crown aria-hidden className="size-5 text-warning" />
             {t.pricing.modalTitle}
           </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-            {t.pricing.modalSubtitle}
-          </DialogDescription>
+          <DialogDescription>{t.pricing.modalSubtitle}</DialogDescription>
         </DialogHeader>
 
-        {/* Plan Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-          {/* Plan 1: Meter Plus */}
-          <Card
-            onClick={() => setSelectedPlan("detective_monthly")}
-            className={`p-4 rounded-2xl cursor-pointer transition-all border-2 relative ${
-              selectedPlan === "detective_monthly"
-                ? "border-amber-500 bg-amber-500/5 shadow-xs"
-                : "border-border hover:border-border/80"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-1 mb-2">
-              <span className="font-bold text-sm text-foreground">{t.pricing.planMonthlyName}</span>
-              <Badge variant="secondary" className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                {t.pricing.planMonthlyTag}
-              </Badge>
-            </div>
-            <div className="flex items-baseline gap-1 my-2">
-              <span className="text-2xl font-black text-foreground">{t.pricing.planMonthlyPrice}</span>
-              <span className="text-xs text-muted-foreground">{t.pricing.planMonthlyPeriod}</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {t.pricing.planMonthlyDesc}
-            </p>
-          </Card>
-
-          {/* Plan 2: Lifetime */}
-          <Card
-            onClick={() => setSelectedPlan("lifetime")}
-            className={`p-4 rounded-2xl cursor-pointer transition-all border-2 relative ${
-              selectedPlan === "lifetime"
-                ? "border-primary bg-primary/5 shadow-xs"
-                : "border-border hover:border-border/80"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-1 mb-2">
-              <span className="font-bold text-sm text-foreground">{t.pricing.planLifetimeName}</span>
-              <Badge className="text-[10px] font-bold bg-primary text-primary-foreground">
-                {t.pricing.planLifetimeTag}
-              </Badge>
-            </div>
-            <div className="flex items-baseline gap-1 my-2">
-              <span className="text-2xl font-black text-foreground">{t.pricing.planLifetimePrice}</span>
-              <span className="text-xs text-muted-foreground">{t.pricing.planLifetimePeriod}</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {t.pricing.planLifetimeDesc}
-            </p>
-          </Card>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {PAYMENT_PLANS.map((plan) => {
+            const isLifetime = plan.id === "lifetime"
+            const isSelected = selectedPlan === plan.id
+            return (
+              <Button
+                key={plan.id}
+                type="button"
+                variant="outline"
+                aria-pressed={isSelected}
+                onClick={() => setSelectedPlan(plan.id)}
+                className={cn(
+                  "h-auto flex-col items-stretch justify-start gap-2 p-4 text-left whitespace-normal",
+                  isSelected && "border-primary ring-2 ring-primary"
+                )}
+              >
+                <span className="flex items-center justify-between gap-1">
+                  <span className="text-sm font-bold">
+                    {isLifetime ? t.pricing.planLifetimeName : t.pricing.planMonthlyName}
+                  </span>
+                  <Badge variant={isLifetime ? "default" : "secondary"}>
+                    {isLifetime ? t.pricing.planLifetimeTag : t.pricing.planMonthlyTag}
+                  </Badge>
+                </span>
+                <span className="flex items-baseline gap-1">
+                  <span className="num text-2xl font-bold">
+                    {isLifetime ? t.pricing.planLifetimePrice : t.pricing.planMonthlyPrice}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {isLifetime ? t.pricing.planLifetimePeriod : t.pricing.planMonthlyPeriod}
+                  </span>
+                </span>
+                {(isBangla ? plan.features : plan.featuresEnglish).map((line) => (
+                  <span key={line} className="flex items-start gap-1.5 text-xs font-normal text-muted-foreground">
+                    <Check aria-hidden className="mt-0.5 text-primary" />
+                    {line}
+                  </span>
+                ))}
+              </Button>
+            )
+          })}
         </div>
 
-        {/* Feature List */}
-        <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 space-y-2 text-xs">
-          <span className="font-bold text-[11px] text-foreground flex items-center gap-1.5">
-            <Sparkles className="size-3.5 text-primary" />
-            <span>{isBangla ? "প্রিমিয়াম ফিচারে যা যা পাচ্ছেন:" : "What's included in Premium:"}</span>
-          </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-muted-foreground text-[11px]">
-            <div className="flex items-center gap-1.5">
-              <Check className="size-3 text-emerald-600 shrink-0" />
-              <span>{t.pricing.feature1}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Check className="size-3 text-emerald-600 shrink-0" />
-              <span>{t.pricing.feature2}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Check className="size-3 text-emerald-600 shrink-0" />
-              <span>{t.pricing.feature3}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Check className="size-3 text-emerald-600 shrink-0" />
-              <span>{t.pricing.feature4}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Check className="size-3 text-emerald-600 shrink-0" />
-              <span>{t.pricing.feature5}</span>
-            </div>
-          </div>
+        <div className="rounded-lg border border-border bg-muted/40 p-3.5">
+          <PlanFeatures />
         </div>
 
         {/* bKash Payment Instructions */}
-        <div className="space-y-3 pt-1">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-              <Smartphone className="size-4 text-[#D12053]" />
+            <div className="flex items-center gap-1.5 text-xs font-bold">
+              <Smartphone aria-hidden className="size-4 text-primary" />
               <span>{t.pricing.bkashHeader}</span>
             </div>
-            <Badge variant="outline" className="border-[#D12053]/40 text-[#D12053] text-[11px] font-bold shrink-0">
+            <Badge variant="outline" className="shrink-0 border-primary text-primary">
               Send Money: {formatBDT(amountToPay)}
             </Badge>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-[#D12053]/5 border border-[#D12053]/20 space-y-2.5 text-xs">
-            <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2.5 rounded-lg border border-border bg-primary/5 p-3.5 text-xs">
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <span className="text-[11px] text-muted-foreground block">{t.pricing.bkashNumberLabel}</span>
-                <span className="text-base font-extrabold text-foreground font-mono tracking-wider">
-                  {bkashNumber}
-                </span>
+                <span className="block text-muted-foreground">{t.pricing.bkashNumberLabel}</span>
+                <span className="num text-base font-bold tracking-wider">{bkashNumber}</span>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleCopyNumber}
-                className="h-8 text-xs gap-1 border-[#D12053]/30 text-[#D12053] hover:bg-[#D12053]/10"
-              >
-                {copiedNumber ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                <span>{copiedNumber ? (isBangla ? "কপি হয়েছে" : "Copied") : (isBangla ? "নম্বর কপি" : "Copy")}</span>
+              <Button type="button" variant="outline" size="sm" onClick={handleCopyNumber}>
+                {copiedNumber ? <Check /> : <Copy />}
+                <span>{copiedNumber ? t.common.copied : t.pricing.copyNumber}</span>
               </Button>
             </div>
 
-            <ol className="list-decimal list-inside space-y-1 text-[11px] text-muted-foreground border-t border-[#D12053]/15 pt-2">
-              <li>{isBangla ? "বিকাশ অ্যাপ ওপেন করে Send Money অপশনে যান।" : "Open your bKash app and tap Send Money."}</li>
-              <li>
-                {isBangla
-                  ? `উপরের নম্বরে ঠিক ${formatBDT(amountToPay)} টাকা পাঠিয়ে দিন।`
-                  : `Send exact ${formatBDT(amountToPay)} to the number above.`}
-              </li>
-              <li>
-                {isBangla
-                  ? "লেনদেন সফল হলে প্রাপ্ত Transaction ID (TrxID) নিচে লিখে যাচাই করুন।"
-                  : "Copy the Transaction ID (TrxID) received via SMS and paste below to activate."}
-              </li>
+            <ol className="list-inside list-decimal space-y-1 border-t border-border pt-2 text-muted-foreground">
+              <li>{t.pricing.stepOpen}</li>
+              <li>{t.pricing.stepSend.replace("{amount}", formatBDT(amountToPay))}</li>
+              <li>{t.pricing.stepPaste}</li>
             </ol>
           </div>
 
           {/* Verification Form */}
           {!user ? (
-            <div className="p-4 rounded-2xl bg-muted/60 border text-center space-y-2">
-              <p className="text-xs text-muted-foreground">
-                {isBangla
-                  ? "পেমেন্ট যাচাই ও সাবস্ক্রিপশন চালু করতে প্রথমে আপনার বিলবাড়ি একাউন্টে লগইন করুন।"
-                  : "Please sign in to your BillBari account before verifying payment."}
-              </p>
+            <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-muted p-4 text-center">
+              <p className="text-xs text-muted-foreground">{t.pricing.signInToVerify}</p>
               <Button
                 size="sm"
                 onClick={() => {
                   closePricingModal()
                   openAuthModal("login")
                 }}
-                className="gap-1.5 text-xs font-semibold"
               >
                 <span>{t.nav.login}</span>
-                <ArrowRight className="size-3.5" />
+                <ArrowRight />
               </Button>
             </div>
           ) : (
-            <Form onSubmit={handleVerifyPayment} className="space-y-3 pt-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <Label className="text-[11px] font-semibold text-muted-foreground">
-                    {isBangla ? "বিকাশ Transaction ID (TrxID) *" : "bKash Transaction ID (TrxID) *"}
-                  </Label>
+            <Form onSubmit={handleVerifyPayment} className="flex flex-col gap-3">
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="bkash-trx">{t.pricing.trxLabel}</Label>
                   <Input
+                    id="bkash-trx"
                     type="text"
                     required
                     placeholder={t.pricing.trxInputPlaceholder}
                     value={trxId}
                     onChange={(e) => setTrxId(e.target.value)}
-                    className="h-10 text-xs font-mono uppercase tracking-wider bg-background"
+                    className="num tracking-wider uppercase"
                     maxLength={14}
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[11px] font-semibold text-muted-foreground">
-                    {isBangla ? "প্রেরক বিকাশ মোবাইল নম্বর (ঐচ্ছিক)" : "Sender bKash Number (Optional)"}
-                  </Label>
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="bkash-sender">{t.pricing.senderLabel}</Label>
                   <Input
+                    id="bkash-sender"
                     type="tel"
-                    placeholder="01712345678"
+                    placeholder={formatNumber("01XXXXXXXXX")}
                     value={senderNumber}
                     onChange={(e) => setSenderNumber(e.target.value)}
-                    className="h-10 text-xs font-mono bg-background"
+                    className="num"
                     maxLength={14}
                   />
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                disabled={isVerifying || !trxId.trim()}
-                className="w-full h-11 rounded-xl text-xs sm:text-sm font-bold bg-[#D12053] hover:bg-[#b01944] text-white gap-2 shadow-xs cursor-pointer"
-              >
+              <Button type="submit" size="lg" disabled={isVerifying || !trxId.trim()} className="w-full whitespace-normal">
                 {isVerifying ? (
                   <span>{t.pricing.verifyingBtn}</span>
                 ) : (
                   <>
-                    <ShieldCheck className="size-4" />
-                    <span>
-                      {isBangla
-                        ? `যাচাই করুন ও ${selectedPlan === "lifetime" ? t.pricing.planLifetimeName : t.pricing.planMonthlyName} চালু করুন`
-                        : `Verify & Activate ${selectedPlan === "lifetime" ? t.pricing.planLifetimeName : t.pricing.planMonthlyName}`}
-                    </span>
+                    <ShieldCheck />
+                    <span>{t.pricing.activate.replace("{plan}", planName)}</span>
                   </>
                 )}
               </Button>
