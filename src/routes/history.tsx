@@ -3,11 +3,10 @@ import { createFileRoute } from "@tanstack/react-router"
 import { History, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Pagination, PaginationContent, PaginationItem } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { ConsumptionChart } from "@/features/analytics/consumption-chart"
@@ -20,10 +19,8 @@ import { RecordActions } from "@/features/history/record-actions"
 import { PERIODS, filterRecharges, monthlyValue, visibleMonthlyKeys, type Period } from "@/features/history/records"
 import { useLanguage } from "@/features/i18n/language-context"
 import { useMeter } from "@/features/meter/meter-context"
-import { MeterError } from "@/features/meter/meter-error"
 import { maskMeter } from "@/features/meter/meter-input"
-import { MeterSearch } from "@/features/meter/meter-search"
-import { SourceBanner } from "@/features/nesco/source-badge"
+import { MeterPage } from "@/features/meter/meter-page"
 import type { MonthlyConsumptionRecord, NescoFetchResult, RechargeRecord } from "@/features/nesco/types"
 import { ReceiptDialog } from "@/features/recharge/receipt-dialog"
 import { splitTokens } from "@/features/recharge/token"
@@ -40,53 +37,15 @@ export const Route = createFileRoute("/history")({
 })
 
 function HistoryPage() {
-  const { activeMeterData: data, isLoading, error, failedMeter, fetchMeter } = useMeter()
-  const { t, formatNumber } = useLanguage()
+  const { t } = useLanguage()
 
   return (
     <div className="section-stack">
       <h1 className="text-2xl">{t.history.title}</h1>
-      {data ? (
-        <MeterSearch variant="compact" />
-      ) : (
-        !isLoading && (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <History aria-hidden />
-              </EmptyMedia>
-              <EmptyTitle>{t.history.noMeter}</EmptyTitle>
-            </EmptyHeader>
-            <EmptyContent>
-              <MeterSearch variant="compact" />
-            </EmptyContent>
-          </Empty>
-        )
-      )}
-      {error && !isLoading && (
-        <MeterError error={error} onRetry={() => void fetchMeter(failedMeter, { force: true })} />
-      )}
-      {isLoading ? (
-        <div className="section-stack">
-          <Skeleton className="h-10 max-w-sm" />
-          <Skeleton className="h-40" />
-          <Skeleton className="h-64" />
-        </div>
-      ) : (
-        data && (
-          <>
-            <p className="flex flex-wrap items-baseline gap-x-2">
-              <span className="min-w-0 font-semibold break-words">{data.customerInfo.name}</span>
-              <span className="num text-sm text-muted-foreground">
-                {formatNumber(maskMeter(data.customerInfo.meterNumber))}
-              </span>
-            </p>
-            <SourceBanner data={data} onRefresh={() => void fetchMeter(undefined, { force: true })} />
-            {/* keyed so filters and pages start over for another meter */}
-            <Records key={data.customerInfo.meterNumber} data={data} />
-          </>
-        )
-      )}
+      <MeterPage icon={History} emptyTitle={t.history.noMeter}>
+        {/* keyed so filters and pages start over for another meter */}
+        {(data) => <Records key={data.customerInfo.meterNumber} data={data} />}
+      </MeterPage>
     </div>
   )
 }

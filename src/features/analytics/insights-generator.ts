@@ -1,6 +1,6 @@
 import type { NescoFetchResult } from "../nesco/types"
 import { calculateNescoBill } from "@/lib/tariff-constants"
-import { parseNescoDate, sortMonthlyDesc } from "@/lib/nesco-dates"
+import { isSameCalendarMonth, parseNescoDate, sortMonthlyDesc } from "@/lib/nesco-dates"
 import { estimateDailyKwh } from "./daily-rate"
 import {
   toBanglaNumber,
@@ -45,6 +45,7 @@ export interface ExtendedRechargeStats {
   minAmountBdt: number // সর্বনিম্ন রিচার্জ
   maxAmountBdt: number // সর্বোচ্চ রিচার্জ
   favoriteVia: string // সর্বাধিক ব্যবহৃত চ্যানেল (বিকাশ / নগদ ইত্যাদি)
+  favoriteViaRaw: string // as NESCO sent it, for English text
   favoriteViaCount: number
   favoriteViaPct: number // চ্যানেলের শতকরা হার
   averageDaysBetweenRecharges: number | null // রিচার্জের মধ্যবর্তী গড় ব্যবধান (দিন)
@@ -136,6 +137,8 @@ export interface EnergyAnalytics {
   slabStats: ExtendedSlabStats
 }
 
+const taka = (amount: number) => formatBDT(amount, { inBangla: false })
+
 export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics {
   const { customerInfo, rechargeHistory, monthlyUsage } = nescoData
 
@@ -145,6 +148,10 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   const months = sortMonthlyDesc(monthlyUsage)
   const latestMonth = months.at(0) ?? null
   const prevMonth = months.at(1) ?? null
+  // The running month is partial: comparing or ranking it would invent drops and lows.
+  const completeMonths = months.filter((m) => !isSameCalendarMonth(m, new Date()))
+  const lastFull = completeMonths.at(0) ?? null
+  const fullBefore = completeMonths.at(1) ?? null
 
   const latestMonthUnits = latestMonth ? latestMonth.usageKwh : 0
   const latestMonthExpense = latestMonth ? latestMonth.rechargeBdt : 0
@@ -176,13 +183,13 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
 
   // Month-over-month calculation
   let monthOverMonthUnitsPct = 0
-  if (prevMonthUnits > 0 && latestMonthUnits > 0) {
-    monthOverMonthUnitsPct = Math.round(((latestMonthUnits - prevMonthUnits) / prevMonthUnits) * 100)
+  if (lastFull && fullBefore && lastFull.usageKwh > 0 && fullBefore.usageKwh > 0) {
+    monthOverMonthUnitsPct = Math.round(((lastFull.usageKwh - fullBefore.usageKwh) / fullBefore.usageKwh) * 100)
   }
 
   let monthOverMonthExpensePct = 0
-  if (prevMonthExpense > 0 && latestMonthExpense > 0) {
-    monthOverMonthExpensePct = Math.round(((latestMonthExpense - prevMonthExpense) / prevMonthExpense) * 100)
+  if (lastFull && fullBefore && lastFull.rechargeBdt > 0 && fullBefore.rechargeBdt > 0) {
+    monthOverMonthExpensePct = Math.round(((lastFull.rechargeBdt - fullBefore.rechargeBdt) / fullBefore.rechargeBdt) * 100)
   }
 
   const activeSlab = billCalc.activeStep
@@ -263,6 +270,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     minAmountBdt,
     maxAmountBdt,
     favoriteVia,
+    favoriteViaRaw,
     favoriteViaCount,
     favoriteViaPct,
     averageDaysBetweenRecharges,
@@ -312,8 +320,8 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   let lowestMonth: ExtendedSeasonalityStats["lowestMonth"] = null
   let seasonalityGapPct = 0
 
-  if (months.length > 0) {
-    const sortedByUsage = [...months].sort((a, b) => b.usageKwh - a.usageKwh)
+  if (completeMonths.length > 0) {
+    const sortedByUsage = [...completeMonths].sort((a, b) => b.usageKwh - a.usageKwh)
     const high = sortedByUsage[0]
     const low = sortedByUsage[sortedByUsage.length - 1]
 
@@ -338,10 +346,12 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
     }
   }
 
-  const averageMonthlyKwh =
-    months.length > 0 ? Math.round(totalRecordedKwh / months.length) : 0
-  const averageMonthlyExpenseBdt =
-    months.length > 0 ? Math.round(totalRecordedExpenseBdt / months.length) : 0
+  const completeAverage = (pick: (m: (typeof completeMonths)[number]) => number) =>
+    completeMonths.length > 0
+      ? Math.round(completeMonths.reduce((acc, m) => acc + pick(m), 0) / completeMonths.length)
+      : 0
+  const averageMonthlyKwh = completeAverage((m) => m.usageKwh)
+  const averageMonthlyExpenseBdt = completeAverage((m) => m.rechargeBdt)
 
   const seasonality: ExtendedSeasonalityStats = {
     highestMonth,
@@ -378,7 +388,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
   // ==========================================
   // Bangladesh national grid factor: ~0.67 kg CO2 / kWh
   const carbonKg = Math.round(totalRecordedKwh * 0.67 * 10) / 10
-  const annualizedKwh = (latestMonthUnits || averageMonthlyKwh) * 12
+  const annualizedKwh = (lastFull?.usageKwh || latestMonthUnits) * 12
   const treesNeeded = Math.ceil((annualizedKwh * 0.67) / 22)
 
   const eco: ExtendedEcoStats = {
@@ -438,7 +448,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
       title: "জরুরি রিচার্জ প্রয়োজন!",
       titleEnglish: "Urgent Recharge Required!",
       description: `বর্তমান অবশিষ্ট ব্যালেন্স ${formatBDT(currentBalance)} দিয়ে আর মাত্র প্রায় ${toBanglaNumber(estimatedDaysRemaining)} দিন চলবে (${depletionDate} এর মধ্যে শূন্য হতে পারে)। দ্রুত রিচার্জ করুন।`,
-      descriptionEnglish: `Remaining balance of ${formatBDT(currentBalance)} will only last ~${estimatedDaysRemaining} days (projected depletion by ${depletionDateEnglish}). Please recharge promptly to avoid power cutoff.`,
+      descriptionEnglish: `Remaining balance of ${taka(currentBalance)} will only last ~${estimatedDaysRemaining} days (projected depletion by ${depletionDateEnglish}). Please recharge promptly to avoid power cutoff.`,
       type: "warning",
       metric: `${toBanglaNumber(estimatedDaysRemaining)} দিন বাকি`,
       metricEnglish: `~${estimatedDaysRemaining} days left`,
@@ -477,7 +487,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
       title: "রিচার্জের অভ্যাসের চিত্র",
       titleEnglish: "Recharge Trajectory & Habit",
       description: `আপনি গড়ে প্রতি ${toBanglaNumber(averageDaysBetweenRecharges)} দিনে একবার রিচার্জ করেন। গড় রিচার্জের আকার ${formatBDT(averageAmountBdt)} এবং পছন্দের মাধ্যম "${favoriteVia}" (${toBanglaNumber(favoriteViaPct)}% লেনদেন)।`,
-      descriptionEnglish: `You recharge roughly once every ${averageDaysBetweenRecharges} days. Average ticket size is ${formatBDT(averageAmountBdt)}, predominantly through ${favoriteVia} (${favoriteViaPct}% of total deposits).`,
+      descriptionEnglish: `You recharge roughly once every ${averageDaysBetweenRecharges} days. Average ticket size is ${taka(averageAmountBdt)}, predominantly through ${favoriteViaRaw} (${favoriteViaPct}% of total deposits).`,
       type: "info",
       metric: `প্রতি ${toBanglaNumber(averageDaysBetweenRecharges)} দিনে`,
       metricEnglish: `Every ${averageDaysBetweenRecharges} days`,
@@ -492,10 +502,10 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
       title: "প্রকৃত গড় ইউনিট দর",
       titleEnglish: "All-Inclusive Unit Rate",
       description: `মিটার ভাড়া (৳৪০), ডিমান্ড চার্জ (৳${toBanglaNumber(billCalc.demandCharge)}) ও ৫% ভ্যাট অন্তর্ভুক্ত করার পর আপনার প্রতি ইউনিটের প্রকৃত মোট ব্যয় পড়ছে প্রায় ${formatBDT(effectiveCostPerKwh)}।`,
-      descriptionEnglish: `Factoring in meter rent (৳40), demand charge (৳${billCalc.demandCharge}), and 5% VAT, your true cost per kWh is approximately ${formatBDT(effectiveCostPerKwh)}.`,
+      descriptionEnglish: `Factoring in meter rent (৳40), demand charge (৳${billCalc.demandCharge}), and 5% VAT, your true cost per kWh is approximately ${taka(effectiveCostPerKwh)}.`,
       type: "info",
       metric: `${formatBDT(effectiveCostPerKwh)} / kWh`,
-      metricEnglish: `${formatBDT(effectiveCostPerKwh)} / kWh`,
+      metricEnglish: `${taka(effectiveCostPerKwh)} / kWh`,
       isCalculatedEstimate: true,
     })
   }
@@ -507,7 +517,7 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
       title: "পরবর্তী উচ্চ ট্যারিফ ধাপ সন্নিকটে!",
       titleEnglish: "Next Tariff Tier Imminent!",
       description: `আর মাত্র ${toBanglaNumber(unitsRemainingInSlab)} ইউনিট ব্যবহার করলেই পরবর্তী ধাপ ${toBanglaNumber(nextSlabStep)}-এ পৌঁছে যাবেন, যেখানে রেট বেড়ে প্রতি ইউনিটে ${formatBDT(nextSlabRate)} হবে (ইউনিটে +৳${toBanglaNumber(slabJumpCostDelta)} বৃদ্ধি)।`,
-      descriptionEnglish: `Using just ${unitsRemainingInSlab} more kWh will push your consumption into Tier ${nextSlabStep}, increasing unit rate to ${formatBDT(nextSlabRate)} (+৳${slabJumpCostDelta}/kWh hike).`,
+      descriptionEnglish: `Using just ${unitsRemainingInSlab} more kWh will push your consumption into Tier ${nextSlabStep}, increasing unit rate to ${taka(nextSlabRate)} (+৳${slabJumpCostDelta}/kWh hike).`,
       type: "warning",
       metric: `${toBanglaNumber(unitsRemainingInSlab)} ইউনিট বাকি`,
       metricEnglish: `${unitsRemainingInSlab} kWh to next tier`,
@@ -533,8 +543,8 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
       id: "usage-reduced",
       title: "বিদ্যুৎ ব্যবহারে সাশ্রয় হয়েছে!",
       titleEnglish: "Energy Consumption Reduced!",
-      description: `গত ${formatMonthBangla(latestMonth?.month || "")} মাসে আপনার বিদ্যুৎ ব্যবহার আগের মাসের চেয়ে ${toBanglaNumber(Math.abs(monthOverMonthUnitsPct))}% কমেছে।`,
-      descriptionEnglish: `Last month (${latestMonth?.month || ""}), your power consumption dropped by ${Math.abs(monthOverMonthUnitsPct)}% compared to the prior month.`,
+      description: `গত ${formatMonthBangla(lastFull?.month || "")} মাসে আপনার বিদ্যুৎ ব্যবহার আগের মাসের চেয়ে ${toBanglaNumber(Math.abs(monthOverMonthUnitsPct))}% কমেছে।`,
+      descriptionEnglish: `Last month (${lastFull?.month || ""}), your power consumption dropped by ${Math.abs(monthOverMonthUnitsPct)}% compared to the prior month.`,
       type: "success",
       metric: `-${toBanglaNumber(Math.abs(monthOverMonthUnitsPct))}% কম খরচ`,
       metricEnglish: `-${Math.abs(monthOverMonthUnitsPct)}% power saved`,
@@ -561,10 +571,10 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
       title: "১% সরকারি রিবেট সাশ্রয়",
       titleEnglish: "1% Government Incentive Earned",
       description: `প্রিপেইড মিটারে প্রতি রিচার্জে ১% সরকারি রিবেট সুবিধা থাকায় এ পর্যন্ত আপনার হিসেবে মোট ${formatBDT(totalGovernmentRebateBdt)} ক্যাশব্যাক সাশ্রয় হয়েছে।`,
-      descriptionEnglish: `Prepaid meters grant an automatic 1% rebate on every deposit, earning you ${formatBDT(totalGovernmentRebateBdt)} in cumulative government cashback.`,
+      descriptionEnglish: `Prepaid meters grant an automatic 1% rebate on every deposit, earning you ${taka(totalGovernmentRebateBdt)} in cumulative government cashback.`,
       type: "success",
       metric: `${formatBDT(totalGovernmentRebateBdt)} রিবেট`,
-      metricEnglish: `${formatBDT(totalGovernmentRebateBdt)} cashback`,
+      metricEnglish: `${taka(totalGovernmentRebateBdt)} cashback`,
       isCalculatedEstimate: false,
     })
   }
@@ -591,10 +601,10 @@ export function generateAnalytics(nescoData: NescoFetchResult): EnergyAnalytics 
       title: "সর্বশেষ রিচার্জ ও মিটারে জমা",
       titleEnglish: "Last Recharge Net Credited",
       description: `সর্বশেষ ${formatBDT(lastRechargeAmount)} রিচার্জের বিপরীতে মিটার ভাড়া, ডিমান্ড চার্জ ও ভ্যাট বাবদ মোট ৳${toBanglaNumber(lastRechargeDeductionsBdt)} কর্তন হয়েছে। অবশিষ্ট ${formatBDT(lastRechargeNetEnergyBdt)} সরাসরি মিটারে যোগ হয়ে ${toBanglaNumber(lastRechargePowerKwh)} kWh বিদ্যুৎ প্রাপ্তি হয়েছে।`,
-      descriptionEnglish: `From your last ${formatBDT(lastRechargeAmount)} deposit, ৳${lastRechargeDeductionsBdt} went toward meter rent, demand charge, and VAT. The remaining ${formatBDT(lastRechargeNetEnergyBdt)} was credited for ${lastRechargePowerKwh} kWh of power.`,
+      descriptionEnglish: `From your last ${taka(lastRechargeAmount)} deposit, ৳${lastRechargeDeductionsBdt} went toward meter rent, demand charge, and VAT. The remaining ${taka(lastRechargeNetEnergyBdt)} was credited for ${lastRechargePowerKwh} kWh of power.`,
       type: "info",
       metric: `${formatBDT(lastRechargeAmount)} ➔ ${formatBDT(lastRechargeNetEnergyBdt)} জমা`,
-      metricEnglish: `${formatBDT(lastRechargeAmount)} ➔ ${formatBDT(lastRechargeNetEnergyBdt)} net`,
+      metricEnglish: `${taka(lastRechargeAmount)} ➔ ${taka(lastRechargeNetEnergyBdt)} net`,
       isCalculatedEstimate: false,
     })
   }

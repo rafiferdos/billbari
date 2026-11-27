@@ -1,12 +1,23 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import type { ExtendedRunwayStats } from "@/features/analytics/insights-generator"
 import { useLanguage } from "@/features/i18n/language-context"
 
 /** Marks a number BillBari computed, as opposed to one NESCO reported. */
 export function EstimateBadge() {
   const { t } = useLanguage()
   return <Badge variant="outline">{t.common.estimate}</Badge>
+}
+
+export function UrgencyBadge({ level }: { level: ExtendedRunwayStats["urgencyLevel"] }) {
+  const { t } = useLanguage()
+  const tone = { critical: undefined, warning: "border-warning text-warning", healthy: "border-success text-success" }
+  return (
+    <Badge variant={level === "critical" ? "destructive" : "outline"} className={tone[level]}>
+      {t.dashboard[level]}
+    </Badge>
+  )
 }
 
 export function EmptyRegion({ title, message }: { title: string; message: string }) {

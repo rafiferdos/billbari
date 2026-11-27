@@ -1,8 +1,7 @@
-import { Badge } from "@/components/ui/badge"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useLanguage } from "@/features/i18n/language-context"
 import { ProGate } from "@/features/payments/pro-gate"
-import { EmptyRegion, EstimateBadge, StatRow } from "../region-parts"
+import { EmptyRegion, EstimateBadge, StatRow, UrgencyBadge } from "../region-parts"
 import type { DashboardData } from "../types"
 
 export function RunwayRegion(props: DashboardData) {
@@ -32,14 +31,7 @@ function Runway({ analytics }: DashboardData) {
         <p className="flex flex-wrap items-baseline gap-2">
           <span className="num text-5xl font-bold">{formatNumber(days)}</span>
           <span className="text-sm text-muted-foreground">{t.dashboard.daysLeft}</span>
-          <Badge
-            variant={urgencyLevel === "critical" ? "destructive" : "outline"}
-            className={
-              urgencyLevel === "warning" ? "border-warning text-warning" : urgencyLevel === "healthy" ? "border-success text-success" : undefined
-            }
-          >
-            {t.dashboard[urgencyLevel]}
-          </Badge>
+          <UrgencyBadge level={urgencyLevel} />
         </p>
         <p className="text-xs text-muted-foreground">
           {t.dashboard.runsOut}: {formatDateWithDay(new Date(Date.now() + days * 86_400_000))}

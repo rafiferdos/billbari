@@ -63,6 +63,11 @@ export const FEATURES: Record<FeatureId, FeatureInfo> = {
 
 export const FREE_SAVED_METER_LIMIT = 1
 
+export function featureText(id: FeatureId, isBangla: boolean): { name: string; description: string } {
+  const { nameBn, nameEn, descBn, descEn } = FEATURES[id]
+  return isBangla ? { name: nameBn, description: descBn } : { name: nameEn, description: descEn }
+}
+
 export function canUse(id: FeatureId, viewer: { isPremium?: boolean } | null | undefined): boolean {
   return FEATURES[id].tier === "free" || viewer?.isPremium === true
 }

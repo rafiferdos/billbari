@@ -7,7 +7,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { useAuth } from "@/features/auth/auth-context"
 import { useLanguage } from "@/features/i18n/language-context"
 import { cn } from "@/lib/utils"
-import { FEATURES, canUse, type FeatureId } from "./entitlements"
+import { canUse, featureText, type FeatureId } from "./entitlements"
 
 export function useEntitlement(feature: FeatureId): { allowed: boolean; reason: "ok" | "signin" | "upgrade" } {
   const { user, isPremium } = useAuth()
@@ -32,9 +32,7 @@ export function ProGate({
   const { t, isBangla } = useLanguage()
   if (allowed) return <>{children}</>
 
-  const info = FEATURES[feature]
-  const name = isBangla ? info.nameBn : info.nameEn
-  const description = isBangla ? info.descBn : info.descEn
+  const { name, description } = featureText(feature, isBangla)
   const onClick = reason === "signin" ? () => openAuthModal("login") : openPricingModal
   const action = reason === "signin" ? t.pro.signIn : t.pro.upgrade
 
