@@ -3,6 +3,7 @@ import {
   DbClient,
   localStorageCollectionOptions,
 } from "@tanstack/react-db"
+import { staleIds } from "@/features/snapshots/snapshot-math"
 
 export interface ClientSnapshot extends Record<string, unknown> {
   id: string
@@ -63,11 +64,15 @@ export const recentSearchesCollection = createCollection(
 )
 
 /**
- * Sync server snapshots into client TanStack DB collection
+ * Mirror the server's snapshots into the client collection. Rows the server no
+ * longer returns are dropped, so one account never sees another's cache.
  */
 export function syncSnapshotsToClient(snapshots: ClientSnapshot[]) {
   if (typeof window === "undefined") return
   try {
+    for (const id of staleIds([...snapshotsCollection.keys()].map(String), snapshots)) {
+      snapshotsCollection.delete(id)
+    }
     for (const snap of snapshots) {
       if (!snapshotsCollection.has(snap.id)) {
         snapshotsCollection.insert(snap)

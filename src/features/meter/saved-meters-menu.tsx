@@ -1,4 +1,6 @@
 import * as React from "react"
+import { Bookmark, ChevronDown, Star, Trash2, Zap } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,14 +10,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
-import { Bookmark, ChevronDown, Star, Trash2, Zap } from "lucide-react"
 import { toast } from "@/components/ui/toast"
-import { deleteSavedMeterFn, getSavedMetersFn, setSavedMeterFavoriteFn } from "@/features/auth/auth-server"
-import type { SavedMeter } from "@/features/auth/types"
 import { useAuth } from "@/features/auth/auth-context"
-import { useMeter } from "@/features/meter/meter-context"
+import { deleteSavedMeterFn } from "@/features/auth/auth-server"
+import type { SavedMeter } from "@/features/auth/types"
 import { useLanguage } from "@/features/i18n/language-context"
+import { useMeter } from "@/features/meter/meter-context"
+import { useSavedMeters } from "./use-saved-meters"
 
 // Phase 5 retention fix: saved meters existed on the server but had no UI
 // anywhere. A user could save a meter and never retrieve it. This menu is
@@ -33,47 +34,10 @@ export function SavedMetersMenu({
 }) {
   const { user, openAuthModal } = useAuth()
   const { fetchMeter } = useMeter()
-  const { isBangla, formatNumber } = useLanguage()
+  const { t, formatNumber } = useLanguage()
   const [isOpen, setIsOpen] = React.useState(false)
-  const [meters, setMeters] = React.useState<SavedMeter[]>([])
-  const [isLoading, setIsLoading] = React.useState(false)
   const [pendingDeleteId, setPendingDeleteId] = React.useState<string | null>(null)
-  const [busyId, setBusyId] = React.useState<string | null>(null)
-
-  const load = React.useCallback(async () => {
-    if (!user) return
-    setIsLoading(true)
-    try {
-      const list = await getSavedMetersFn()
-      // Favorites first, then most recently updated. The server orders by
-      // updated_at only, so a favorite would otherwise sink below newer saves.
-      list.sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite) || String(b.updatedAt).localeCompare(String(a.updatedAt)))
-      setMeters(list)
-    } catch {
-      toast.error(isBangla ? "সংরক্ষিত মিটার লোড করা যায়নি।" : "Could not load saved meters.")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [user, isBangla])
-
-
-  const toggleFavorite = async (meter: SavedMeter) => {
-    const next = !meter.isFavorite
-    setMeters((prev) =>
-      prev.map((m) => (m.id === meter.id ? { ...m, isFavorite: next } : m)).sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite) || String(b.updatedAt).localeCompare(String(a.updatedAt)))
-    )
-    setBusyId(meter.id)
-    try {
-      const res = await setSavedMeterFavoriteFn({ data: { meterNumber: meter.meterNumber, isFavorite: next } })
-      if (!res.success) throw new Error("failed")
-      toast.success(next ? (isBangla ? "প্রিয় মিটার হিসেবে সেট করা হয়েছে।" : "Set as favorite.") : (isBangla ? "প্রিয় থেকে সরানো হয়েছে।" : "Removed from favorites."))
-    } catch {
-      setMeters((prev) => prev.map((m) => (m.id === meter.id ? { ...m, isFavorite: meter.isFavorite } : m)))
-      toast.error(isBangla ? "প্রিয় সেট করা যায়নি।" : "Could not update favorite.")
-    } finally {
-      setBusyId(null)
-    }
-  }
+  const { meters, setMeters, isLoading, busyId, setBusyId, load, toggleFavorite } = useSavedMeters()
 
   const confirmDelete = async (meter: SavedMeter) => {
     setBusyId(meter.id)
@@ -82,9 +46,9 @@ export function SavedMetersMenu({
       if (!res.success) throw new Error("failed")
       setMeters((prev) => prev.filter((m) => m.id !== meter.id))
       setPendingDeleteId(null)
-      toast.success(isBangla ? "সংরক্ষিত মিটার মুছে ফেলা হয়েছে।" : "Saved meter deleted.")
+      toast.success(t.savedMeters.deleted)
     } catch {
-      toast.error(isBangla ? "মিটার মুছতে পারা যায়নি।" : "Could not delete the meter.")
+      toast.error(t.savedMeters.deleteFailed)
     } finally {
       setBusyId(null)
     }
@@ -92,7 +56,7 @@ export function SavedMetersMenu({
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
-    if (open) load()
+    if (open) void load()
   }
 
   return (
@@ -102,7 +66,7 @@ export function SavedMetersMenu({
           trigger ?? (
             <Button variant="outline" className="w-full sm:w-auto">
               <Bookmark className="text-primary" />
-              <span>{isBangla ? "সংরক্ষিত মিটার" : "Saved meters"}</span>
+              <span>{t.savedMeters.title}</span>
               <ChevronDown className="text-muted-foreground" />
             </Button>
           )
@@ -110,25 +74,15 @@ export function SavedMetersMenu({
       />
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>
-            {isBangla ? "সংরক্ষিত মিটার" : "Saved meters"}
-          </DropdownMenuLabel>
+          <DropdownMenuLabel>{t.savedMeters.title}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {!user ? (
-            <DropdownMenuItem onClick={() => openAuthModal("login")}>
-              {isBangla ? "সংরক্ষিত মিটার দেখতে লগইন করুন" : "Sign in to see saved meters"}
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openAuthModal("login")}>{t.savedMeters.signIn}</DropdownMenuItem>
           ) : isLoading ? (
-            <DropdownMenuItem disabled>
-              {isBangla ? "লোড হচ্ছে..." : "Loading..."}
-            </DropdownMenuItem>
+            <DropdownMenuItem disabled>{t.common.loading}</DropdownMenuItem>
           ) : meters.length === 0 ? (
-            <div className="p-3 space-y-2">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {isBangla
-                  ? "এখনো কোনো মিটার সংরক্ষণ করা হয়নি। একটি মিটার সার্চ করে সেভ করুন, পরের বার এখান থেকে এক ট্যাপে খুলতে পারবেন।"
-                  : "No meter saved yet. Search a meter and save it, then open it here in one tap next time."}
-              </p>
+            <div className="flex flex-col gap-2 p-3">
+              <p className="text-xs leading-relaxed text-muted-foreground">{t.savedMeters.none}</p>
               {onSaveCurrentMeter && (
                 <Button
                   size="sm"
@@ -139,16 +93,8 @@ export function SavedMetersMenu({
                   }}
                   className="w-full"
                 >
-                  <Zap className="size-3.5" />
-                  <span>
-                    {hasCurrentMeter
-                      ? isBangla
-                        ? "বর্তমান মিটার সেভ করুন"
-                        : "Save current meter"
-                      : isBangla
-                      ? "প্রথমে একটি মিটার সার্চ করুন"
-                      : "Search a meter first"}
-                  </span>
+                  <Zap />
+                  <span>{hasCurrentMeter ? t.savedMeters.saveCurrent : t.savedMeters.searchFirst}</span>
                 </Button>
               )}
             </div>
@@ -156,15 +102,13 @@ export function SavedMetersMenu({
             meters.map((meter) => (
               <div key={meter.id} className="flex items-center gap-1 px-1 py-0.5">
                 {pendingDeleteId === meter.id ? (
-                  <div className="flex flex-wrap items-center gap-2 px-2 py-1.5 w-full">
-                    <span className="text-xs font-medium flex-1 min-w-0 truncate">
-                      {isBangla ? "এই মিটার মুছবেন?" : "Delete this meter?"}
-                    </span>
-                    <Button size="sm" variant="destructive" disabled={busyId === meter.id} onClick={() => confirmDelete(meter)} className="h-7 text-xs">
-                      {isBangla ? "মুছুন" : "Delete"}
+                  <div className="flex w-full flex-wrap items-center gap-2 px-2 py-1.5">
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium">{t.savedMeters.confirmDelete}</span>
+                    <Button size="sm" variant="destructive" disabled={busyId === meter.id} onClick={() => confirmDelete(meter)}>
+                      {t.common.delete}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setPendingDeleteId(null)} className="h-7 text-xs">
-                      {isBangla ? "বাতিল" : "Cancel"}
+                    <Button size="sm" variant="outline" onClick={() => setPendingDeleteId(null)}>
+                      {t.common.cancel}
                     </Button>
                   </div>
                 ) : (
@@ -172,37 +116,35 @@ export function SavedMetersMenu({
                     <Button
                       variant="ghost"
                       onClick={() => {
-                        fetchMeter(meter.meterNumber, { force: true })
+                        void fetchMeter(meter.meterNumber, { force: true })
                         setIsOpen(false)
                       }}
-                      className="flex-1 min-w-0 h-auto flex-col items-start gap-0 px-2 py-1.5"
+                      className="h-auto min-w-0 flex-1 flex-col items-start gap-0 px-2 py-1.5"
                     >
-                      <span className="text-xs font-semibold truncate w-full text-left">
+                      <span className="w-full truncate text-left text-xs font-semibold">
                         {meter.alias || meter.customerName || formatNumber(meter.meterNumber)}
                       </span>
-                      <span className="text-[11px] text-muted-foreground font-mono">
-                        {formatNumber(meter.meterNumber)}
-                      </span>
+                      <span className="num text-xs text-muted-foreground">{formatNumber(meter.meterNumber)}</span>
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       disabled={busyId === meter.id}
-                      aria-label={meter.isFavorite ? (isBangla ? "প্রিয় থেকে সরান" : "Remove from favorites") : (isBangla ? "প্রিয় হিসেবে সেট করুন" : "Set as favorite")}
-                      title={meter.isFavorite ? (isBangla ? "প্রিয়" : "Favorite") : (isBangla ? "প্রিয় করুন" : "Make favorite")}
+                      aria-label={meter.isFavorite ? t.savedMeters.removeFavorite : t.savedMeters.addFavorite}
+                      aria-pressed={meter.isFavorite}
                       onClick={() => toggleFavorite(meter)}
-                      className="size-8 shrink-0"
+                      className="shrink-0"
                     >
-                      <Star className={meter.isFavorite ? "size-4 fill-amber-400 text-amber-500" : "size-4 text-muted-foreground"} />
+                      <Star className={meter.isFavorite ? "fill-warning text-warning" : "text-muted-foreground"} />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={isBangla ? "মিটার মুছুন" : "Delete meter"}
+                      aria-label={t.savedMeters.delete}
                       onClick={() => setPendingDeleteId(meter.id)}
-                      className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 />
                     </Button>
                   </>
                 )}
