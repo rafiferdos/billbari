@@ -415,6 +415,10 @@ export const translations = {
     },
     helpPage: {
       title: "নেসকো সেবা",
+      certificate: "গ্রাহক সার্টিফিকেট",
+      certificateReady: "নেসকোর পোর্টাল থেকে আপনার সার্টিফিকেট PDF নামান",
+      certificateHint: "সার্টিফিকেট নামাতে আপনার আসল মিটার নম্বর দিন",
+      faq: "সাধারণ প্রশ্ন",
     },
     saveMeterFlow: {
       signIn: "মিটার সেভ করতে অনুগ্রহ করে লগইন করুন।",
@@ -919,6 +923,10 @@ export const translations = {
     },
     helpPage: {
       title: "NESCO services",
+      certificate: "Customer certificate",
+      certificateReady: "Download your certificate PDF from NESCO's portal",
+      certificateHint: "Enter your own meter number to download its certificate",
+      faq: "Frequently asked questions",
     },
     saveMeterFlow: {
       signIn: "Please sign in to save your meter.",
