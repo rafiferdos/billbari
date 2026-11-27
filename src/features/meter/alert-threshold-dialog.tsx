@@ -47,7 +47,7 @@ export function AlertThresholdDialog({
   currentBalance: number
   onSaved?: (threshold: number) => void
 }) {
-  const { isBangla, formatBDT } = useLanguage()
+  const { t, formatBDT } = useLanguage()
   const [threshold, setThreshold] = React.useState(500)
 
   React.useEffect(() => {
@@ -60,16 +60,12 @@ export function AlertThresholdDialog({
     try {
       window.localStorage.setItem(alertThresholdKey(meterNumber), String(threshold))
     } catch {
-      toast.error(isBangla ? "এই ডিভাইসে সেটিং সংরক্ষণ করা যায়নি।" : "Could not save this setting on this device.")
+      toast.error(t.lowBalance.saveFailed)
       return
     }
     onSaved?.(threshold)
     onOpenChange(false)
-    toast.success(
-      isBangla
-        ? `ব্যালেন্স ${formatBDT(threshold)}-এর নিচে গেলে সতর্কতা দেখানো হবে।`
-        : `You will see a warning when balance falls below ${formatBDT(threshold)}.`
-    )
+    toast.success(t.lowBalance.saved.replace("{amount}", formatBDT(threshold)))
   }
 
   return (
@@ -78,19 +74,15 @@ export function AlertThresholdDialog({
         <DialogHeader className="pr-10">
           <DialogTitle className="flex items-center gap-2 text-base font-bold">
             <Bell className="size-4 text-primary" />
-            {isBangla ? "কম ব্যালেন্স সতর্কতা" : "Low-balance alert"}
+            {t.dashboard.alert}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
-            {isBangla
-              ? "ব্যালেন্স এই সীমার নিচে গেলে হোম পেজে সতর্কতা দেখানো হবে। এটি শুধু এই ডিভাইসে সংরক্ষিত হবে, সার্ভারে নয়।"
-              : "When balance falls below this limit, home will show a warning. This is stored only on this device, not on the server."}
+            {t.lowBalance.desc}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between text-xs">
-            <Label>
-              {isBangla ? "সতর্কতার সীমা" : "Alert limit"}
-            </Label>
+            <Label>{t.lowBalance.limit}</Label>
             <span className="font-extrabold text-foreground">{formatBDT(threshold)}</span>
           </div>
           <Slider
@@ -106,12 +98,12 @@ export function AlertThresholdDialog({
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>{formatBDT(100)}</span>
             <span>
-              {isBangla ? `বর্তমান ব্যালেন্স: ${formatBDT(currentBalance)}` : `Current balance: ${formatBDT(currentBalance)}`}
+              {t.stats.currentBalance}: {formatBDT(currentBalance)}
             </span>
             <span>{formatBDT(2000)}</span>
           </div>
           <Button onClick={handleSave} className="w-full">
-            {isBangla ? "সতর্কতা সংরক্ষণ করুন" : "Save alert"}
+            {t.lowBalance.save}
           </Button>
         </div>
       </DialogContent>

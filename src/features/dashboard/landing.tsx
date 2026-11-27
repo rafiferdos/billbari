@@ -8,7 +8,7 @@ import { recentSearchesCollection } from "@/features/db/client-db"
 import { useLanguage } from "@/features/i18n/language-context"
 import { useMeter } from "@/features/meter/meter-context"
 import { SavedMetersMenu } from "@/features/meter/saved-meters-menu"
-import { FEATURES, featuresByTier, type FeatureTier } from "@/features/payments/entitlements"
+import { featureText, featuresByTier, type FeatureTier } from "@/features/payments/entitlements"
 
 const SAMPLE_METER = "12345678"
 
@@ -53,17 +53,18 @@ function TierCard({ tier }: { tier: FeatureTier }) {
         <ul className="flex flex-col gap-2">
           {featuresByTier(tier)
             .slice(0, 8)
-            .map((id) => (
-              <li key={id} className="flex items-start gap-2">
-                <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>
-                  <span className="font-medium">{isBangla ? FEATURES[id].nameBn : FEATURES[id].nameEn}</span>
-                  <span className="block text-xs text-muted-foreground">
-                    {isBangla ? FEATURES[id].descBn : FEATURES[id].descEn}
+            .map((id) => {
+              const { name, description } = featureText(id, isBangla)
+              return (
+                <li key={id} className="flex items-start gap-2">
+                  <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <span>
+                    <span className="font-medium">{name}</span>
+                    <span className="block text-xs text-muted-foreground">{description}</span>
                   </span>
-                </span>
-              </li>
-            ))}
+                </li>
+              )
+            })}
         </ul>
       </CardContent>
       {isPro && (

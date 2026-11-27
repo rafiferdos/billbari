@@ -47,25 +47,3 @@ export const PAYMENT_PLANS: PaymentPlan[] = [
     ],
   },
 ]
-
-export interface PaymentRecord {
-  id: string
-  userId: string
-  provider: "bkash"
-  planType: "detective_monthly" | "lifetime"
-  amountBdt: number
-  senderNumber: string
-  trxId: string
-  status: "completed" | "pending" | "failed"
-  verifiedAt: string
-  createdAt: string
-}
-
-export interface SubscriptionStatus {
-  tier: SubscriptionTier
-  isPremium: boolean
-  tierNameBangla: string
-  expiresAt: string | null
-  daysRemaining: number | null
-  startedAt: string | null
-}

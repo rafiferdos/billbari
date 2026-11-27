@@ -18,19 +18,6 @@ export interface ClientSnapshot extends Record<string, unknown> {
   createdAt: string
 }
 
-export interface ClientSavedMeter extends Record<string, unknown> {
-  id: string
-  meterNumber: string
-  customerNumber?: string
-  customerName?: string
-  address?: string
-  tariff?: string
-  sanctionedLoad?: string
-  alias?: string
-  isFavorite?: boolean
-  updatedAt: string
-}
-
 export interface RecentSearch extends Record<string, unknown> {
   meterNumber: string
   customerNumber?: string
@@ -45,13 +32,6 @@ export const dbClient = new DbClient()
 export const snapshotsCollection = createCollection(
   localStorageCollectionOptions<ClientSnapshot>({
     storageKey: "billbari_snapshots_v1",
-    getKey: (item) => item.id,
-  })
-)
-
-export const savedMetersCollection = createCollection(
-  localStorageCollectionOptions<ClientSavedMeter>({
-    storageKey: "billbari_saved_meters_v1",
     getKey: (item) => item.id,
   })
 )

@@ -12,12 +12,6 @@ export interface User {
   createdAt: string
 }
 
-export interface AuthResponse {
-  success: boolean
-  user?: User
-  error?: string
-}
-
 export interface SavedMeter {
   id: string
   userId: string

@@ -1,14 +1,12 @@
 // App code takes colors and shadows from theme tokens, never raw palette
-// classes, hex colors or fixed shadows. Per-file counts may only go down.
+// classes, hex colors or fixed shadows. Any occurrence fails.
 //
-//   node scripts/check-theme-tokens.mjs                    check
-//   node scripts/check-theme-tokens.mjs --write-baseline   accept current counts
+//   node scripts/check-theme-tokens.mjs
 
 import fs from "node:fs"
 import path from "node:path"
 
 const ROOT = path.resolve(import.meta.dirname, "..")
-const BASELINE = path.join(ROOT, "scripts", "theme-token-baseline.json")
 const SCAN_DIRS = ["src/routes", "src/features", "src/components"]
 const EXCLUDED_DIR = path.join(ROOT, "src", "components", "ui")
 
@@ -17,8 +15,8 @@ const PATTERNS = [
   /\b(?:bg|text|border|ring|from|to|via|fill|stroke|outline|decoration|divide|placeholder|caret|shadow|accent)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/g,
   // fixed shadows
   /\bshadow-(?:2xs|xs|sm|md|lg|xl|2xl)\b/g,
-  // quoted hex colors
-  /["'`]#[0-9a-fA-F]{3,8}["'`]/g,
+  // hex colors, quoted or as arbitrary Tailwind values
+  /(?:["'`]|\[)#[0-9a-fA-F]{3,8}(?:["'`]|\])/g,
 ]
 
 function collectFiles(dir) {
@@ -30,46 +28,22 @@ function collectFiles(dir) {
   })
 }
 
-const counts = {}
+let total = 0
 for (const dir of SCAN_DIRS) {
   for (const file of collectFiles(path.join(ROOT, dir))) {
     const content = fs.readFileSync(file, "utf8")
-    const count = PATTERNS.reduce(
-      (sum, re) => sum + (content.match(re)?.length ?? 0),
-      0
-    )
-    if (count > 0) {
-      counts[path.relative(ROOT, file).split(path.sep).join("/")] = count
-    }
+    const found = PATTERNS.flatMap((re) => content.match(re) ?? [])
+    if (found.length === 0) continue
+    total += found.length
+    const name = path.relative(ROOT, file).split(path.sep).join("/")
+    console.error(`  ${name}: ${[...new Set(found)].join(" ")}`)
   }
 }
 
-const total = (map) => Object.values(map).reduce((a, b) => a + b, 0)
-
-if (process.argv.includes("--write-baseline")) {
-  const sorted = Object.fromEntries(Object.entries(counts).sort())
-  fs.writeFileSync(BASELINE, JSON.stringify(sorted, null, 2) + "\n")
-  console.log(`theme-token baseline written: ${total(counts)} in total.`)
-  process.exit(0)
-}
-
-const baseline = JSON.parse(fs.readFileSync(BASELINE, "utf8"))
-let failed = false
-for (const file of new Set([...Object.keys(baseline), ...Object.keys(counts)])) {
-  const now = counts[file] ?? 0
-  const allowed = baseline[file] ?? 0
-  if (now > allowed) {
-    failed = true
-    console.error(`  ${file}: found ${now}, allowed ${allowed}`)
-  } else if (now < allowed) {
-    console.log(`  note: lower the baseline: ${file} is now ${now} (was ${allowed})`)
-  }
-}
-
-if (failed) {
+if (total > 0) {
   console.error(
-    "theme-token check FAILED: use theme tokens (text-primary, text-warning, bg-muted, shadow-card) instead."
+    `theme-token check FAILED (${total}): use theme tokens (text-primary, text-warning, bg-muted, shadow-card) instead.`
   )
   process.exit(1)
 }
-console.log(`theme-token check passed (${total(counts)} remaining).`)
+console.log("theme-token check passed.")

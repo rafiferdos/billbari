@@ -25,9 +25,10 @@ const SESSION_METER_KEY = "billbari_session_meter"
 const SESSION_DATA_KEY = "billbari_session_meter_data"
 
 export function MeterProvider({ children }: { children: React.ReactNode }) {
-  const { isBangla } = useLanguage()
-  const isBanglaRef = React.useRef(isBangla)
-  isBanglaRef.current = isBangla
+  const { t, isBangla } = useLanguage()
+  // read through a ref so fetchMeter keeps one identity across language switches
+  const languageRef = React.useRef({ t, isBangla })
+  languageRef.current = { t, isBangla }
 
   const [activeMeter, setActiveMeterState] = React.useState<string>("")
   const [activeMeterData, setActiveMeterData] = React.useState<NescoFetchResult | null>(null)
@@ -97,11 +98,7 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
       const num = normalizeMeterInput(targetMeter || activeMeterRef.current).digits
       if (!num || num.length < 8) {
         if (!options?.silent) {
-          toast.error(
-            isBanglaRef.current
-              ? "অনুগ্রহ করে ৮ থেকে ১১ ডিজিটের সঠিক মিটার বা গ্রাহক নম্বর দিন।"
-              : "Please enter a valid 8 to 11 digit meter or customer number."
-          )
+          toast.error(languageRef.current.t.meterLoad.badNumber)
         }
         return null
       }
@@ -143,33 +140,27 @@ export function MeterProvider({ children }: { children: React.ReactNode }) {
         })
 
         if (!options?.silent) {
+          const { t, isBangla } = languageRef.current
           if (result.dataSource === "nesco_live") {
-            toast.success(
-              isBanglaRef.current
-                ? "সরকারি নেসকো লাইভ পোর্টাল থেকে ডেটা পাওয়া গেছে!"
-                : "Live telemetry retrieved from official NESCO server!"
-            )
+            toast.success(t.meterLoad.live)
           } else {
-            toast.info(
-              isBanglaRef.current
-                ? (result.statusMessage || "মিটার তথ্য লোড হয়েছে।")
-                : (result.dataSource === "cached_real"
-                ? "Previously verified session data loaded."
-                : "Sample meter data loaded.")
-            )
+            // NESCO status messages arrive in Bangla only
+            const fallback = result.dataSource === "cached_real" ? t.meterLoad.cached : t.meterLoad.sample
+            toast.info((isBangla && result.statusMessage) || fallback)
           }
         }
 
         return result
       } catch (err: unknown) {
-        const rawMsg = err instanceof Error ? err.message : "মিটার তথ্য লোড করা সম্ভব হয়নি।"
-        const msg = isBanglaRef.current
+        const { t, isBangla } = languageRef.current
+        const rawMsg = err instanceof Error ? err.message : t.meterLoad.failed
+        const msg = isBangla
           ? rawMsg
           : rawMsg.includes("403")
-          ? "NESCO portal blocked connection (HTTP 403 Forbidden). Geo-restricted to domestic Bangladesh IP ranges."
-          : rawMsg.includes("502")
-          ? "NESCO server gateway unavailable (HTTP 502 Bad Gateway)."
-          : "Could not retrieve meter telemetry."
+            ? t.meterLoad.blocked
+            : rawMsg.includes("502")
+              ? t.meterLoad.gateway
+              : t.meterLoad.failed
         setError(msg)
         setFailedMeter(num)
         if (!options?.silent) {

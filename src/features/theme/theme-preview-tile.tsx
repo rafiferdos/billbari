@@ -4,7 +4,7 @@ import type { ThemeDefinition } from "./themes"
 /** A miniature of one theme. Custom properties resolve per element, so the
     root sets its own colors and font. */
 export function ThemePreviewTile({ theme }: { theme: ThemeDefinition }) {
-  const { isBangla } = useLanguage()
+  const { formatNumber } = useLanguage()
 
   return (
     <div
@@ -19,7 +19,7 @@ export function ThemePreviewTile({ theme }: { theme: ThemeDefinition }) {
       <div className="flex flex-1 flex-col justify-center gap-1.5 p-2">
         <div className="flex items-center justify-between gap-2 surface-card p-2">
           <span className="num text-sm font-bold">
-            {isBangla ? "৳১,২৪০" : "৳1,240"}
+            ৳{formatNumber("1,240")}
           </span>
           <span className="h-4 w-8 rounded-(--bb-control-radius) bg-primary shadow-control" />
         </div>
