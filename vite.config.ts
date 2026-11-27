@@ -21,6 +21,8 @@ export default defineConfig(({ mode }) => {
         vercel: {
           functions: {
             maxDuration: 60,
+            // Mumbai: testing whether NESCO accepts requests from here (iad1 gets HTTP 403).
+            regions: ["bom1"],
           },
         },
       }),
