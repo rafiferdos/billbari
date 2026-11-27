@@ -1,346 +1,251 @@
 import * as React from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { buttonVariants } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { NumberField } from "@/components/ui/number-field"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Slider } from "@/components/ui/slider"
-import { calculateNescoBill, NESCO_LTA_SLABS, LIFELINE_RATE } from "@/lib/tariff-constants"
-import { Calculator, SlidersHorizontal, ArrowDown } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { useLanguage } from "@/features/i18n/language-context"
+import { useMeter } from "@/features/meter/meter-context"
+import { ProGate } from "@/features/payments/pro-gate"
 import { ApplianceSimulator } from "@/features/tariffs/appliance-simulator"
 import { BillSavingSection } from "@/features/tariffs/bill-saving-section"
-import { useLanguage } from "@/features/i18n/language-context"
+import { RechargePlannerCard } from "@/features/tools/recharge-planner-card"
+import { sortMonthlyDesc } from "@/lib/nesco-dates"
+import {
+  DEFAULT_DEMAND_CHARGE_PER_KW,
+  DEFAULT_METER_RENT,
+  LIFELINE_RATE,
+  NESCO_LTA_SLABS,
+  PREPAID_REBATE_RATE,
+  VAT_RATE,
+  calculateNescoBill,
+} from "@/lib/tariff-constants"
 
 export const Route = createFileRoute("/tariffs")({
-  component: TariffsPage,
+  component: ToolsPage,
 })
 
-function TariffsPage() {
-  const { t, isBangla, formatBDT, formatNumber } = useLanguage()
-  const [unitsInput, setUnitsInput] = React.useState<number>(240)
-  const [loadKw, setLoadKw] = React.useState<number>(2)
-  const [isSinglePhase, setIsSinglePhase] = React.useState<boolean>(true)
+const SECTIONS = ["calculator", "tariff", "planner", "simulator", "saving"] as const
+const DEFAULT_UNITS = 240
+const MAX_UNITS = 2000
+const SLIDER_MAX = 800
+const ANCHOR = "scroll-mt-[calc(var(--bb-header-h)+1rem)]"
 
-  const breakdown = React.useMemo(() => {
-    return calculateNescoBill(unitsInput, loadKw, isSinglePhase)
-  }, [unitsInput, loadKw, isSinglePhase])
+function ToolsPage() {
+  const { t } = useLanguage()
+  const { activeMeterData: data } = useMeter()
+  // undefined until the viewer touches the field, so a meter loaded later still prefills it
+  const [typed, setTyped] = React.useState<number | null | undefined>(undefined)
+  const latest = sortMonthlyDesc(data?.monthlyUsage ?? []).find((m) => m.usageKwh > 0)
+  const prefill = latest ? Math.min(MAX_UNITS, Math.round(latest.usageKwh)) : DEFAULT_UNITS
+  const units = typed === undefined ? prefill : typed
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div id="main-calculator-top" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Calculator className="size-5" />
-            </span>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              {t.tariffs.title}
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {t.tariffs.subtitle}
-          </p>
-        </div>
+    <div className="section-stack">
+      <h1 className="text-2xl">{t.tariffs.title}</h1>
+      <ScrollArea>
+        <nav aria-label={t.tariffs.sections} className="flex w-max gap-2 p-1">
+          {SECTIONS.map((id) => (
+            <a key={id} href={`#${id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              {t.tariffs.chips[id]}
+            </a>
+          ))}
+        </nav>
+      </ScrollArea>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            const el = document.getElementById("appliance-simulator-section")
-            if (el) el.scrollIntoView({ behavior: "smooth" })
-          }}
-          className="h-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-xs font-semibold text-primary transition-colors cursor-pointer self-start sm:self-auto"
-        >
-          <SlidersHorizontal className="size-3.5" />
-          <span>{isBangla ? "ঘরের যন্ত্রপাতি দিয়ে ইউনিট মাপুন" : "Simulate Home Appliances"}</span>
-          <ArrowDown className="size-3" />
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calculator Controls */}
-        <Card className="rounded-2xl border shadow-xs h-fit">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold">
-              {isBangla ? "ব্যবহারের পরিমাণ দিন" : "Input Power Usage"}
-            </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
-              {isBangla ? "মাসিক আনুমানিক বিদ্যুৎ ইউনিট ও সংযোগ তথ্য" : "Estimated monthly units & load details"}
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4 pt-1">
-            <div className="space-y-1.5">
-              <Label htmlFor="units" className="text-xs font-medium">
-                {isBangla ? "মাসিক বিদ্যুৎ খরচ (kWh ইউনিট)" : "Monthly Energy Usage (kWh)"}
-              </Label>
-              <div className="relative">
-                <Input
-                  id="units"
-                  type="number"
-                  min="0"
-                  max="5000"
-                  value={unitsInput}
-                  onChange={(e) => setUnitsInput(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="h-10 text-sm font-bold pr-12"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-semibold">
-                  kWh
-                </span>
-              </div>
-              <div className="pt-2 pb-1 space-y-1">
-                <Slider
-                  min={0}
-                  max={800}
-                  step={5}
-                  value={unitsInput}
-                  onValueChange={(val) => {
-                    const nextVal = typeof val === "number" ? val : Array.isArray(val) ? val[0] : 0
-                    setUnitsInput(nextVal)
-                  }}
-                  aria-label={isBangla ? "মাসিক বিদ্যুৎ ব্যবহার স্লাইডার" : "Monthly energy usage slider"}
-                />
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
-                  <span>0 kWh</span>
-                  <span>200</span>
-                  <span>400</span>
-                  <span>600</span>
-                  <span>800+</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="space-y-1.5">
-                <Label htmlFor="load" className="text-xs font-medium">
-                  {t.customer.sanctionedLoad} (kW)
-                </Label>
-                <Input
-                  id="load"
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={loadKw}
-                  onChange={(e) => setLoadKw(Math.max(1, parseFloat(e.target.value) || 1))}
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">{t.customer.phase}</Label>
-                <div className="flex gap-1.5">
-                  <Button
-                    type="button"
-                    variant={isSinglePhase ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setIsSinglePhase(true)}
-                    className="flex-1 h-9 text-xs font-semibold"
-                  >
-                    1-Phase
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={!isSinglePhase ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setIsSinglePhase(false)}
-                    className="flex-1 h-9 text-xs font-semibold"
-                  >
-                    3-Phase
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Bill Highlight Box */}
-            <div className="rounded-2xl bg-primary/10 border border-primary/20 p-4 text-center space-y-1 mt-4">
-              <span className="text-xs font-medium text-muted-foreground block">
-                {t.tariffs.summaryNetBill}
-              </span>
-              <div className="text-3xl font-extrabold text-primary">
-                {formatBDT(breakdown.totalBill)}
-              </div>
-              <span className="text-[11px] text-muted-foreground block">
-                {isBangla ? "গড় রেট:" : "Effective rate:"} <strong>{formatBDT(breakdown.effectiveRatePerUnit)}</strong> / kWh
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Detailed Bill Breakdown */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="rounded-2xl border shadow-xs overflow-hidden">
-            <CardHeader className="pb-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle className="text-base font-bold">
-                  {isBangla ? "ধাপভিত্তিক ট্যারিফ বিল বিভাজন" : "Tier-by-Tier Bill Breakdown"}
-                </CardTitle>
-                <Badge variant="outline" className="text-xs shrink-0">
-                  {isBangla ? breakdown.activeStep.nameBangla : breakdown.activeStep.nameEnglish}
-                </Badge>
-              </div>
-              <CardDescription className="text-xs text-muted-foreground">
-                {isBangla
-                  ? "কোন ধাপে কত ইউনিট এবং কত টাকা ধার্য হয়েছে"
-                  : "Units and rate allocation applied across each stepped bracket"}
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="p-0">
-              <div className="overflow-x-auto w-full">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="text-xs">
-                      <TableHead>{isBangla ? "ট্যারিফ ধাপ" : "Tariff Slab"}</TableHead>
-                      <TableHead>{isBangla ? "ব্যবহার ইউনিট" : "Units (kWh)"}</TableHead>
-                      <TableHead>{isBangla ? "প্রতি ইউনিট রেট" : "Rate per kWh"}</TableHead>
-                      <TableHead className="text-right">{isBangla ? "মোট অর্থ (৳)" : "Amount (৳)"}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {breakdown.slabBreakdown.map((item, idx) => (
-                      <TableRow key={idx} className="text-xs">
-                        <TableCell className="font-medium text-foreground">
-                          {isBangla ? item.nameBangla : item.nameEnglish}
-                        </TableCell>
-                        <TableCell className="font-semibold text-primary">
-                          {formatNumber(item.unitsInSlab)} kWh
-                        </TableCell>
-                        <TableCell>{formatBDT(item.rate)}</TableCell>
-                        <TableCell className="text-right font-bold">
-                          {formatBDT(item.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-
-                    {/* Summary Rows */}
-                    <TableRow className="text-xs bg-muted/30">
-                      <TableCell colSpan={3} className="text-muted-foreground font-medium">
-                        {t.tariffs.summaryEnergyCost}:
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {formatBDT(breakdown.energyCharge)}
-                      </TableCell>
-                    </TableRow>
-
-                    <TableRow className="text-xs bg-muted/30">
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        {t.slab.demandCharge} ({formatNumber(loadKw)} kW × ৳42):
-                      </TableCell>
-                      <TableCell className="text-right">{formatBDT(breakdown.demandCharge)}</TableCell>
-                    </TableRow>
-
-                    <TableRow className="text-xs bg-muted/30">
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        {t.slab.meterRent} ({isSinglePhase ? (isBangla ? "সিঙ্গেল ফেজ" : "Single Phase") : (isBangla ? "থ্রি ফেজ" : "3-Phase")}):
-                      </TableCell>
-                      <TableCell className="text-right">{formatBDT(breakdown.meterRent)}</TableCell>
-                    </TableRow>
-
-                    <TableRow className="text-xs bg-muted/30">
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        {t.slab.vat}:
-                      </TableCell>
-                      <TableCell className="text-right">{formatBDT(breakdown.vatAmount)}</TableCell>
-                    </TableRow>
-
-                    <TableRow className="text-xs bg-muted/30 text-emerald-600 dark:text-emerald-400">
-                      <TableCell colSpan={3} className="font-medium">
-                        {t.slab.rebate}:
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        -{formatBDT(breakdown.rebateAmount)}
-                      </TableCell>
-                    </TableRow>
-
-                    <TableRow className="text-sm bg-primary/5 font-extrabold border-t-2 border-primary/20">
-                      <TableCell colSpan={3} className="text-foreground">
-                        {t.tariffs.summaryNetBill}:
-                      </TableCell>
-                      <TableCell className="text-right text-primary text-base">
-                        {formatBDT(breakdown.totalBill)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Official Slabs Reference Table */}
-      <Card className="rounded-2xl border shadow-xs overflow-hidden">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-bold">
-            {t.tariffs.officialRatesTitle}
-          </CardTitle>
-          <CardDescription className="text-xs text-muted-foreground">
-            {t.tariffs.officialRatesSubtitle}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          <div className="overflow-x-auto w-full">
-            <Table>
-              <TableHeader>
-                <TableRow className="text-xs">
-                  <TableHead>{isBangla ? "ধাপ ক্রম" : "#"}</TableHead>
-                  <TableHead>{isBangla ? "ইউনিট সীমা" : "Consumption Range"}</TableHead>
-                  <TableHead>{isBangla ? "প্রতি ইউনিট রেট (৳)" : "Rate / kWh"}</TableHead>
-                  <TableHead>{isBangla ? "মন্তব্য" : "Notes"}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow className="text-xs">
-                  <TableCell className="font-semibold">{t.slab.lifelineTier}</TableCell>
-                  <TableCell>{isBangla ? "০ - ৫০ ইউনিট" : "0 - 50 kWh"}</TableCell>
-                  <TableCell className="font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatBDT(LIFELINE_RATE)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {isBangla
-                      ? "শুধুমাত্র মোট মাসিক ব্যবহার ৫০ ইউনিটের মধ্যে সীমাবদ্ধ থাকলে প্রযোজ্য"
-                      : "Exclusive subsidized lifeline rate for low-consumption households"}
-                  </TableCell>
-                </TableRow>
-                {NESCO_LTA_SLABS.map((s) => (
-                  <TableRow key={s.step} className="text-xs">
-                    <TableCell className="font-semibold">
-                      {isBangla ? `ধাপ ${formatNumber(s.step)}` : `Tier ${formatNumber(s.step)}`}
-                    </TableCell>
-                    <TableCell>
-                      {formatNumber(s.minUnits)} - {s.maxUnits ? `${formatNumber(s.maxUnits)} kWh` : (isBangla ? "ঊর্ধ্বে" : "above")}
-                    </TableCell>
-                    <TableCell className="font-bold text-foreground">
-                      {formatBDT(s.ratePerUnit)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {s.step >= 5
-                        ? isBangla ? "উচ্চতর ধাপ (সতর্কতা কাম্য)" : "High consumption bracket"
-                        : isBangla ? "সাধারণ আবাসিক রেট" : "Standard residential bracket"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Interactive Room & Appliance Simulator & Comprehensive Appliances Guide */}
-      <div id="appliance-simulator-section">
-        <ApplianceSimulator
-          onApplyUnits={(newUnits) => setUnitsInput(newUnits)}
-          currentUnits={unitsInput}
-        />
-      </div>
-
-      {/* 20+ Battle-Tested Real-World Bill Saving Strategies */}
-      <div id="bill-saving-advice-section" className="pt-2">
-        <BillSavingSection />
-      </div>
+      <section id="calculator" className={ANCHOR}>
+        <Calculator units={units} onUnitsChange={setTyped} fromMeter={typed === undefined && Boolean(latest)} />
+      </section>
+      <section id="tariff" className={ANCHOR}>
+        <TariffTable />
+      </section>
+      <section id="planner" className={ANCHOR}>
+        <RechargePlannerCard />
+      </section>
+      <section id="simulator" className={ANCHOR}>
+        <ProGate feature="applianceSimulator" variant="section">
+          <ApplianceSimulator onApplyUnits={setTyped} currentUnits={units ?? 0} />
+        </ProGate>
+      </section>
+      <section id="saving" className={ANCHOR}>
+        <ProGate feature="savingPlan" variant="section">
+          <BillSavingSection />
+        </ProGate>
+      </section>
     </div>
+  )
+}
+
+function Calculator({
+  units,
+  onUnitsChange,
+  fromMeter,
+}: {
+  units: number | null
+  onUnitsChange: (units: number | null) => void
+  fromMeter: boolean
+}) {
+  const { t, isBangla, formatBDT, formatNumber } = useLanguage()
+  const [loadKw, setLoadKw] = React.useState<number | null>(2)
+  const [phase, setPhase] = React.useState<"single" | "three">("single")
+  const unitsId = React.useId()
+  const loadId = React.useId()
+  const bill = calculateNescoBill(units ?? 0, loadKw ?? 1, phase === "single")
+
+  const totals: [label: string, value: string][] = [
+    [t.tariffs.energyCharge, formatBDT(bill.energyCharge)],
+    [t.receipt.demand, formatBDT(bill.demandCharge)],
+    [t.receipt.rent, formatBDT(bill.meterRent)],
+    [t.receipt.vat, formatBDT(bill.vatAmount)],
+    [t.receipt.rebate, `−${formatBDT(bill.rebateAmount)}`],
+  ]
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t.tariffs.calculator}</CardTitle>
+        <CardDescription>{t.tariffs.calculatorHint}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={unitsId}>{t.tariffs.units}</Label>
+            <NumberField id={unitsId} value={units} onValueChange={onUnitsChange} min={0} max={MAX_UNITS} step={1} />
+            <Slider
+              min={0}
+              max={SLIDER_MAX}
+              step={5}
+              value={Math.min(units ?? 0, SLIDER_MAX)}
+              onValueChange={(value) => onUnitsChange(typeof value === "number" ? value : value[0])}
+              aria-label={t.tariffs.units}
+            />
+            {fromMeter && <p className="text-xs text-muted-foreground">{t.tariffs.fromMeter}</p>}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={loadId}>{t.receipt.load}</Label>
+            <NumberField id={loadId} value={loadKw} onValueChange={setLoadKw} min={1} max={20} step={0.5} />
+          </div>
+          <ToggleGroup
+            variant="outline"
+            spacing={0}
+            aria-label={t.customer.phase}
+            value={[phase]}
+            onValueChange={([next]) => next && setPhase(next as typeof phase)}
+          >
+            <ToggleGroupItem value="single">{t.tariffs.singlePhase}</ToggleGroupItem>
+            <ToggleGroupItem value="three">{t.tariffs.threePhase}</ToggleGroupItem>
+          </ToggleGroup>
+          <div aria-live="polite" className="rounded-(--bb-control-radius) bg-muted p-4 text-center">
+            <p className="text-xs text-muted-foreground">{t.tariffs.total}</p>
+            <p className="num text-3xl font-bold text-primary">{formatBDT(bill.totalBill)}</p>
+            <p className="text-xs text-muted-foreground">
+              {t.tariffs.effectiveRate}:{" "}
+              <span className="num font-semibold">{formatBDT(bill.effectiveRatePerUnit)}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t.tariffs.step}</TableHead>
+                <TableHead className="text-right">kWh</TableHead>
+                <TableHead className="text-right">{t.tariffs.rate}</TableHead>
+                <TableHead className="text-right">{t.tariffs.amount}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {bill.slabBreakdown.map((slab) => (
+                <TableRow key={slab.step}>
+                  <TableCell className="whitespace-normal">{isBangla ? slab.nameBangla : slab.nameEnglish}</TableCell>
+                  <TableCell className="num text-right">{formatNumber(slab.unitsInSlab)}</TableCell>
+                  <TableCell className="num text-right">{formatBDT(slab.rate)}</TableCell>
+                  <TableCell className="num text-right">{formatBDT(slab.amount)}</TableCell>
+                </TableRow>
+              ))}
+              {totals.map(([label, value]) => (
+                <TableRow key={label} className="text-muted-foreground">
+                  <TableCell colSpan={3} className="whitespace-normal">
+                    {label}
+                  </TableCell>
+                  <TableCell className="num text-right">{value}</TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="font-bold">
+                <TableCell colSpan={3}>{t.tariffs.total}</TableCell>
+                <TableCell className="num text-right text-primary">{formatBDT(bill.totalBill)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function TariffTable() {
+  const { t, formatBDT, formatNumber } = useLanguage()
+  const step = (n: number) => t.tariffs.stepNumber.replace("{n}", formatNumber(n))
+  const rows = [
+    { name: t.tariffs.lifeline, range: `${formatNumber(0)}–${formatNumber(50)}`, rate: LIFELINE_RATE },
+    ...NESCO_LTA_SLABS.map((s) => ({
+      name: step(s.step),
+      range: s.maxUnits ? `${formatNumber(s.minUnits)}–${formatNumber(s.maxUnits)}` : `${formatNumber(s.minUnits)}+`,
+      rate: s.ratePerUnit,
+    })),
+  ]
+  const fixed: [label: string, value: string][] = [
+    [t.receipt.demand, `${formatBDT(DEFAULT_DEMAND_CHARGE_PER_KW)} ${t.tariffs.perKw}`],
+    [t.receipt.rent, formatBDT(DEFAULT_METER_RENT)],
+    [t.receipt.vat, `${formatNumber(VAT_RATE * 100)}%`],
+    [t.tariffs.prepaidRebate, `${formatNumber(PREPAID_REBATE_RATE * 100)}%`],
+  ]
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t.tariffs.table}</CardTitle>
+        <CardDescription>{t.tariffs.lifelineNote}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t.tariffs.step}</TableHead>
+                <TableHead>{t.tariffs.range}</TableHead>
+                <TableHead className="text-right">{t.tariffs.rate}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.name}>
+                  <TableCell>{row.name}</TableCell>
+                  <TableCell className="num">{row.range}</TableCell>
+                  <TableCell className="num text-right font-semibold">{formatBDT(row.rate)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold">{t.tariffs.fixed}</h3>
+          <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-sm">
+            {fixed.map(([label, value]) => (
+              <React.Fragment key={label}>
+                <dt className="text-muted-foreground">{label}</dt>
+                <dd className="num text-right font-semibold">{value}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
+          <p className="text-xs text-muted-foreground">{t.tariffs.source}</p>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

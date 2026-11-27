@@ -2,6 +2,7 @@ import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { NumberField } from "@/components/ui/number-field"
 import {
   APPLIANCES,
   HOUSEHOLD_PRESETS,
@@ -29,8 +30,6 @@ import {
   CookingPot,
   ShowerHead,
   Wifi,
-  Plus,
-  Minus,
   RotateCcw,
   ArrowUpRight,
   SlidersHorizontal,
@@ -234,11 +233,10 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
   const [copiedApplied, setCopiedApplied] = React.useState<boolean>(false)
 
   // Update count for an appliance
-  const updateCount = (id: string, delta: number) => {
+  const updateCount = (id: string, value: number | null) => {
     setActivePresetId("")
     setCounts((prev) => {
-      const current = prev[id] || 0
-      const next = Math.max(0, Math.min(20, current + delta))
+      const next = Math.max(0, Math.min(20, Math.round(value ?? 0)))
       if (next === 0) {
         const copy = { ...prev }
         delete copy[id]
@@ -312,7 +310,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
     setTimeout(() => setCopiedApplied(false), 2500)
 
     // Smooth scroll to main calculator
-    const el = document.getElementById("main-calculator-top")
+    const el = document.getElementById("calculator")
     if (el) {
       el.scrollIntoView({ behavior: "smooth" })
     }
@@ -327,7 +325,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
   return (
     <div className="space-y-6">
       {/* Simulator Section Header */}
-      <Card className="rounded-2xl border shadow-xs overflow-hidden bg-gradient-to-br from-card via-card to-primary/5">
+      <Card className="bg-linear-to-br from-card via-card to-primary/5">
         <CardHeader className="pb-3 border-b bg-muted/20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -336,11 +334,11 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                   <SlidersHorizontal className="size-4" />
                 </span>
                 <CardTitle className="text-base sm:text-lg font-bold">
-                  {t.tariffs.simulatorTitle}
+                  {t.simulator.title}
                 </CardTitle>
               </div>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                {t.tariffs.simulatorSubtitle}
+                {t.simulator.subtitle}
               </CardDescription>
             </div>
 
@@ -353,7 +351,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                 className="h-8 text-xs text-muted-foreground hover:text-destructive gap-1 self-start sm:self-auto"
               >
                 <RotateCcw className="size-3" />
-                <span>{isBangla ? "সব মুছুন" : "Reset"}</span>
+                <span>{t.simulator.reset}</span>
               </Button>
             )}
           </div>
@@ -363,7 +361,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
           {/* Preset Buttons */}
           <div className="space-y-2">
             <span className="text-xs font-semibold text-muted-foreground block">
-              {t.tariffs.presetTitle}
+              {t.simulator.presets}
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {HOUSEHOLD_PRESETS.map((p) => {
@@ -381,7 +379,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                     onClick={() => applyPreset(p)}
                     className={`h-auto w-full flex-col items-start justify-start p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                       isActive
-                        ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30"
+                        ? "bg-primary/10 border-primary ring-1 ring-primary/30"
                         : "bg-background hover:bg-muted/60 border-border"
                     }`}
                   >
@@ -410,16 +408,16 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center sm:text-left">
               <div className="space-y-0.5">
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  {isBangla ? "মোট নির্বাচিত যন্ত্রপাতি" : "Selected Appliances"}
+                  {t.simulator.selected}
                 </span>
                 <div className="text-xl sm:text-2xl font-extrabold text-foreground font-mono">
-                  {formatNumber(totalDevices)} <span className="text-xs font-normal">{isBangla ? "টি" : "units"}</span>
+                  {formatNumber(totalDevices)}
                 </div>
               </div>
 
               <div className="space-y-0.5">
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  {t.tariffs.summaryTotalUnits}
+                  {t.simulator.units}
                 </span>
                 <div className="text-xl sm:text-2xl font-extrabold text-primary font-mono">
                   {formatNumber(totalKwh)} <span className="text-xs font-normal">kWh</span>
@@ -428,7 +426,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
 
               <div className="space-y-0.5">
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  {t.tariffs.summaryNetBill}
+                  {t.tariffs.total}
                 </span>
                 <div className="text-xl sm:text-2xl font-extrabold text-foreground font-mono">
                   {formatBDT(estimatedBill.totalBill)}
@@ -437,9 +435,9 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
 
               <div className="space-y-0.5">
                 <span className="text-[11px] font-medium text-muted-foreground block">
-                  {t.slab.currentTier}
+                  {t.simulator.tier}
                 </span>
-                <div className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                <div className="text-xs sm:text-sm font-bold text-success mt-1">
                   {isBangla ? estimatedBill.activeStep.nameBangla : estimatedBill.activeStep.nameEnglish}
                 </div>
               </div>
@@ -450,16 +448,16 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
               <div className="text-xs text-muted-foreground space-y-1">
                 {topConsumer ? (
                   <div>
-                    ⚡ {isBangla ? "সর্বোচ্চ বিদ্যুৎ খরচ:" : "Peak consumer:"} <strong>{topConsumer.name}</strong> ({isBangla ? "মোট ব্যবহারের" : "accounting for"}{" "}
-                    <strong>{formatNumber(topConsumer.percent)}%</strong> {isBangla ? "বা" : "or"}{" "}
-                    <strong>{formatNumber(Math.round(topConsumer.kwh))} kWh</strong>)
+                    {t.simulator.topConsumer}: <strong>{topConsumer.name}</strong> ·{" "}
+                    <strong>{formatNumber(topConsumer.percent)}%</strong> ·{" "}
+                    <strong>{formatNumber(Math.round(topConsumer.kwh))} kWh</strong>
                   </div>
                 ) : (
-                  <div>{isBangla ? "নিচের তালিকা থেকে যন্ত্রপাতির সংখ্যা বাড়িয়ে সিমুলেশন শুরু করুন।" : "Increase appliance counts below to model home energy consumption."}</div>
+                  <div>{t.simulator.start}</div>
                 )}
                 {currentUnits !== totalKwh && (
                   <div className="text-[11px] opacity-80">
-                    {isBangla ? "বর্তমানে মূল ক্যালকুলেটরে সেট করা:" : "Currently set on calculator:"} <strong>{formatNumber(currentUnits)} kWh</strong>
+                    {t.simulator.current}: <strong>{formatNumber(currentUnits)} kWh</strong>
                   </div>
                 )}
               </div>
@@ -469,19 +467,17 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                 size="sm"
                 onClick={handleApply}
                 disabled={totalKwh === 0}
-                className="h-9 px-4 rounded-xl text-xs font-bold gap-1.5 shadow-xs w-full sm:w-auto shrink-0"
+                className="h-9 px-4 rounded-xl text-xs font-bold gap-1.5 w-full sm:w-auto shrink-0"
               >
                 {copiedApplied ? (
                   <>
-                    <Check className="size-3.5 text-white" />
-                    <span>{isBangla ? "ক্যালকুলেটরে বসানো হয়েছে!" : "Applied to Calculator!"}</span>
+                    <Check className="size-3.5" />
+                    <span>{t.simulator.applied}</span>
                   </>
                 ) : (
                   <>
                     <span>
-                      {isBangla
-                        ? `এই ${formatNumber(totalKwh)} ইউনিট মূল ক্যালকুলেটরে দেখুন`
-                        : `Apply ${formatNumber(totalKwh)} kWh to Calculator`}
+                      {t.simulator.apply.replace("{n}", formatNumber(totalKwh))}
                     </span>
                     <ArrowUpRight className="size-3.5" />
                   </>
@@ -492,7 +488,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
             {/* Top Consumer Quick Chips */}
             {breakdownList.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-primary/15 text-[11px] text-muted-foreground">
-                <span className="font-semibold text-foreground">{isBangla ? "প্রধান ব্যবহারকারী:" : "Top contributors:"}</span>
+                <span className="font-semibold text-foreground">{t.simulator.contributors}:</span>
                 {breakdownList.slice(0, 4).map(({ item, kwh, count }) => {
                   const displayName = isBangla
                     ? item.nameBangla.split(" ")[0]
@@ -511,19 +507,17 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                {isBangla
-                  ? "যন্ত্রপাতির তালিকা (সংখ্যা বাড়াতে বা কমাতে + / - চাপুন):"
-                  : "Appliances List (Tap + / - to adjust quantity):"}
+                {t.simulator.list}
               </span>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
               {[
-                { id: "all", label: isBangla ? "সব যন্ত্রপাতি" : "All Appliances" },
-                { id: "cooling_heating", label: isBangla ? "❄️ শীতলীকরণ ও গরম" : "❄️ Cooling & Heating" },
-                { id: "kitchen", label: isBangla ? "🍳 রান্নাঘর ও খাবার" : "🍳 Kitchen & Dining" },
-                { id: "entertainment_tech", label: isBangla ? "💻 বিনোদন ও টেক" : "💻 Media & Tech" },
-                { id: "daily_utility", label: isBangla ? "🔌 নিত্য ইউটিলিটি" : "🔌 Heavy Utilities" },
+                { id: "all", label: t.simulator.categories.all },
+                { id: "cooling_heating", label: t.simulator.categories.cooling_heating },
+                { id: "kitchen", label: t.simulator.categories.kitchen },
+                { id: "entertainment_tech", label: t.simulator.categories.entertainment_tech },
+                { id: "daily_utility", label: t.simulator.categories.daily_utility },
               ].map((cat) => (
                 <Button
                   key={cat.id}
@@ -532,7 +526,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                   onClick={() => setSelectedCategory(cat.id as ApplianceCategory)}
                   className={`h-auto px-3 py-1.5 text-xs rounded-lg font-medium cursor-pointer transition-colors ${
                     selectedCategory === cat.id
-                      ? "bg-foreground text-background font-bold shadow-xs"
+                      ? "bg-foreground text-background font-bold"
                       : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
@@ -555,7 +549,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                     key={item.id}
                     className={`p-3.5 rounded-2xl border transition-all ${
                       isSelected
-                        ? "bg-primary/5 border-primary/40 shadow-xs ring-1 ring-primary/20"
+                        ? "bg-primary/5 border-primary/40 ring-1 ring-primary/20"
                         : "bg-card border-border/80 hover:border-border"
                     }`}
                   >
@@ -575,44 +569,25 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                             {name}
                           </h4>
                           <span className="text-[10px] text-muted-foreground font-mono">
-                            {formatNumber(item.defaultWatt)}W • {isBangla ? `দৈনিক ${formatNumber(item.defaultHoursPerDay)}h` : `${formatNumber(item.defaultHoursPerDay)}h / day`}
+                            {formatNumber(item.defaultWatt)}W • {t.simulator.daily.replace("{n}", formatNumber(item.defaultHoursPerDay))}
                           </span>
                         </div>
                       </div>
 
-                      {/* Stepper Buttons */}
-                      <div className="flex items-center gap-1.5 bg-background border rounded-lg p-0.5 shrink-0">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => updateCount(item.id, -1)}
-                          disabled={count === 0}
-                          className="size-6 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                          title={isBangla ? "সংখ্যা কমান" : "Decrease"}
-                        >
-                          <Minus className="size-3" />
-                        </Button>
-                        <span className="w-5 text-center font-mono text-xs font-bold">
-                          {formatNumber(count)}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => updateCount(item.id, 1)}
-                          className="size-6 flex items-center justify-center rounded-md bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer transition-colors"
-                          title={isBangla ? "সংখ্যা বাড়ান" : "Increase"}
-                        >
-                          <Plus className="size-3" />
-                        </Button>
-                      </div>
+                      <NumberField
+                        value={count}
+                        onValueChange={(value) => updateCount(item.id, value)}
+                        min={0}
+                        max={20}
+                        aria-label={`${t.simulator.quantity}: ${name}`}
+                        className="w-32 shrink-0"
+                      />
                     </div>
 
                     {/* Bottom metrics */}
                     <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between text-[11px]">
                       <span className="text-muted-foreground">
-                        {count > 0
-                          ? isBangla ? `${formatNumber(count)} টির ব্যবহার:` : `${formatNumber(count)} items:`
-                          : isBangla ? "প্রতিটিতে মাসিক:" : "Per unit monthly:"}
+                        {count > 0 ? t.simulator.usageOf.replace("{n}", formatNumber(count)) : t.simulator.perItem}
                       </span>
                       <span className="font-mono font-bold text-primary">
                         ~{formatNumber(itemMonthlyKwh)} kWh
@@ -630,21 +605,19 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
       <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <span className="p-1.5 rounded-lg bg-success/10 text-success">
               <Sparkles className="size-4" />
             </span>
             <h3 className="text-base sm:text-lg font-bold">
-              {isBangla ? "বাসার প্রধান যন্ত্রপাতির বিদ্যুৎ ব্যয় ও সাশ্রয়ী টিপস" : "Home Energy Guide & Efficiency Tips"}
+              {t.simulator.guide}
             </h3>
           </div>
           <Badge variant="outline" className="text-xs">
-            {formatNumber(APPLIANCES.length)} {isBangla ? "টি সাধারণ যন্ত্র" : "Appliances"}
+            {t.simulator.count.replace("{n}", formatNumber(APPLIANCES.length))}
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground">
-          {isBangla
-            ? "দৈনন্দিন জীবনে বহুল ব্যবহৃত যন্ত্রপাতির বিদ্যুৎ টানার হার, মাসিক সম্ভাব্য খরচ এবং বিআইপি ও বিইআরসি নির্দেশিত সাশ্রয়ী উপায়:"
-            : "Power ratings, monthly consumption estimates, and proven efficiency best practices for modern households:"}
+          {t.simulator.guideHint}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -660,7 +633,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
             return (
               <Card
                 key={app.id}
-                className="rounded-2xl p-4 border shadow-xs flex flex-col justify-between space-y-3 bg-card hover:border-primary/40 transition-colors"
+                className="p-4 flex flex-col justify-between space-y-3 hover:border-primary/40 transition-colors"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -675,9 +648,9 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                   <div>
                     <h4 className="text-sm font-bold text-foreground">{name}</h4>
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5 font-mono">
-                      <span>{formatNumber(app.defaultWatt)}W {isBangla ? "লোড" : "load"}</span>
+                      <span>{formatNumber(app.defaultWatt)}W {t.simulator.load}</span>
                       <span>•</span>
-                      <span>~{formatNumber(app.defaultHoursPerDay)} {isBangla ? "ঘণ্টা/দিন" : "hrs/day"}</span>
+                      <span>{t.simulator.daily.replace("{n}", formatNumber(app.defaultHoursPerDay))}</span>
                     </div>
                   </div>
 
@@ -690,7 +663,7 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                   {/* Monthly Units & Cost Badge */}
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-muted-foreground">
-                      {isBangla ? "মাসিক ইউনিট ও বিল:" : "Monthly Units & Cost:"}
+                      {t.simulator.monthly}:
                     </span>
                     <span className="text-primary font-mono font-bold">
                       ~{formatNumber(singleKwh)} kWh ({formatBDT(approxCost)})
@@ -699,9 +672,9 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
 
                   {/* Pro Tip */}
                   <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60 text-[11px] text-muted-foreground flex items-start gap-1.5">
-                    <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="size-3.5 text-success shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-foreground">{isBangla ? "টিপ:" : "Tip:"}</strong> {tip}
+                      <strong className="text-foreground">{t.simulator.tip}:</strong> {tip}
                     </span>
                   </div>
                 </div>
