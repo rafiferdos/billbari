@@ -73,6 +73,14 @@ describe("multi-token vends", () => {
   })
 })
 
+describe("spaced tokens", () => {
+  it("keeps one token written with spaces as one token", () => {
+    const cells = ["1", "1111 2222 3333 4444 5555", "0", "0", "0", "0", "0", "0", "900", "1000"]
+    const [record] = parseRechargeTable(cheerio.load(`<table class="bfont_post"><tbody><tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr></tbody></table>`))
+    expect(record.token).toBe("1111 2222 3333 4444 5555")
+  })
+})
+
 describe("toNum", () => {
   it("handles Bangla digits, commas and junk", () => {
     expect(toNum("১,২৩৪.৫০")).toBe(1234.5)

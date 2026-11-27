@@ -185,7 +185,7 @@ export function parseRechargeTable($: cheerio.CheerioAPI): RechargeRecord[] {
       const status = cols[statusIdx] || "Success"
 
       // One vend can carry several tokens, which NESCO joins with commas and a literal "<br>".
-      token = token.replace(/<br\s*\/?>/gi, " ").split(/[\s,]+/).filter(Boolean).join(", ")
+      token = token.replace(/<br\s*\/?>/gi, ",").split(",").map((t) => t.trim()).filter(Boolean).join(", ")
 
       if (token || grossAmount > 0) {
         records.push({
