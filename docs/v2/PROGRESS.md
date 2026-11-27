@@ -7,7 +7,7 @@ Never paste personal data (meter numbers, names, tokens) here.
 | --- | --- | --- | --- |
 | 1 — Design system | done | `6b51297..845599b` plus a final docs commit | 2026-11-27 |
 | 2 — Data & entitlements | done | `80f6142..4c4a803` plus a docs commit | 2026-11-27 |
-| 3 — Shell & home | not started | | |
+| 3 — Shell & home | done | `a0508e1..225ab7e` plus a docs commit | 2026-11-27 |
 | 4 — Records & tools | not started | | |
 | 5 — Pro & polish | not started | | |
 
@@ -151,3 +151,76 @@ live meter render on `/` with no console errors.
 - Hide runway numbers when `analytics.hasEnoughData` is false. The snapshot dialog
   still shows ৳0 per day in that case.
 
+
+---
+
+## Phase 3 — Shell & home (done 2026-11-27)
+
+**Deviations from the plan:**
+- External, download and in-app links are anchors styled with `buttonVariants`, not
+  `Button render` (that would give links `role="button"`).
+- Search submits with `force: true`, as before. `MeterContext` gained `failedMeter`
+  so Retry reloads the number that failed; `fetchMeter` now accepts Bangla digits
+  everywhere, including the history page.
+- One `MeterSearch` instance stays above landing, loading and dashboard, so typed
+  input survives errors. The loading skeleton shows under it.
+- A vend with several tokens shows one row and copy button per token.
+- Low-balance warning is `balance < threshold` (was `<=`).
+- Certificate PDF is hidden for sample data (the proxy answers 404 for it).
+- `SlabProgressCard` is in the Pro-gated `/insights`; its bill breakdown exists
+  nowhere else.
+- Footer keeps the NESCO helpline and official portal link.
+- History, tracking and tools pages lost their own container padding (`main` is now
+  `page-shell`).
+- The header is at least 72rem wide even in narrow themes; Pro badges show from `xl`.
+- The split layout's sticky aside scrolls on its own when taller than the window.
+- Stats are memoised on the result object, not on `fetchedAt`.
+- Extra files: `meter/use-save-meter.ts`, `dashboard/{dashboard,landing,region-parts,types}`.
+  Removed: `navbar.tsx`, `analytics/stat-card.tsx`, unused `hero` keys.
+- Fixed a Phase 1 bug: print CSS hid the print root too (selector specificity), so
+  every print came out blank. Dialog print roots also get their own print rules.
+- The branch review was a self-review, not a fresh-context reviewer.
+
+**Numbers:** 177 tests. Lint 0 errors, 70 warnings. Token-lint total 257 → 211.
+
+**Checked in the browser (sample meter, signed out):** `bidyut`, `khata`, `console`
+× light/dark × 360/768/1280: no horizontal scroll, dock or menu per theme, footer
+clear of the dock, bento rows and split aside as planned, balance + token + runway
+card within 1.5 screens at 360. All 8 themes at 360/1024/1280 for header fit. Token
+copy (clipboard stubbed), receipt, print rules applied on screen, short-number error,
+"/" shortcut, clear, More sheet, menu sheet, meter chip menu. Locked `runway` and
+`proInsights` text holds no values.
+
+**Not checked:** signed-in and Pro views in the browser (the dev server uses a remote
+database; unit tests cover the locked and open regions), the certificate link on a
+live meter, a real print dialog, the error card against a failing portal, share.
+
+**Inventory (nothing from the old home page is lost):**
+
+| Old | New home | ✔ |
+| --- | --- | --- |
+| Hero input, paste, clear | `MeterSearch` | ✔ |
+| `SavedMetersMenu` | Landing (signed in) + header meter chip | ✔ |
+| `SourceBanner` / `SourceBadge` | Above the grid / `balance` | ✔ |
+| Customer card | `customerInfo` | ✔ |
+| Save meter | `balance` | ✔ |
+| Alert threshold, dialog, banner | `balance` (Pro) | ✔ |
+| Snapshot button + dialog | `quickActions` (Pro) | ✔ |
+| Stat cards | `balance` / `runway` / `lastRecharge` | ✔ |
+| Overview tab | `/insights` | ✔ |
+| Insights tab | `proInsights` + `/insights` | ✔ |
+| Charts tab | `usageChart` + `/insights` | ✔ |
+| `SlabProgressCard` | `thisMonth` slab meter + `/insights` | ✔ |
+| Quick navigation card | Nav + `quickActions` | ✔ |
+| Saving tab | `/tariffs` (already there) | ✔ |
+| Landing value cards, sample meters | Free/Pro list, sample link | ✔ |
+| Navbar | `AppHeader` + `MobileDock` / menu | ✔ |
+
+**For the next phase:**
+- Reuse `TokenDisplay`, `ReceiptDialog`, `splitTokens`, `sortRechargesDesc`,
+  `monthName`, `NESCO_LINKS`, `MeterError`.
+- `/help` and `/insights` are interim pages. `/insights` still uses the old palette
+  components (`advanced-stats`, charts); `source-badge` too.
+- `ProGate` shows locked while the user is still loading, so Pro users see a flash.
+- `meter-context` and `saved-meters-menu` still hold inline `isBangla` strings.
+- Dev builds only: the TanStack devtools button covers the dock's "More" cell.
