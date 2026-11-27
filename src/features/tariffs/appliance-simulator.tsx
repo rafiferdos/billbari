@@ -391,10 +391,10 @@ export function ApplianceSimulator({ onApplyUnits, currentUnits }: ApplianceSimu
                         {tag}
                       </span>
                     </div>
-                    <div className="font-bold text-xs text-foreground truncate">
+                    <div className="w-full font-bold text-xs text-foreground truncate">
                       {name}
                     </div>
-                    <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                    <div className="w-full text-[10px] text-muted-foreground truncate mt-0.5">
                       {sub}
                     </div>
                   </Button>

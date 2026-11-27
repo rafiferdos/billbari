@@ -1,7 +1,7 @@
 import { createElement as h } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it } from "vitest"
-import { toCsv, type CsvColumn } from "../src/features/export/csv"
+import { describe, expect, it, vi } from "vitest"
+import { downloadCsv, toCsv, type CsvColumn } from "../src/features/export/csv"
 import { PrintableTable } from "../src/features/export/printable-table"
 import { LanguageProvider } from "../src/features/i18n/language-context"
 
@@ -29,6 +29,27 @@ describe("toCsv", () => {
   // a spreadsheet would run these as formulas
   it("defuses text that starts like a formula", () => {
     expect(body([{ a: "=1+1", b: "@cmd" }])).toEqual(["'=1+1,'@cmd"])
+  })
+})
+
+describe("downloadCsv", () => {
+  // some mobile browsers start the download after click() returns, so the URL must still be alive then
+  it("clicks a named link and releases the URL afterwards, not during", () => {
+    vi.useFakeTimers()
+    const anchor = { href: "", download: "", click: vi.fn() }
+    const revoke = vi.spyOn(URL, "revokeObjectURL")
+    vi.stubGlobal("document", { createElement: () => anchor })
+
+    downloadCsv("a.csv", "x")
+    expect(anchor.download).toBe("a.csv")
+    expect(anchor.click).toHaveBeenCalledOnce()
+    expect(revoke).not.toHaveBeenCalled()
+    vi.runAllTimers()
+    expect(revoke).toHaveBeenCalledWith(anchor.href)
+
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    revoke.mockRestore()
   })
 })
 

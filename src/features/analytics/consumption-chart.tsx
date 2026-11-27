@@ -105,7 +105,7 @@ export function ConsumptionChart({
               <Bar dataKey="usageKwh" fill="var(--chart-1)" radius={[barRadius, barRadius, 0, 0]} maxBarSize={38} />
             )}
             {metric !== "usage" && (
-              <Line dataKey="rechargeBdt" type={curve} stroke="var(--chart-2)" strokeWidth={strokeWidth} dot={false} />
+              <Line dataKey="rechargeBdt" type={curve} stroke="var(--chart-2)" strokeWidth={strokeWidth} dot={data.length === 1} />
             )}
           </ComposedChart>
         </ChartContainer>

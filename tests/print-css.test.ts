@@ -10,4 +10,10 @@ describe("print styles", () => {
     expect(print).toContain("body [data-print-root], body [data-print-root] *")
     expect(print.indexOf("visibility: hidden")).toBeLessThan(print.indexOf("body [data-print-root] *"))
   })
+
+  // with "background graphics" on, a dark theme would otherwise put black ink on a dark page
+  it("prints a table as black on white in every theme", () => {
+    const rule = print.slice(print.indexOf("body > [data-print-table]"))
+    expect(rule.slice(0, rule.indexOf("}"))).toContain("background: #fff")
+  })
 })

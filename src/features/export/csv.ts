@@ -22,5 +22,6 @@ export function downloadCsv(filename: string, csv: string): void {
   anchor.href = url
   anchor.download = filename
   anchor.click()
-  URL.revokeObjectURL(url)
+  // later, not now: some mobile browsers read the URL after click() returns
+  setTimeout(() => URL.revokeObjectURL(url))
 }

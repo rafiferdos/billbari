@@ -89,7 +89,8 @@ function Calculator({
   onUnitsChange: (units: number | null) => void
   fromMeter: boolean
 }) {
-  const { t, isBangla, formatBDT, formatNumber } = useLanguage()
+  const { t, formatBDT, formatNumber } = useLanguage()
+  const stepName = useStepName()
   const [loadKw, setLoadKw] = React.useState<number | null>(2)
   const [phase, setPhase] = React.useState<"single" | "three">("single")
   const unitsId = React.useId()
@@ -162,7 +163,7 @@ function Calculator({
             <TableBody>
               {bill.slabBreakdown.map((slab) => (
                 <TableRow key={slab.step}>
-                  <TableCell className="whitespace-normal">{isBangla ? slab.nameBangla : slab.nameEnglish}</TableCell>
+                  <TableCell>{stepName(slab.step)}</TableCell>
                   <TableCell className="num text-right">{formatNumber(slab.unitsInSlab)}</TableCell>
                   <TableCell className="num text-right">{formatBDT(slab.rate)}</TableCell>
                   <TableCell className="num text-right">{formatBDT(slab.amount)}</TableCell>
@@ -188,13 +189,20 @@ function Calculator({
   )
 }
 
+/** Step 0 is the lifeline rate. Ranges have their own column, so the name stays short. */
+function useStepName() {
+  const { t, formatNumber } = useLanguage()
+  return (step: number) =>
+    step === 0 ? t.tariffs.lifeline : t.tariffs.stepNumber.replace("{n}", formatNumber(step))
+}
+
 function TariffTable() {
   const { t, formatBDT, formatNumber } = useLanguage()
-  const step = (n: number) => t.tariffs.stepNumber.replace("{n}", formatNumber(n))
+  const stepName = useStepName()
   const rows = [
-    { name: t.tariffs.lifeline, range: `${formatNumber(0)}–${formatNumber(50)}`, rate: LIFELINE_RATE },
+    { name: stepName(0), range: `${formatNumber(0)}–${formatNumber(50)}`, rate: LIFELINE_RATE },
     ...NESCO_LTA_SLABS.map((s) => ({
-      name: step(s.step),
+      name: stepName(s.step),
       range: s.maxUnits ? `${formatNumber(s.minUnits)}–${formatNumber(s.maxUnits)}` : `${formatNumber(s.minUnits)}+`,
       rate: s.ratePerUnit,
     })),

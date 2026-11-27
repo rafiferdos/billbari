@@ -1,7 +1,6 @@
 {
   "src/components/language-toggle.tsx": 3,
   "src/features/analytics/advanced-stats.tsx": 26,
-  "src/features/analytics/consumption-chart.tsx": 1,
   "src/features/analytics/recharge-trend-chart.tsx": 1,
   "src/features/analytics/slab-progress-card.tsx": 9,
   "src/features/auth/auth-dialog.tsx": 5,
@@ -10,9 +9,5 @@
   "src/features/payments/pricing-dialog.tsx": 15,
   "src/features/snapshots/snapshot-dialog.tsx": 6,
   "src/features/snapshots/snapshot-history.tsx": 17,
-  "src/features/tariffs/appliance-simulator.tsx": 13,
-  "src/features/tariffs/bill-saving-section.tsx": 17,
-  "src/routes/history.tsx": 12,
-  "src/routes/snapshots.tsx": 37,
-  "src/routes/tariffs.tsx": 7
+  "src/routes/snapshots.tsx": 37
 }

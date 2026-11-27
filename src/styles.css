@@ -178,6 +178,7 @@
         --muted-foreground: #444;
         --border: #999;
         color: #000;
+        background: #fff;
     }
     [data-slot="dialog-content"] [data-print-root] {
         position: static;
