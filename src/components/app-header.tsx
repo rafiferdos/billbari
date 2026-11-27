@@ -43,7 +43,8 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 h-(--bb-header-h) border-b-(length:--bb-border-w) border-border text-(--bb-header-fg) [background:var(--bb-header-bg)] [backdrop-filter:var(--bb-header-backdrop)]">
-      <div className="page-shell flex h-full items-center gap-2">
+      {/* the six links need room even in themes with a narrow reading column */}
+      <div className="page-shell flex h-full max-w-[max(var(--bb-container),72rem)]! items-center gap-2">
         <Link to="/" className="flex shrink-0 items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-(--bb-control-radius) bg-primary text-primary-foreground">
             <Zap className="size-4 fill-current" />
@@ -66,7 +67,11 @@ export function AppHeader() {
               )}
             >
               {t.nav[item.labelKey]}
-              {item.pro && <Badge variant="secondary">{t.pro.badge}</Badge>}
+              {item.pro && (
+                <Badge variant="secondary" className="hidden xl:inline-flex">
+                  {t.pro.badge}
+                </Badge>
+              )}
             </Link>
           ))}
         </nav>

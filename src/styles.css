@@ -136,12 +136,39 @@
     body:has([data-print-root]) * {
         visibility: hidden;
     }
-    [data-print-root], [data-print-root] * {
+    /* the `body` prefix is needed to outrank the rule above */
+    body [data-print-root], body [data-print-root] * {
         visibility: visible;
     }
     [data-print-root] {
         position: absolute;
         inset: 0 auto auto 0;
         width: 100%;
+    }
+    /* Inside a dialog the popup itself becomes the printed page: undo its centering, clipping and scroll lock. */
+    html:has([data-slot="dialog-content"] [data-print-root]),
+    body:has([data-slot="dialog-content"] [data-print-root]) {
+        overflow: visible !important; /* the scroll lock is an inline style */
+        height: auto;
+    }
+    body:has([data-slot="dialog-content"] [data-print-root]) > :not(:has([data-print-root])) {
+        display: none;
+    }
+    [data-slot="dialog-content"]:has([data-print-root]) {
+        position: static;
+        translate: none;
+        transform: none;
+        animation: none;
+        max-height: none;
+        max-width: none;
+        overflow: visible;
+        border: 0;
+        box-shadow: none;
+    }
+    [data-slot="dialog-content"]:has([data-print-root]) > :not([data-print-root]) {
+        display: none;
+    }
+    [data-slot="dialog-content"] [data-print-root] {
+        position: static;
     }
 }

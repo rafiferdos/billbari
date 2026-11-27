@@ -43,7 +43,7 @@ export function AccountMenu() {
           <UserRound className="sm:hidden" />
           <span className="hidden sm:inline">{t.nav.login}</span>
         </Button>
-        <Button size="sm" onClick={() => openAuthModal("register")} className="hidden sm:inline-flex">
+        <Button size="sm" onClick={() => openAuthModal("register")} className="hidden sm:inline-flex lg:hidden xl:inline-flex">
           {t.nav.register}
         </Button>
       </>

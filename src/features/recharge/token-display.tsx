@@ -37,7 +37,7 @@ export function TokenDisplay({ token, size = "sm" }: { token: string; size?: "sm
             size={size === "lg" ? "icon" : "icon-sm"}
             aria-label={t.token.copy}
             title={t.token.copy}
-            className="ml-auto"
+            className="ml-auto print:hidden"
             onClick={() => void copyText(value, t)}
           >
             <Copy />
