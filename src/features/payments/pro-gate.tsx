@@ -71,7 +71,7 @@ export function ProGate({
           <Badge variant="outline">{t.pro.badge}</Badge>
         </div>
         <div>
-          <h3 className="text-sm font-semibold">{name}</h3>
+          <h2 className="text-sm font-semibold">{name}</h2>
           <p className="text-xs text-muted-foreground">{description}</p>
         </div>
         <Button size="sm" onClick={onClick} className="mt-auto">

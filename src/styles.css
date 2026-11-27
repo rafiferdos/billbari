@@ -156,8 +156,7 @@
     }
     [data-slot="dialog-content"]:has([data-print-root]) {
         position: static;
-        translate: none;
-        transform: none;
+        translate: none; /* no `transform` beside it: the minifier would fold this line into it and drop it */
         animation: none;
         max-height: none;
         max-width: none;
