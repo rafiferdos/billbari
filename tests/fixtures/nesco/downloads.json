@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "certificate",
+    "status": 200,
+    "contentType": "application/pdf",
+    "bytes": 179695
+  },
+  {
+    "kind": "recharge",
+    "status": 200,
+    "contentType": "application/pdf",
+    "bytes": 231665
+  },
+  {
+    "kind": "monthly",
+    "status": 200,
+    "contentType": "application/pdf",
+    "bytes": 200170
+  }
+]

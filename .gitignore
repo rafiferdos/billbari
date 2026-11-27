@@ -1,5 +1,8 @@
 node_modules
 .DS_Store
+
+# unredacted NESCO captures (personal data)
+tests/fixtures/nesco/*.raw.html
 dist
 dist-ssr
 *.local
