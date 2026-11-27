@@ -49,3 +49,17 @@ export function sortMonthlyDesc<T extends { year: number | string; month: string
 export function isSameCalendarMonth(row: { year: number | string; month: string }, now: Date): boolean {
   return yearNumber(row.year) === now.getFullYear() && monthIndex(row.month) === now.getMonth()
 }
+
+export function sortRechargesDesc<T extends { date: string }>(rows: T[]): T[] {
+  const key = (row: T) => parseNescoDate(row.date)?.getTime() ?? -Infinity
+  return [...rows].sort((a, b) => key(b) - key(a) || 0)
+}
+
+const SHORT_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const LONG_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+/** index 0-11 */
+export function monthName(index: number, isBangla: boolean, style: "short" | "long" = "long"): string {
+  const en = (style === "short" ? SHORT_EN : LONG_EN)[index]
+  return isBangla ? BANGLA_MONTHS[en] : en
+}

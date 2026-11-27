@@ -20,7 +20,7 @@ describe("dashboard regions", () => {
   })
 
   it("use at most two columns at md and both split columns", () => {
-    expect(REGIONS.every((r) => r.bento.md === 1 || r.bento.md === 2)).toBe(true)
+    for (const r of REGIONS) expect([1, 2]).toContain(r.bento.md)
     expect(new Set(REGIONS.map((r) => r.split))).toEqual(new Set(["aside", "main"]))
   })
 
