@@ -294,6 +294,12 @@ export const translations = {
         top: "উপরে মেনু",
       },
     },
+    pro: {
+      badge: "প্রো",
+      signIn: "লগইন করুন",
+      upgrade: "প্রো নিন — ৳২০/মাস থেকে",
+      lockedTitle: "প্রো ফিচার",
+    },
     common: {
       loading: "লোড হচ্ছে...",
       close: "বন্ধ করুন",
@@ -605,6 +611,12 @@ export const translations = {
         dock: "Bottom dock",
         top: "Top menu",
       },
+    },
+    pro: {
+      badge: "Pro",
+      signIn: "Sign in",
+      upgrade: "Get Pro — from ৳20/month",
+      lockedTitle: "Pro feature",
     },
     common: {
       loading: "Loading...",
