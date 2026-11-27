@@ -6,10 +6,10 @@ Never paste personal data (meter numbers, names, tokens) here.
 | Phase | Status | Commit range | Date |
 | --- | --- | --- | --- |
 | 1 — Design system | done | `6b51297..845599b` plus a final docs commit | 2026-11-27 |
-| 2 — Data & entitlements | done | `80f6142..4c4a803` plus a docs commit | 2026-11-27 |
-| 3 — Shell & home | done | `a0508e1..225ab7e` plus a docs commit | 2026-11-27 |
-| 4 — Records & tools | done | `5112d6e..742ebaa` plus a docs commit | 2026-11-27 |
-| 5 — Pro & polish | done | `225f3f8..a3c4003` plus a docs commit | 2026-11-27 |
+| 2 — Data & entitlements | done | `0cecb85..8d6ec06` plus a docs commit | 2026-11-27 |
+| 3 — Shell & home | done | `791ad10..bb2aef1` plus a docs commit | 2026-11-27 |
+| 4 — Records & tools | done | `7155389..27c15d8` plus a docs commit | 2026-11-27 |
+| 5 — Pro & polish | done | `318e3c9..b517a50` plus a docs commit | 2026-11-27 |
 
 Plan baseline: commit `3205907`, 2026-11-27. `node_modules` was not installed at
 planning time; Phase 1 Step 1 installs it and records the test/typecheck baseline.
@@ -98,6 +98,10 @@ tested on hand-written HTML only.
 অনুমোদিত লোড (কি.ও) · অনুমোদিত ট্যারিফ · মিটারের ধরণ · মিটার স্ট্যাটাস ·
 মিটার স্থাপনের তারিখ · মিনিমাম রিচার্জের পরিমাণ (টাকা) ·
 অবশিষ্ট ব্যালেন্স (টাকা)(সময়ঃ … )
+
+**Before the first push:** amounts, dates, usage and balance in the fixtures were
+replaced with synthetic values and the unpushed commits rewritten. The capture script
+does not do this: a re-capture holds real values, so replace them before committing.
 
 **Deviations from the plan:**
 - Parser: each input sits in the label's next sibling, several pairs per row, so
@@ -247,12 +251,12 @@ live meter, a real print dialog, the error card against a failing portal, share.
   breakdown table shows short tier names (ranges are in the tariff table).
 - FAQ storage answer says an automatic daily job "can" record Pro snapshots: the
   repo has the endpoint but no schedule.
-- Commit `5112d6e` alone does not typecheck (translation blocks landed one commit
+- Commit `7155389` alone does not typecheck (translation blocks landed one commit
   early).
 - The branch review was a self-review, not a fresh-context reviewer.
 
 **Numbers:** 198 tests. Lint 0 errors, 69 warnings. Token-lint total 211 → 161.
-Last code commit `742ebaa`.
+Last code commit `27c15d8`.
 
 **Checked in the browser (sample meter):** `bidyut`, `dharalo`, `komol` × light/dark ×
 360/1280 on History (both tabs), Tools and Help: no page horizontal scroll. In `komol`
