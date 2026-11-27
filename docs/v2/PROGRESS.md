@@ -8,7 +8,7 @@ Never paste personal data (meter numbers, names, tokens) here.
 | 1 — Design system | done | `6b51297..845599b` plus a final docs commit | 2026-11-27 |
 | 2 — Data & entitlements | done | `80f6142..4c4a803` plus a docs commit | 2026-11-27 |
 | 3 — Shell & home | done | `a0508e1..225ab7e` plus a docs commit | 2026-11-27 |
-| 4 — Records & tools | not started | | |
+| 4 — Records & tools | done | `5112d6e..742ebaa` plus a docs commit | 2026-11-27 |
 | 5 — Pro & polish | not started | | |
 
 Plan baseline: commit `3205907`, 2026-11-27. `node_modules` was not installed at
@@ -224,3 +224,60 @@ live meter, a real print dialog, the error card against a failing portal, share.
 - `ProGate` shows locked while the user is still loading, so Pro users see a flash.
 - `meter-context` and `saved-meters-menu` still hold inline `isBangla` strings.
 - Dev builds only: the TanStack devtools button covers the dock's "More" cell.
+
+---
+
+## Phase 4 — Records, tools & help (done 2026-11-27)
+
+**Deviations from the plan:**
+- CSV prefixes `'` to text that starts like a formula (`= + - @`); numbers are untouched.
+- The print table is portalled to `<body>` with its own print CSS (black on white,
+  the page behind removed), so it prints without blank pages. `downloadCsv` releases
+  its URL on the next tick.
+- Chart: recharge is now a line (theme curve and stroke width) over usage bars, on the
+  same shared axis as before, so kWh bars stay small beside ৳.
+- NESCO PDF buttons are hidden for sample data (the proxy answers 404), as the
+  certificate button already was. Token search also matches without dashes and in
+  Bangla digits.
+- The appliance simulator had no numeric inputs and no hours field: its +/− quantity
+  stepper became a `NumberField` (0–20). No hours input was added.
+- UI copy in the simulator and saving tips moved to translations; the appliance,
+  preset and tip data dictionaries stay in their files.
+- The calculator slider still ends at 800; the number field goes to 2000. The
+  breakdown table shows short tier names (ranges are in the tariff table).
+- FAQ storage answer says an automatic daily job "can" record Pro snapshots: the
+  repo has the endpoint but no schedule.
+- Commit `5112d6e` alone does not typecheck (translation blocks landed one commit
+  early).
+- The branch review was a self-review, not a fresh-context reviewer.
+
+**Numbers:** 198 tests. Lint 0 errors, 69 warnings. Token-lint total 211 → 161.
+Last code commit `742ebaa`.
+
+**Checked in the browser (sample meter):** `bidyut`, `dharalo`, `komol` × light/dark ×
+360/1280 on History (both tabs), Tools and Help: no page horizontal scroll. In `komol`
+at 1280 the recharge table scrolls about 27px inside its card. With a temporary local
+Pro override (not committed): planner, simulator, apply-to-calculator, monthly CSV
+content and file name. Signed out: planner, simulator, tips and CSV locked with no
+values. Pagination, search, receipt, one-month chart, and print rules applied on
+screen at A4 width.
+
+**Not checked:** a real print dialog, a real file download, NESCO PDF buttons on a live
+meter, signed-in views with a real account.
+
+**NESCO parity (master plan section 2) — reachable in the UI:**
+- [x] Customer info (home) · [x] Balance (home) · [x] Arrear notice (home; never seen
+  on a live account)
+- [x] Recharge history (History) · [x] Token receipt (History, home)
+- [x] Monthly usage (History) · [x] Certificate PDF (home, Help)
+- [x] History and usage PDFs, plus print (History) · [x] NESCO links (Help)
+
+**For the next phase:**
+- Reuse `toCsv`/`downloadCsv`, `usePrint`/`PrintableTable`, `planRecharge`,
+  `filterRecharges`.
+- Records without `netEnergyBdt` count their gross amount as net energy in the
+  deduction totals (Phase 2 behaviour), so "net" can equal "gross" on sample data and
+  older tables.
+- A failed meter search writes the number to the server log (`nesco-service.ts`).
+- Nothing in the repo schedules `/api/cron/daily-pulse`.
+- Appliance simulator and saving tips still use the older dense card styling.
